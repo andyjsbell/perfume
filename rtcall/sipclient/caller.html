@@ -1,0 +1,164 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+<title>Caller</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"> 
+    <meta name="author" content="uskee.org">
+    <link rel="stylesheet" href="caller.css" type="text/css"></link>
+    
+    <script type="text/javascript">
+        function $(name) {
+            return document.getElementById(name);
+        }
+        function log(msg, type) {
+            var log_text = $("log-text");
+            if (log_text) {
+                log_text.value += "\n" + msg;
+                if (gCaller && gCaller.log_scroll)
+                    log_text.scrollTop = log_text.scrollHeight;
+            }
+        };
+    </script>
+    <script type="text/javascript" src="sip.js"></script>
+    <script type="text/javascript" src="caller.js"></script>
+    
+</head> 
+ 
+<body>
+    <div id="call-box">
+		call information:
+        <div>call state:<span id="call_state">idle</span></div>
+    </div>
+    
+    <div id="im-box">
+		im information:
+		<div><textarea id="im-history" readonly="readonly">This area displays the text messages.</textarea></div>
+    </div>
+    
+    <div id="video-box">
+		video:
+		<div>local video:<div id="local-video"></div></div>
+		<div>remote video:<div id="remote-video"></div></div>
+    </div>
+    
+    <div id="network-box">
+		network:
+		<div>network status:<span id="network_status"></span></div>
+        <div id="webrtc-network">
+            HTML5 support:
+            <ol>
+                <li>video - <b><span id="has_html5_video"></span></b></li>
+                <li>websocket - <b><span id="has_html5_websocket"></span></b></li>
+                <li>webrtc - <b><span id="has_html5_webrtc"></span></b></li>
+            </ol>
+        </div>
+    </div>
+    
+    <div id="help-box">
+		help:
+        <div id="help"></div>
+    </div>
+    
+    <div id="log-box">
+		log:
+		<div><textarea id="log-text" readonly="readonly">This box displays the program trace</textarea></div>
+    </div>
+    
+    <script type="text/javascript">
+		log("[*] start to init....");
+        var gCaller = new Caller();
+
+        //network._debug = true;
+        //network.onstatus = function(value) { gCaller.statusChanged(value); };
+        //network.onnetworkchange = function() { gCaller.networkChanged(); };
+        
+		log("[*] add event of propertyChange....");
+        gCaller.addEventListener("propertyChange", function(event) {
+            var value = event.newValue;
+            var property = event.property;
+            var subprop = "";
+            if (property.indexOf(".") >= 0) {
+                var parts = property.split(".");
+                property = parts[0];
+                if (parts.length > 0)
+                    subprop = parts[1];
+            }
+            
+            var input = $(property);
+            if (!input) {
+                var inputs = document.getElementsByName(property);
+                // this may be radio buttons.
+                for (var j=0; j<inputs.length; ++j) {
+                    var input1 = inputs[j];
+                    if (subprop) {
+                        input1[subprop] = value;
+                    }
+                    else if (input1.value == value) {
+                        input = input1;
+                        input.checked = true;
+                        break;
+                    }
+                }
+            }
+            else {
+                if (input.localName == "input") {
+                    if (input.type == "text" || input.type == "password" || input.type == "button") {
+                        if (subprop)
+                            input[subprop] = value;
+                        else
+                            input.value = value;
+                    }
+                    else if (input.type == "checkbox") {
+                        if (subprop)
+                            input[subprop] = value;
+                        else
+                            input.checked = (value && value != "false" ? true : false);
+                    }
+                    else if (input.type == "radio") {
+                        if (subprop) {
+                            input[subprop] = value;
+                        }
+                    }
+                }
+                else if (input.localName == "span" || input.localName == "div") {
+                    if (!subprop)
+                        input.innerHTML = cleanHTML(value);
+                }
+                else if (input.localName == "select") {
+                    if (subprop)
+                        input[subprop] = value;
+                    else
+                        input.value = value;
+                }
+                else {
+                    log("[*] ignoring propertyChange for " + event.property);
+                }
+            }
+        });
+        
+        gCaller.addEventListener("message", function(event) {
+            var msg = "";
+            if (event.sender) {
+                msg += event.sender + ": ";
+            }
+            if (event.text) {
+                msg += event.text;
+            }
+        });
+        
+        gCaller.populate();
+        gCaller.help("default");
+        
+        if (gCaller.network_type != "WebRTC") {
+        }
+        else {
+            $('local-video').innerHTML = "";
+            $('remote-video').innerHTML = "";
+            
+            gCaller.detectHTML5();
+            $('webrtc-network').style.visibility = "visible";
+        }
+
+    </script>
+</body>
+</html>
