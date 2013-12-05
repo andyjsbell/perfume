@@ -20,6 +20,10 @@ function cleanHTML(value) {
     return ("" + value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+///
+/// Supported methods: setLocation/setVideoProperty/setProperty/populate/detectHTML5/..
+///		register/call/end/hangup/
+/// 
 function Caller() {
     // properties in config
     this.displayname = 'First Last';
@@ -27,7 +31,7 @@ function Caller() {
     this.domain = 'localhost';
     this.authname =  'myname';
     this.password = '';
-    this.transport = 'udp';
+    this.transport = 'ws'; // support ws(WebRTC) or UDP(Flash)
     
     // properties in register
     this.outbound = 'proxy';
@@ -1387,8 +1391,8 @@ Caller.prototype.dialogCreated = function(dialog, ua, stack) {
 
 Caller.prototype.authenticate = function(ua, header, stack) {
     log("phone.authenticate() called");
-    header.username = $('authname').value;
-    header.password = $('password').value;
+    header.username = this.authname;
+    header.password = this.password;
     return true;
 };
 

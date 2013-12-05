@@ -27,6 +27,23 @@
 <body>
     <div id="call-box">
 		call information:
+		<div>
+			target scheme:
+            <select id="target_scheme" 
+                onchange="gCaller.setProperty('target_scheme', ['sip', 'tel', 'urn'][$('target_scheme').selectedIndex])">
+                <option id="target_scheme_sip" value="sip">sip</option>
+                <option id="target_scheme_tel" value="tel">tel</option>
+                <option id="target_scheme_urn" value="urn">urn</option>
+            </select>
+            <input type="text" id="target_value" value="" 
+                onkeyup="setTimeout(phone.setProperty('target_value', $('target_value').value), 500)"/>
+		</div>
+        <div>
+            <input type="button" id="call_button" value="Call" 
+                    onclick="return gCaller.call();" title="click to call or answer"></input>
+            <input type="button" id="end_button" value="End" 
+                    onclick="return gCaller.end();" title="click to cancel, decline or hang up"></input>
+        </div>
         <div>call state:<span id="call_state">idle</span></div>
     </div>
     
