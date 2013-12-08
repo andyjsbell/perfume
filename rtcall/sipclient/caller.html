@@ -26,9 +26,9 @@
  
 <body>
     <div id="call-box">
-		call information:
-		<div>
-			target scheme:
+        call information:
+        <div>
+            target scheme:
             <select id="target_scheme" 
                 onchange="gCaller.setProperty('target_scheme', ['sip', 'tel', 'urn'][$('target_scheme').selectedIndex])">
                 <option id="target_scheme_sip" value="sip">sip</option>
@@ -37,7 +37,7 @@
             </select>
             <input type="text" id="target_value" value="" 
                 onkeyup="setTimeout(phone.setProperty('target_value', $('target_value').value), 500)"/>
-		</div>
+        </div>
         <div>
             <input type="button" id="call_button" value="Call" 
                     onclick="return gCaller.call();" title="click to call or answer"></input>
@@ -48,19 +48,19 @@
     </div>
     
     <div id="im-box">
-		im information:
-		<div><textarea id="im-history" readonly="readonly">This area displays the text messages.</textarea></div>
+        im information:
+        <div><textarea id="im-history" readonly="readonly">This area displays the text messages.</textarea></div>
     </div>
     
     <div id="video-box">
-		video:
-		<div>local video:<div id="local-video"></div></div>
-		<div>remote video:<div id="remote-video"></div></div>
+        video:
+        <div>local video:<div id="local-video"></div></div>
+        <div>remote video:<div id="remote-video"></div></div>
     </div>
     
     <div id="network-box">
-		network:
-		<div>network status:<span id="network_status"></span></div>
+        network:
+        <div>network status:<span id="network_status"></span></div>
         <div id="webrtc-network">
             HTML5 support:
             <ol>
@@ -72,24 +72,24 @@
     </div>
     
     <div id="help-box">
-		help:
+        help:
         <div id="help"></div>
     </div>
     
     <div id="log-box">
-		log:
-		<div><textarea id="log-text" readonly="readonly">This box displays the program trace</textarea></div>
+        log:
+        <div><textarea id="log-text" readonly="readonly">This box displays the program trace</textarea></div>
     </div>
     
     <script type="text/javascript">
-		log("[*] start to init....");
+        log("[*] start to init....");
         var gCaller = new Caller();
 
         //network._debug = true;
         //network.onstatus = function(value) { gCaller.statusChanged(value); };
         //network.onnetworkchange = function() { gCaller.networkChanged(); };
         
-		log("[*] add event of propertyChange....");
+        log("[*] add event of propertyChange....");
         gCaller.addEventListener("propertyChange", function(event) {
             var value = event.newValue;
             var property = event.property;

@@ -22,7 +22,7 @@ function cleanHTML(value) {
 
 ///
 /// Supported methods: setLocation/setVideoProperty/setProperty/populate/detectHTML5/..
-///		register/call/end/hangup/
+///     register/call/end/hangup/
 /// 
 function Caller() {
     // properties in config
@@ -164,7 +164,7 @@ Caller.prototype.detectHTML5 = function() {
         local.id = "html5-local-video";
         local.style.width = "240";
         local.style.height = "168";
-		// local.style.backgroundColor = "#000000";
+        // local.style.backgroundColor = "#000000";
         local.autoplay = "autoplay";
         $('local-video').appendChild(local);
         
@@ -172,7 +172,7 @@ Caller.prototype.detectHTML5 = function() {
         remote.id = "html5-remote-video";
         remote.style.width = "240";
         remote.style.height = "168";
-		// remote.style.backgroundColor = "#000000";
+        // remote.style.backgroundColor = "#000000";
         remote.autoplay = "autoplay";
         $('remote-video').appendChild(remote);
         
@@ -243,7 +243,7 @@ Caller.prototype.statusChanged = function(value) {
     var enable = (value == "connected");
     
     if (enable) {
-		//TODO: SIP is connected and do something for it here
+        //TODO: SIP is connected and do something for it here
     }
     else {
         // disable all edits and reset
@@ -309,7 +309,7 @@ Caller.prototype.register = function() {
 Caller.prototype.switchNetworkType = function() {
     var current = this.network_type;
     var other = (current == 'Flash' ? 'WebRTC' : 'Flash');
-	this.network_type = other;
+    this.network_type = other;
     return true;
 };
 
@@ -1221,7 +1221,7 @@ Caller.prototype.receivedBye = function(ua, request) {
         ua.sendResponse(ua.createResponse(200, 'OK'));
         this.dispatchMessage('Call closed by remote party');
         this.setProperty("call_state", "closed");
-		//this.hungup();
+        //this.hungup();
     }
 };
 
@@ -1537,9 +1537,9 @@ Caller.prototype.help = function(name) {
     var text = null;
     if (!text)
         text = 'Help text for this feature is not written';
-	var help = $("help");
-	if (help)
-		help.innerHTML = text;
+    var help = $("help");
+    if (help)
+        help.innerHTML = text;
     return true;
 };
 
