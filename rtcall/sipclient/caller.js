@@ -399,9 +399,11 @@ Caller.prototype.createSocket = function() {
         this._sock.receive();
     }
     else if (this.transport == "ws") { // WebRTC network
-        log("  connecting to " + this.outbound_proxy_address);
+        var uri = 'ws://' + this.outbound_proxy_address + this.websocket_path;
+        log("  connecting to " + uri);
         try {
-            this._sock = new WebSocket('ws://' + this.outbound_proxy_address + this.websocket_path, ["sip"]);
+            //this._sock = new WebSocket(uri, ["sip"]);
+            this._sock = new WebSocket(uri);
             var parent = this;
             this._sock.onopen = function() { parent.onWebSocketOpen(); };
             this._sock.onclose = function() { parent.onWebSocketClose(); };
@@ -1305,7 +1307,7 @@ Caller.prototype.receivedMessage = function(ua, request) {
 };
 
 Caller.prototype.onSockData = function(event) {
-    log("<= " + event.srcAddress + ":" + event.srcPort + "\n" + event.data);
+    log("onSockData <= " + event.srcAddress + ":" + event.srcPort + "\n" + event.data);
     this._stack.received(event.data, [event.srcAddress, event.srcPort]);
 };
 
@@ -1320,20 +1322,28 @@ Caller.prototype.onSockError = function(event) {
     this.hungup();
 };
 
+
+///
+/// WebSocket callback interfaces
+///
+
 Caller.prototype.onWebSocketOpen = function() {
-    log("websocket connected");
+    log("ws onWebSocketOpen");
     this.onSockPropertyChange({"property": "connected", "oldValue": false, "newValue": true});
 };
 
 Caller.prototype.onWebSocketClose = function() {
+    log("ws onWebSocketClose").
     this.onSockPropertyChange({"property": "connected", "oldValue": true, "newValue": false});
 };
 
 Caller.prototype.onWebSocketError = function(error) {
+    log("ws onWebSocketError").
     this.onSockError({"code": "websocket-error", "reason": error});
 };
 
 Caller.prototype.onWebSocketMessage = function(msg) {
+    log("ws onWebSocketMessage").
     this.onSockData({"data": msg.data, "srcPort": 0, "srcAddress": "127.0.0.1"});
 };
 
@@ -1439,6 +1449,7 @@ Caller.prototype.resolve = function(host, type, callback, stack) {
 
 Caller.prototype.send = function(data, addr, stack) {
     log("sip.Stack.send => " + addr[0] + ":" + addr[1] + "\n" + data);
+    log("======================\r\n");
     this._sock.send(data, addr[0], addr[1]);
 };
 
