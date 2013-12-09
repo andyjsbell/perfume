@@ -1,3 +1,12 @@
+
+div#config-box {
+    border: 3px solid #c0c0c0;
+}
+
+div#register-box {
+    border: 3px solid #c0c0c0;
+}
+
 div#call-box {
     border: 3px solid #c0c0c0;
 }
@@ -20,4 +29,12 @@ div#help-box {
 
 div#log-box {
     border: 3px solid #c0c0c0;
+    width: 640;
+    height: 480;
 }
+
+textarea#log-text {
+    width: 640;
+    height: 480;
+}
+

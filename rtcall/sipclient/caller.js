@@ -41,8 +41,20 @@ function Caller() {
     this.sipoutbound = false;
     this.local_aor = '"' + this.displayname + '" <sip:' + this.username + '@' + this.domain + '>';
     this.sock_state = "idle";
+    // possible state values for this.sock_state:
+    //      idle
+    //      creating
+    //      bound
+    //      connected
+
     this.register_state = "not registered";
     this.register_button = 'Register';
+    // possible state values for this.register_state:
+    //      not registered - nop, or register failed/closed/..
+    //      waiting - want to initiate one sip REGISTER, and waiting for socket connection
+    //      registering - sending outbound REGISTER and waiting for response
+    //      registered - received 2xx response for outbound REGISTER
+    //      unregistering -  sending outbound REGISTER with Expires and waiting for response
 
     // properties in call
     this.call_state = "idle";
@@ -459,8 +471,11 @@ Caller.prototype.resetSockState = function() {
 
 /// SIP signal statck creating
 Caller.prototype.createStack = function() {
-    var transport = new sip.TransportInfo(this.listen_ip, this._listen_port, this.transport, this.transport == "tls", this.transport != "udp", this.transport != "udp");
-    this._stack = new sip.Stack(this, transport);
+    if (this._stack == null) {
+        log("createStack: listen_ip=" + this.listen_ip + ", _listen_port="+this._listen_port+", transport="+this.transport);
+        var transport = new sip.TransportInfo(this.listen_ip, this._listen_port, this.transport, this.transport == "tls", this.transport != "udp", this.transport != "udp");
+        this._stack = new sip.Stack(this, transport);
+    }
     
     if (this.register_state == "waiting") {
         this.setProperty("register_state", "registering");
@@ -495,7 +510,7 @@ Caller.prototype.sendRegister = function() {
     } 
     
     var m = this.createRegister();
-    m.setItem('Expires', new sip.Header("" + this.register_interval, 'Expires'))
+    m.setItem('Expires', new sip.Header("" + this.register_interval, 'Expires'));
     this._reg.sendRequest(m);
 };
 
@@ -1322,14 +1337,20 @@ Caller.prototype.onWebSocketMessage = function(msg) {
     this.onSockData({"data": msg.data, "srcPort": 0, "srcAddress": "127.0.0.1"});
 };
 
+
+///
+/// sip.Stack callback method: createServer/sending[o]/receivedRequest/receivedResponse/cancelled/
+///     diglogCreated/authenticate[o]/createTimer/resolve
+///
+
 Caller.prototype.createServer = function(request, uri, stack) {
-    log("Caller.createServer() for method=" + request.method);
-    return (request.method != "CANCEL" ? new sip.UserAgent(this._stack, request) : null);
+    log("sip.Stack.createServer for method=" + request.method);
+    return (request.method != "CANCEL" ? new sip.UserAgent(stack, request) : null);
 };
 
 Caller.prototype.receivedRequest = function(ua, request, stack) {
+    log("sip.Stack.receivedRequest");
     var method = request.method;
-    log("Caller.receivedRequest() " + request.method);
     if (method == "INVITE") {
         this.receivedInvite(ua, request);
     }
@@ -1350,6 +1371,7 @@ Caller.prototype.receivedRequest = function(ua, request, stack) {
 };
 
 Caller.prototype.receivedResponse = function(ua, response, stack) {
+    log("sip.Stack.receivedResponse");
     var method = ua.request.method;
     if (method == 'REGISTER') {
         this.receivedRegisterResponse(ua, response);
@@ -1369,7 +1391,7 @@ Caller.prototype.receivedResponse = function(ua, response, stack) {
 };
 
 Caller.prototype.cancelled = function(ua, request, stack) {
-    log("cancelled");
+    log("sip.Stack.cancelled");
     if (this._call && this.call_state == "incoming") {
         if (ua == this._call) {
             this.dispatchMessage("Incoming call cancelled");
@@ -1383,24 +1405,26 @@ Caller.prototype.cancelled = function(ua, request, stack) {
 };
 
 Caller.prototype.dialogCreated = function(dialog, ua, stack) {
-    log("dialog created");
+    log("sip.Stack.dialogCreated");
     if (ua == this._call) {
         this._call = dialog;
     }
 };
 
 Caller.prototype.authenticate = function(ua, header, stack) {
-    log("phone.authenticate() called");
-    header.username = this.authname;
-    header.password = this.password;
-    return true;
+    log("sip.Stack.authenticate");
+    //header.username = this.authname;
+    //header.password = this.password;
+    return false;
 };
 
 Caller.prototype.createTimer = function(obj, stack) {
+    log("sip.Stack.createTimer");
     return new sip.TimerImpl(obj);
 };
 
 Caller.prototype.resolve = function(host, type, callback, stack) {
+    log("sip.Statck.resolve");
     var resolver = new network.DNSResolver();
     resolver.addEventListener("error", function(event) {
         log("cannot resolve DNS host " + host + " type " + type);
@@ -1414,9 +1438,11 @@ Caller.prototype.resolve = function(host, type, callback, stack) {
 };
 
 Caller.prototype.send = function(data, addr, stack) {
-    log("=> " + addr[0] + ":" + addr[1] + "\n" + data);
+    log("sip.Stack.send => " + addr[0] + ":" + addr[1] + "\n" + data);
     this._sock.send(data, addr[0], addr[1]);
 };
+
+
 
 Caller.prototype.sendDigit = function(digit) {
     if (this.call_state == "idle") {

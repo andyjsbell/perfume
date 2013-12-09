@@ -13,7 +13,7 @@
         function log(msg, type) {
             var log_text = $("log-text");
             if (log_text) {
-                log_text.value += "\n" + msg;
+                log_text.value += "\n"+ "[*] " + msg;
                 if (gCaller && gCaller.log_scroll)
                     log_text.scrollTop = log_text.scrollHeight;
             }
@@ -25,18 +25,73 @@
 </head> 
  
 <body>
+    <div id="config-box">
+        Configuration
+        <table>
+            <tr><td align="right">DisplayName:</td>
+                <td><input type="text" id="displayname" value="" style="width: 130px;"
+                    onkeyup="setTimeout(gCaller.setProperty('displayname', $('displayname').value),100)"/></td></tr>
+            <tr><td align="right">User Name:</td>
+                <td><input type="text" id="username" value="" style="width: 130px;"
+                    onkeyup="setTimeout(gCaller.setProperty('username', $('username').value),100)"/></td></tr>
+            <tr><td align="right">Domain:</td>
+                <td><input type="text" id="domain" value="" style="width: 130px;"
+                    onkeyup="setTimeout(gCaller.setProperty('domain', $('domain').value),100)"/></td></tr>
+            <tr><td align="right">Auth Name:</td>
+                <td><input type="text" id="authname" value="" style="width: 130px;"
+                    onkeyup="setTimeout(gCaller.setProperty('authname', $('authname').value),100)"/></td></tr>
+            <tr><td align="right">Password:</td>
+                <td><input type="password" id="password" style="width: 130px;"
+                    onkeyup="setTimeout(gCaller.setProperty('password', $('password').value),100)"/></td></tr>
+            <tr><td align="right" colspan="2">Transport:
+                <input type="radio" id="transport_udp" name="transport" value="udp" disabled="disabled"
+                    onclick="gCaller.setProperty('transport', 'udp')"></input>UDP,
+                <input type="radio" id="transport_tcp" name="transport" value="tcp" disabled="disabled"
+                    onclick="gCaller.setProperty('transport', 'tcp')"></input>TCP,
+                <input type="radio" id="transport_ws" name="transport" value="ws" disabled="disabled"
+                    onclick="gCaller.setProperty('transport', 'ws')"></input>WS</td></tr>
+        </table>
+    </div>
+    <div id="register-box">
+        Send outbound via:<br/>
+        <div style="padding-left: 10px;">
+            <input type="radio" id="outbound_target" name="outbound" value="target"
+                onclick="gCaller.setProperty('outbound', 'target')"/> target domain, or<br/>
+            <input type="radio" id="outbound_proxy" name="outbound" value="proxy"
+                onclick="gCaller.setProperty('outbound', 'proxy')"/> proxy  address:
+                <input type="text" id="outbound_proxy_address" value="" style="width:150px"
+                    onkeyup="setTimeout(gCaller.setProperty('outbound_proxy_address', $('outbound_proxy_address').value),500)"/>
+        </div>
+        Register every
+        <input type="text" id="register_interval" value="" style="width: 40px;"
+            onclick="gCaller.setProperty('register_interval', parseInt($('register_interval').value))"/> seconds<br/>
+        <input type="checkbox" id="rport"
+            onclick="gCaller.setProperty('rport', $('rport').checked)" />Use rport,
+        <input type="checkbox" id="sipoutbound"
+            onclick="gCaller.setProperty('sipoutbound', $('sipoutbound').checked)" />Use sip-outbound<br/>
+            AoR: <input type="text" id="local_aor" style="width: 300px;" readonly="readonly"/>
+        <div>
+            sock state:<span id="sock_state">idle</span>,
+            register state:<span id="register_state">not registered</span>
+            <div>
+                <input type="button" id="register_button" value="Register"
+                    title="click to register or unregister"
+                    onclick="return gCaller.register();" />
+            </div>
+        </div>
+    </div>
     <div id="call-box">
         call information:
         <div>
             target scheme:
-            <select id="target_scheme" 
+            <select id="target_scheme" disabled="disabled"
                 onchange="gCaller.setProperty('target_scheme', ['sip', 'tel', 'urn'][$('target_scheme').selectedIndex])">
                 <option id="target_scheme_sip" value="sip">sip</option>
                 <option id="target_scheme_tel" value="tel">tel</option>
                 <option id="target_scheme_urn" value="urn">urn</option>
             </select>
             <input type="text" id="target_value" value="" 
-                onkeyup="setTimeout(phone.setProperty('target_value', $('target_value').value), 500)"/>
+                onkeyup="setTimeout(gCaller.setProperty('target_value', $('target_value').value), 500)"/>
         </div>
         <div>
             <input type="button" id="call_button" value="Call" 
@@ -82,14 +137,14 @@
     </div>
     
     <script type="text/javascript">
-        log("[*] start to init....");
+        log("start to init....");
         var gCaller = new Caller();
 
         //network._debug = true;
         //network.onstatus = function(value) { gCaller.statusChanged(value); };
         //network.onnetworkchange = function() { gCaller.networkChanged(); };
         
-        log("[*] add event of propertyChange....");
+        log("add event of propertyChange....");
         gCaller.addEventListener("propertyChange", function(event) {
             var value = event.newValue;
             var property = event.property;
@@ -148,7 +203,7 @@
                         input.value = value;
                 }
                 else {
-                    log("[*] ignoring propertyChange for " + event.property);
+                    log("ignoring propertyChange for " + event.property);
                 }
             }
         });
