@@ -1,60 +1,62 @@
 #ifndef _COMPTE_H_20131213_
 #define _COMPTE_H_20131213_
 
-#include <string>
-#include <vector>
+#include "types.h"
+#include "refcount.h"
 
 namespace eau {
 
-typedef unsigned long long qdate_t;
-typedef struct {
-    uint8_t id1[8];
-    uint8_t id2[4];
-    uint8_t id3[4];
-    uint8_t id4[4];
-    uint8_t id5[12];
-}uuid_t;
-typedef std::vector<uuid_t> uuids_t;
+    /**  
+     * Description:
+     *  one compte => one or many documents
+     *  one document => one or many items
+     */
 
-/**  
- * Description:
- *  one compte => one or many documents
- *  one document => one or many items
- */
+    class IBase : public RefCounted<IBase>
+    {
+    public:
+        IBase()
+        {
+            memset(m_uuid, 0, sizeof(m_uuid));
+        }
 
-class IID
-{
-public:
-    virtual bool GetID(uuid_t & id) = 0;
-};
+        virtual bool GetUUID(uuid_t & id)
+        {
+            id = m_uuid;
+            return true;
+        }
+    
+    protected:
+        virtual ~IBase() {}
+        uuid_t m_uuid;
+    };
 
-class IItem : public IID
-{
-protected:
-    virtual ~IItem() {}
-};
+    class IItem : public IBase
+    {
+    protected:
+        virtual ~IItem() {}
+    };
 
-class IDoc : public IID
-{
-public:
-    virtual long GetAllItems(uuids_t &ids) = 0;
-    virtual long GetItem(const uuid_t &id, IItem & item) = 0;
-    virtual long PutItem(IItem & item) = 0;
+    class IDoc : public IBase
+    {
+    public:
+        virtual long GetAllItems(uuids_t &ids) = 0;
+        virtual long GetItem(const uuid_t &id, IItem & item) = 0;
+        virtual long PutItem(IItem & item) = 0;
 
-protected:
-    virtual ~IDoc() {}
-};
+    protected:
+        virtual ~IDoc() {}
+    };
 
-class ICompte : public IID
-{
-public:
-    virtual long GetAllDocs(uuids_t &ids) = 0;
-    virtual long GetDoc(const uuid_t &id, IDoc & doc) = 0;
-    virtual long PutDoc(IDoc & doc) = 0;
-};
+    class ICompte : public IBase
+    {
+    public:
+        virtual long GetAllDocs(uuids_t &ids) = 0;
+        virtual long GetDoc(const uuid_t &id, IDoc & doc) = 0;
+        virtual long PutDoc(IDoc & doc) = 0;
+    };
 
-static long OpenCompte(uuid_t &id, ICompte * &compte);
-
+    static long OpenCompte(uuid_t &id, ICompte * &compte);
 
 } // end of namespace eau
 
