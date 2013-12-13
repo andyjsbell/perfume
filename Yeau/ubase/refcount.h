@@ -7,9 +7,15 @@ namespace eau
 {
     /**
      * usage:
-     *      class A : RefCount{};   // class A is one virtual class, cannot new directly
+     *      class A : RefCount{...};   // class A is one virtual class, cannot new directly
      *      zeroptr<A> pA = new RefCounted<A>(); // you can new one object by this way
-     *      // neednot to concern pA's resource release, donot "delete pA->get()"
+     *      pA->func();
+     *      // neednot to delete pA
+     *
+     *      class B : RefCounted<B>{...}; // class B is one normal class
+     *      zeroptr<B> pB = new B();
+     *      pB->func();
+     *      // neednot to delete pB
      */
 
     class RefCount
