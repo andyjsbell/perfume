@@ -17,6 +17,9 @@ typedef unsigned long       uintptr_t;
 #include <stdint.h>
 #endif
 
+typedef void *              voidptr_t;
+typedef void *              handle_t;
+
 
 // uuid, 16bytes
 // e.g. F8A287DD-2970-4147-889E-1606464BBCC8
