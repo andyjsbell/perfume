@@ -1,13 +1,12 @@
-$__result__ = -1;
-$__record__ = {};
-
+$eau_record = {};
 $collection = 'database';
 $schema = {user: 'string', passwd: 'string', desc: 'string'};
 
+//===========================================================
 
 if (count($argv) != 1)
 {
-    return;
+    return -1;
 }
 
 $id = $argv[0];
@@ -15,15 +14,17 @@ $id = $argv[0];
 if (!db_exists($collection))
 {
     print db_errlog();
-    return;
+    return -2;
 }
 
+$ret = -3;
 while(($rec=db_fetch($collection)) != NULL) 
 {
     if($rec.id == $id) {
-        $__record__ = $rec;
-        $__result__ = $ret ? 0 : -1;
+        $eau_record = $rec;
+        $ret = 0;
         break;
     }
 }
 
+return $ret;

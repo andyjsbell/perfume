@@ -1,14 +1,13 @@
-$__record__ = {};
-$__result__ = -1;
-
+$eau_record = {};
 $collection = 'account';
 $schema = {user: 'string', passwd: 'string', desc: 'string'};
 
+//===========================================================
 
 // unqlite_vm_config(pVM, UNQLITE_VM_CONFIG_ARGV_ENTRY, argv[n]);
 if (count($argv) != 1) 
 {
-    return;
+    return -1;
 }
 
 $user = $argv[0];
@@ -17,16 +16,19 @@ $user = $argv[0];
 if (!db_exists($collection)) 
 {
     print db_errlog();
-    return;
+    return -2;
 }
+
+$ret = -3;
 
 /* search record from collection and store its passwd & desc */
 while(($rec=db_fetch($collection)) != NULL) 
 {
     if($rec.user == $user) {
-        $__record__ = $rec;
-        $__result__ = 0;
+        $eau_record = $rec;
+        $ret = 0;
         break;
     }
 }
 
+return $ret;

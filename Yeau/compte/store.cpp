@@ -21,8 +21,7 @@ long StoreImpl::Open(string &szName, int iMode)
     }
 
     int ret = unqlite_open(&m_pDB, szName.c_str(), iMode);
-    returnv_if_fail(ret != UNQLITE_OK, EAU_E_FAIL);
-
+    returnv_if_fail(ret == UNQLITE_OK, EAU_E_FAIL);
     return EAU_S_OK;
 }
 
@@ -30,120 +29,68 @@ long StoreImpl::Close()
 {
     unqlite_close(m_pDB);
     m_pDB = NULL;
+    return EAU_S_OK;
 }
 
-long StoreImpl::PutAccount(const string &szUser, const string &szPasswd, const string &szDesc)
+long StoreImpl::PutAccount(const account_t &account)
 {
-    returnv_if_fail(!szUser.empty(), EAU_E_INVALIDARG);
-    returnv_if_fail(!szPasswd.empty(), EAU_E_INVALIDARG);
-    returnv_if_fail(!szDesc.empty(), EAU_E_INVALIDARG);
+    // set var in script
+    map<string, string> kv_map;
+    kv_map["user"] = account.user;
+    kv_map["passwd"] = account.passwd;
+    kv_map["desc"] = account.desc;
 
-    long lret = EAU_E_FAIL;
-    unqlite_vm* jx9_vm = NULL;
-
-    int ret = unqlite_compile_file(m_pDB, kPutAccountScript, &jx9_vm);
-    returnv_if_fail(ret != UNQLITE_OK, EAU_E_FAIL);
-
-    do 
-    {
-        // set $argv[0,1,2] in script
-        lret = config_jx9_argv(jx9_vm, szUser.c_str(), szPasswd.c_str(), szDesc.c_str());
-        break_if_fail(lret != EAU_S_OK);
-
-        ret = unqlite_vm_exec(jx9_vm);
-        break_if_fail(ret != UNQLITE_OK);
-
-        lret = check_jx9_result(jx9_vm);
-    }while(false);
-
-    unqlite_vm_release(jx9_vm);
-
+    long lret = process_jx9_put(m_pDB, kPutAccountScript, kv_map);
     return lret;
 }
 
-long StoreImpl::GetAccout(const string &szUser, string &szPasswd)
+long StoreImpl::GetAccount(account_t &account)
 {
-    returnv_if_fail(!szUser.empty(), EAU_E_INVALIDARG);
+    // set var in script
+    map<string, string> kv_map;
+    kv_map["user"] = account.user;
 
-    long lret = EAU_E_FAIL;
-    unqlite_vm* jx9_vm = NULL;
-    unqlite_value* jx9_record = NULL;
+    // get var from script
+    map<string, string> io_map;
+    //io_map["user"] = account.user;
+    io_map["passwd"] = account.passwd;
+    io_map["desc"] = account.desc;
 
-    int ret = unqlite_compile_file(m_pDB, kGetAccountScript, &jx9_vm);
-    returnv_if_fail(ret != UNQLITE_OK, EAU_E_FAIL);
-
-    do 
-    {
-        // set $argv[0] in script
-        lret = config_jx9_argv(jx9_vm, szUser.c_str());
-        break_if_fail(lret != EAU_S_OK);
-
-        ret = unqlite_vm_exec(jx9_vm);
-        break_if_fail(ret != UNQLITE_OK);
-
-        // extract value from jx9 script
-        jx9_record = unqlite_vm_extract_variable(jx9_vm, "__record__");
-        break_if_fail(jx9_record);
-
-        parse_json_string(jx9_record, string("passwd"), szPasswd);
-        //parse_json_string(jx9_record, string("desc"), szDesc);
-
-        lret = check_jx9_result(jx9_vm);
-    }while(false);
-
-    unqlite_vm_release_value(jx9_vm, jx9_record);
-    unqlite_vm_release(jx9_vm);
-
+    long lret = process_jx9_get(m_pDB, kGetAccountScript, kv_map, io_map);
     return lret;
 }
 
-long StoreImpl::PutDB(string &szID, db_t &db)
+long StoreImpl::PutDB(db_t &db)
 {
-    long lret = EAU_E_FAIL;
-    unqlite_vm* jx9_vm = NULL;
-    int ret = unqlite_compile_file(m_pDB, kPushDBScript, &jx9_vm);
-    returnv_if_fail(ret != UNQLITE_OK, EAU_E_FAIL);
+    // set var in script
+    map<string, string> kv_map;
+    kv_map["id"] = db.id;
+    kv_map["title"] = db.title;
+    kv_map["desc"] = db.desc;
+    kv_map["logo"] = db.logo;
+    kv_map["status"] = db.status;
+    kv_map["date"] = db.date;
 
-    do
-    {
-        // set $argv[0,..] in script
-        lret = config_jx9_argv(jx9_vm, db.id.c_str(), 
-            db.title.c_str(), db.desc.c_str(), db.logo.c_str(), db.status.c_str(), db.date.c_str());
-        break_if_fail(lret != EAU_S_OK);
-
-        ret = unqlite_vm_exec(jx9_vm);
-        break_if_fail(ret != UNQLITE_OK);
-
-        lret = check_jx9_result(jx9_vm);
-    }while(false);
-
-    unqlite_vm_release(jx9_vm);
-
+    long lret = process_jx9_put(m_pDB, kPutDBScript, kv_map);
     return lret;
 }
 
-long StoreImpl::GetDB(string &szID, db_t &db)
+long StoreImpl::GetDB(db_t &db)
 {
-    long lret = EAU_E_FAIL;
-    unqlite_vm* jx9_vm = NULL;
-    int ret = unqlite_compile_file(m_pDB, kGetDBScript, &jx9_vm);
-    returnv_if_fail(ret != UNQLITE_OK, EAU_E_FAIL);
+    // set var in script
+    map<string, string> kv_map;
+    kv_map["id"] = db.id;
 
-    do
-    {
-        // set $argv[0,..] in script
-        lret = config_jx9_argv(jx9_vm, db.id.c_str()); 
-        break_if_fail(lret != EAU_S_OK);
+    // get var from script
+    map<string, string> io_map;
+    //io_map["id"] = db.id;
+    io_map["title"] = db.title;
+    io_map["desc"] = db.desc;
+    io_map["logo"] = db.logo;
+    io_map["status"] = db.status;
+    io_map["date"] = db.date;
 
-        ret = unqlite_vm_exec(jx9_vm);
-        break_if_fail(ret != UNQLITE_OK);
-
-        lret = check_jx9_result(jx9_vm);
-    }while(false);
-
-    unqlite_vm_release(jx9_vm);
-
+    long lret = process_jx9_get(m_pDB, kGetDBScript, kv_map, io_map);
     return lret;
 }
-
 

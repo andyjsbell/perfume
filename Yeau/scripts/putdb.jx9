@@ -1,12 +1,11 @@
-$__result__ = -1;
-
 $collection = 'database';
 $schema = {user: 'string', passwd: 'string', desc: 'string'};
 
+//===========================================================
 
 if (count($argv) != 6)
 {
-    return;
+    return -1;
 }
 
 $id = $argv[0];
@@ -31,7 +30,7 @@ if (!db_exists($collection))
     $ret = db_create($collection);
     if (!$ret) {
         print db_errlog();
-        return;
+        return -2;
     }
 }
 
@@ -44,5 +43,5 @@ while(($rec=db_fetch($collection)) != NULL)
 }
 
 $ret = db_store($collection, $record);
-$__result__ = $ret ? 0 : -1;
 
+return $ret;
