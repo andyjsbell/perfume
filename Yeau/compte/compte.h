@@ -15,20 +15,10 @@ namespace eau {
     class IBase : public RefCounted<IBase>
     {
     public:
-        IBase()
-        {
-            memset(m_uuid, 0, sizeof(m_uuid));
-        }
-
-        virtual bool GetUUID(uuid_t & id)
-        {
-            id = m_uuid;
-            return true;
-        }
+        virtual bool GetUUID(uuid_t & id) = 0;
     
     protected:
         virtual ~IBase() {}
-        uuid_t m_uuid;
     };
 
     class IItem : public IBase

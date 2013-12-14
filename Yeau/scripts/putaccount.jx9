@@ -1,0 +1,38 @@
+$collection = 'account';
+$record = {};
+$schema = {user: 'string', passwd: 'string', desc: 'string'};
+
+// unqlite_vm_config(pVM, UNQLITE_VM_CONFIG_ARGV_ENTRY, argv[n]);
+if (count($argv) != 3) 
+{
+    return;
+}
+
+$record = {user: '$argv[0]', passwd: '$argv[1]', desc: '$argv[2]'};
+
+/* check collection */
+if (!db_exists($collection)) 
+{
+    $ret = db_create($collection);
+    if (!$ret) {
+        print db_errlog();
+        return;
+    }
+
+    // set collection's schema
+    $ret = db_set_schema($collection, $schema);
+    if (!$ret) {
+        print db_errlog();
+        return;
+    }
+}
+
+/* check records from collection and remove previous the same record */
+while(($rec=db_fetch($collection)) != NULL) 
+{
+    if($rec.user == $record.user)
+        db_drop_record($collection, $rec.__id);
+}
+
+db_store($collection, $record);
+
