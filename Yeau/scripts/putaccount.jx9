@@ -1,3 +1,4 @@
+$__result__ = -1;
 $collection = 'account';
 $record = {};
 $schema = {user: 'string', passwd: 'string', desc: 'string'};
@@ -34,5 +35,6 @@ while(($rec=db_fetch($collection)) != NULL)
         db_drop_record($collection, $rec.__id);
 }
 
-db_store($collection, $record);
+$ret = db_store($collection, $record);
+$__result__ = $ret ? 0 : -1;
 

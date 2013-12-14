@@ -1,3 +1,4 @@
+$__result__ = -1;
 $user = '';
 $passwd = '';
 $desc = '';
@@ -25,6 +26,7 @@ while(($rec=db_fetch($collection)) != NULL)
     if($rec.user == $user) {
         $passwd = $rec.passwd;
         $desc = $rec.desc;
+        $__result__ = 0;
         break;
     }
 }

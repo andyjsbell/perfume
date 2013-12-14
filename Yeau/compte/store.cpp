@@ -6,6 +6,26 @@ extern "C" {
 
 using namespace eau;
 
+namespace eau
+{
+    static const char kGetAccountScript[] = "scripts/getaccount.jx9";
+    static const char kPutAccountScript[] = "scripts/putaccount.jx9";
+
+    static long check_jx9_result(unqlite_vm* jx9_vm)
+    {
+        returnv_if_fail(jx9_vm, EAU_E_FAIL);
+
+        unqlite_value* jx9_result = unqlite_vm_extract_variable(jx9_vm, "__result__");
+        returnv_if_fail(jx9_result, EAU_E_FAIL);
+
+        int result = unqlite_value_to_int(jx9_result, NULL);
+        long lret = (result == 0) ? EAU_S_OK : EAU_E_FAIL;
+        unqlite_vm_release_value(jx9_vm, jx9_result);
+
+        return lret;
+    }
+}
+
 StoreImpl::StoreImpl() : m_pDB(0)
 {
 }
@@ -32,56 +52,113 @@ long StoreImpl::Close()
     m_pDB = NULL;
 }
 
-long StoreImpl::PutAccout(string &szUser, string &szPasswd)
+long StoreImpl::PutAccout(const string &szUser, const string &szPasswd, const string &szDesc)
 {
-    int ret = 0;
-    char jx9_prog[1024];
-    int jx9_size = sizeof(jx9_prog);
-    unqlite_vm* jx9_vm = NULL;
+    returnv_if_fail(!szUser.empty(), EAU_E_INVALIDARG);
+    returnv_if_fail(!szPasswd.empty(), EAU_E_INVALIDARG);
+    returnv_if_fail(!szDesc.empty(), EAU_E_INVALIDARG);
 
-    jx9_size = snprintf(jx9_prog, kPutAccountFmt, 
-        szUser.c_str(), 
-        szPasswd.c_str(), 
-        jx9_size);
-    returnv_if_fail(jx9_size > 0, EAU_E_FAIL);
-    
-    ret = unqlite_compile(m_pDB, jx9_prog, jx9_size, &jx9_vm);
+    unqlite_vm* jx9_vm = NULL;
+    int ret = unqlite_compile_file(m_pDB, kPutAccountScript, &jx9_vm);
     returnv_if_fail(ret != UNQLITE_OK, EAU_E_FAIL);
 
-    ret = unqlite_vm_exec(jx9_vm);
-    if (ret != UNQLITE_OK) {
-        unqlite_vm_release(jx9_vm);
-        return EAU_E_FAIL;
-    }
+    long lret = EAU_E_FAIL;
+
+    do 
+    {
+        // need three $argv[0,1,2] in script
+        ret = unqlite_vm_config(jx9_vm, UNQLITE_VM_CONFIG_ARGV_ENTRY, szUser.c_str());
+        break_if_fail(ret != UNQLITE_OK);
+        ret = unqlite_vm_config(jx9_vm, UNQLITE_VM_CONFIG_ARGV_ENTRY, szPasswd.c_str());
+        break_if_fail(ret != UNQLITE_OK);
+        ret = unqlite_vm_config(jx9_vm, UNQLITE_VM_CONFIG_ARGV_ENTRY, szDesc.c_str());
+        break_if_fail(ret != UNQLITE_OK);
+
+        ret = unqlite_vm_exec(jx9_vm);
+        break_if_fail(ret != UNQLITE_OK);
+
+        lret = check_jx9_result(jx9_vm);
+    }while(false);
 
     unqlite_vm_release(jx9_vm);
 
-    return EAU_S_OK;
+    return lret;
 }
 
-static const char kGetAccountFmt[] = "{user: '%s', passwd:'%s'}";
-long StoreImpl::GetAccout(string &szUser, string &szPasswd)
+//
+// The account structure
+// { account: [
+//      {user: 'string', passwd: 'string', desc: 'string', id: 'uuid'}, 
+//      ...
+//      ]
+// }
+long StoreImpl::GetAccout(const string &szUser, string &szPasswd)
 {
     returnv_if_fail(!szUser.empty(), EAU_E_INVALIDARG);
 
-    size_t usersize = 0;
-    int ret = unqlite_kv_fetch(m_pDB, "user", -1, NULL, &usersize);
-    returnv_if_fail(ret != UNQLITE_OK, EAU_E_FAIL);
-    if (usersize != szUser.size()) {
-        return EAU_E_FAIL;
-    }
-        
-    string user;
-    user.resize(usersize);
-    ret = unqlite_kv_fetch(m_pDB, "user", -1, user.data(), &usersize);
-    returnv_if_fail(ret != UNQLITE_OK, EAU_E_FAIL);
-    if (memcmp(szUser.c_str(), user.c_str(), usersize) != 0) {
-        return EAU_E_FAIL;
-    }
-
-    ret = unqlite_kv_(m_pDB, "passwd", szPasswd.c_str(), szPasswd.size());
+    unqlite_vm* jx9_vm = NULL;
+    int ret = unqlite_compile_file(m_pDB, kGetAccountScript, &jx9_vm);
     returnv_if_fail(ret != UNQLITE_OK, EAU_E_FAIL);
 
+    long lret = EAU_E_FAIL;
+    unqlite_value* jx9_passwd = NULL;
+    unqlite_value* jx9_desc = NULL;
+
+    do 
+    {
+        // need one $argv[0] in script
+        ret = unqlite_vm_config(jx9_vm, UNQLITE_VM_CONFIG_ARGV_ENTRY, szUser.c_str());
+        break_if_fail(ret != UNQLITE_OK);
+
+        ret = unqlite_vm_exec(jx9_vm);
+        break_if_fail(ret != UNQLITE_OK);
+
+        // extract value from jx9 script
+        jx9_passwd = unqlite_vm_extract_variable(jx9_vm, "passwd");
+        break_if_fail(jx9_passwd);
+        szPasswd = (string)unqlite_value_to_string(jx9_passwd, NULL);
+
+        jx9_desc = unqlite_vm_extract_variable(jx9_vm, "desc");
+        break_if_fail(jx9_desc);
+        string szDesc = (string)unqlite_value_to_string(jx9_desc, NULL);
+
+        lret = check_jx9_result(jx9_vm);
+    }while(false);
+
+    unqlite_vm_release_value(jx9_vm, jx9_passwd);
+    unqlite_vm_release_value(jx9_vm, jx9_desc);
+    unqlite_vm_release(jx9_vm);
+
+    return lret;
 }
 
+//
+// The database structure
+// { database : [
+//      {id: 'uuid', title: 'string', desc: 'string', logo: 'string', documents: [uuid, ...]},
+//      {id: 'uuid', title: 'string', desc: 'string', logo: 'string', documents: [uuid, ...]},
+//      ...
+//      ]
+// }
+//
+// { database/documents : [
+//      {id: 'uuid', title: 'string', desc: 'string', attachments:[uuid,...]},
+//      {id: 'uuid', title: 'string', desc: 'string', attachments:[uuid,...]},
+//      ...
+//      ]
+// }
+//
+// { document/attachments : [
+//      {id: 'uuid', title: 'string', desc: 'string', name: 'string', mime: 'string'},
+//      {id: 'uuid', title: 'string', desc: 'string', name: 'string', mime: 'string'},
+//      ...
+//      ]
+// }
+//  
+ 
+long StoreImpl::PushDoc()
+{}
+
+long StoreImpl::GetDoc()
+{}
 
