@@ -3,13 +3,16 @@ $schema = {user: 'string', passwd: 'string', desc: 'string'};
 
 //===========================================================
 
-// unqlite_vm_config(pVM, UNQLITE_VM_CONFIG_ARGV_ENTRY, argv[n]);
-if (count($argv) != 3) 
+if ($eau_record_in == undefined)
 {
     return -1;
 }
 
-$record = {user: '$argv[0]', passwd: '$argv[1]', desc: '$argv[2]'};
+$user = $eau_record_in.user;
+$passwd = $eau_record_in.passwd;
+$desc = $eau_record_in.desc;
+
+$record = {user: '$user', passwd: '$passwd', desc: '$desc'};
 
 /* check collection */
 if (!db_exists($collection)) 

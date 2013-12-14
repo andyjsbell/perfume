@@ -1,16 +1,15 @@
-$eau_record = {};
+$eau_record_out = {};
 $collection = 'account';
 $schema = {user: 'string', passwd: 'string', desc: 'string'};
 
 //===========================================================
 
-// unqlite_vm_config(pVM, UNQLITE_VM_CONFIG_ARGV_ENTRY, argv[n]);
-if (count($argv) != 1) 
+if ($eau_record_in == undefined)
 {
     return -1;
 }
 
-$user = $argv[0];
+$user = $eau_record_in.user;
 
 /* check collection */
 if (!db_exists($collection)) 
@@ -25,7 +24,7 @@ $ret = -3;
 while(($rec=db_fetch($collection)) != NULL) 
 {
     if($rec.user == $user) {
-        $eau_record = $rec;
+        $eau_record_out = $rec;
         $ret = 0;
         break;
     }

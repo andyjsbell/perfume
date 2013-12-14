@@ -1,4 +1,4 @@
-$collection = 'database';
+$collection = 'document';
 $schema = {id: 'string', title: 'string', desc: 'string'};
 
 //===========================================================

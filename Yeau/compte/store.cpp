@@ -60,7 +60,7 @@ long StoreImpl::GetAccount(account_t &account)
     return lret;
 }
 
-long StoreImpl::PutDB(db_t &db)
+long StoreImpl::PutDB(const db_t &db)
 {
     // set var in script
     map<string, string> kv_map;
@@ -91,6 +91,40 @@ long StoreImpl::GetDB(db_t &db)
     io_map["date"] = db.date;
 
     long lret = process_jx9_get(m_pDB, kGetDBScript, kv_map, io_map);
+    return lret;
+}
+
+long StoreImpl::PutDoc(const doc_t &doc)
+{
+    // set var in script
+    map<string, string> kv_map;
+    kv_map["id"] = doc.id;
+    kv_map["title"] = doc.title;
+    kv_map["desc"] = doc.desc;
+    kv_map["logo"] = doc.logo;
+    kv_map["status"] = doc.status;
+    kv_map["date"] = doc.date;
+
+    long lret = process_jx9_put(m_pDB, kPutDocScript, kv_map);
+    return lret;
+}
+
+long StoreImpl::GetDoc(doc_t &doc)
+{
+    // set var in script
+    map<string, string> kv_map;
+    kv_map["id"] = doc.id;
+
+    // get var from script
+    map<string, string> io_map;
+    //io_map["id"] = db.id;
+    io_map["title"] = doc.title;
+    io_map["desc"] = doc.desc;
+    io_map["logo"] = doc.logo;
+    io_map["status"] = doc.status;
+    io_map["date"] = doc.date;
+
+    long lret = process_jx9_get(m_pDB, kGetDocScript, kv_map, io_map);
     return lret;
 }
 

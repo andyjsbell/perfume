@@ -7,13 +7,17 @@ extern "C" {
 
 namespace eau
 {
-    static const char kEauRecordVar[] = "eau_record";
+    static const char kEauRecordInVar[] = "eau_record_in";
+    static const char kEauRecordOutVar[] = "eau_record_out";
 
     static const char kPutAccountScript[] = "scripts/putaccount.jx9";
     static const char kGetAccountScript[] = "scripts/getaccount.jx9";
 
     static const char kPutDBScript[] = "scripts/putdb.jx9";
     static const char kGetDBScript[] = "scripts/getdb.jx9";
+
+    static const char kPutDBScript[] = "scripts/putdoc.jx9";
+    static const char kGetDBScript[] = "scripts/getdoc.jx9";
 
     static long check_jx9_return(unqlite_vm* jx9_vm)
     {
@@ -83,7 +87,7 @@ namespace eau
             ret = unqlite_array_add_strkey_elem(jx9_array, iter->first.c_str(), iter->second.c_str());
             break_if_fail(ret == UNQLITE_OK);
         }
-        ret = unqlite_vm_config(jx9_vm, UNQLITE_VM_CONFIG_CREATE_VAR, kEauRecordVar, jx9_array);
+        ret = unqlite_vm_config(jx9_vm, UNQLITE_VM_CONFIG_CREATE_VAR, kEauRecordInVar, jx9_array);
 
         unqlite_vm_release_value(jx9_vm, jx9_array);
 
@@ -130,7 +134,7 @@ namespace eau
             break_if_fail(check_jx9_return(jx9_vm) == EAU_S_OK);
 
             // extract value from jx9 script
-            jx9_record = unqlite_vm_extract_variable(jx9_vm, kEauRecordVar);
+            jx9_record = unqlite_vm_extract_variable(jx9_vm, kEauRecordOutVar);
             break_if_fail(jx9_record);
 
             map<string, string>::iterator iter;

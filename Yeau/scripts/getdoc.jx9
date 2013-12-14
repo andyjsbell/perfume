@@ -1,5 +1,5 @@
 $eau_record_out = {};
-$collection = 'database';
+$collection = 'document';
 $schema = {id: 'string', title: 'string', desc: 'string'};
 
 //===========================================================
