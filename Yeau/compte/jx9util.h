@@ -1,9 +1,17 @@
 #ifndef _EAU_JX9UTIL_H_
 #define _EAU_JX9UTIL_H_
 
+#include <stdarg.h>
+
+#include <map>
+#include <string>
+using namespace std;
+
 extern "C" {
 #include "unqlite.h"
 }
+
+#include "error.h"
 
 namespace eau
 {

@@ -1,34 +1,36 @@
 #include "store.h"
 #include "jx9util.h"
+#include "error.h"
 
 using namespace eau;
 
 
-StoreImpl::StoreImpl() : m_pDB(NULL)
+StoreImpl::StoreImpl() : m_pHandle(NULL)
 {
 }
 
 StoreImpl::~StoreImpl()
-{}
-
-
-long StoreImpl::Open(string &szName, int iMode)
 {
-    returnv_if_fail(!szName.empty(), EAU_E_INVALIDARG);
+    Close();
+}
 
-    if (m_pDB) {
+long StoreImpl::Open(const char* pName, int iMode)
+{
+    returnv_if_fail(pName, EAU_E_INVALIDARG);
+
+    if (m_pHandle) {
         return EAU_E_EXIST;
     }
 
-    int ret = unqlite_open(&m_pDB, szName.c_str(), iMode);
+    int ret = unqlite_open(&((unqlite *)m_pHandle), pName, iMode);
     returnv_if_fail(ret == UNQLITE_OK, EAU_E_FAIL);
     return EAU_S_OK;
 }
 
 long StoreImpl::Close()
 {
-    unqlite_close(m_pDB);
-    m_pDB = NULL;
+    unqlite_close((unqlite *)m_pHandle);
+    m_pHandle = NULL;
     return EAU_S_OK;
 }
 
@@ -39,8 +41,10 @@ long StoreImpl::PutAccount(const account_t &account)
     kv_map["user"] = account.user;
     kv_map["passwd"] = account.passwd;
     kv_map["desc"] = account.desc;
+    kv_map["cdate"] = account.cdate;
+    kv_map["mdate"] = account.mdate;
 
-    long lret = process_jx9_put(m_pDB, kPutAccountScript, kv_map);
+    long lret = process_jx9_put((unqlite *)m_pHandle, kPutAccountScript, kv_map);
     return lret;
 }
 
@@ -55,8 +59,10 @@ long StoreImpl::GetAccount(account_t &account)
     //io_map["user"] = account.user;
     io_map["passwd"] = account.passwd;
     io_map["desc"] = account.desc;
+    kv_map["cdate"] = account.cdate;
+    kv_map["mdate"] = account.mdate;
 
-    long lret = process_jx9_get(m_pDB, kGetAccountScript, kv_map, io_map);
+    long lret = process_jx9_get((unqlite *)m_pHandle, kGetAccountScript, kv_map, io_map);
     return lret;
 }
 
@@ -69,9 +75,10 @@ long StoreImpl::PutDB(const db_t &db)
     kv_map["desc"] = db.desc;
     kv_map["logo"] = db.logo;
     kv_map["status"] = db.status;
-    kv_map["date"] = db.date;
+    kv_map["cdate"] = db.cdate;
+    kv_map["mdate"] = db.mdate;
 
-    long lret = process_jx9_put(m_pDB, kPutDBScript, kv_map);
+    long lret = process_jx9_put((unqlite *)m_pHandle, kPutDBScript, kv_map);
     return lret;
 }
 
@@ -88,9 +95,10 @@ long StoreImpl::GetDB(db_t &db)
     io_map["desc"] = db.desc;
     io_map["logo"] = db.logo;
     io_map["status"] = db.status;
-    io_map["date"] = db.date;
+    kv_map["cdate"] = db.cdate;
+    kv_map["mdate"] = db.mdate;
 
-    long lret = process_jx9_get(m_pDB, kGetDBScript, kv_map, io_map);
+    long lret = process_jx9_get((unqlite *)m_pHandle, kGetDBScript, kv_map, io_map);
     return lret;
 }
 
@@ -103,9 +111,10 @@ long StoreImpl::PutDoc(const doc_t &doc)
     kv_map["desc"] = doc.desc;
     kv_map["logo"] = doc.logo;
     kv_map["status"] = doc.status;
-    kv_map["date"] = doc.date;
+    kv_map["cdate"] = doc.cdate;
+    kv_map["mdate"] = doc.mdate;
 
-    long lret = process_jx9_put(m_pDB, kPutDocScript, kv_map);
+    long lret = process_jx9_put((unqlite *)m_pHandle, kPutDocScript, kv_map);
     return lret;
 }
 
@@ -122,9 +131,10 @@ long StoreImpl::GetDoc(doc_t &doc)
     io_map["desc"] = doc.desc;
     io_map["logo"] = doc.logo;
     io_map["status"] = doc.status;
-    io_map["date"] = doc.date;
+    kv_map["cdate"] = doc.cdate;
+    kv_map["mdate"] = doc.mdate;
 
-    long lret = process_jx9_get(m_pDB, kGetDocScript, kv_map, io_map);
+    long lret = process_jx9_get((unqlite *)m_pHandle, kGetDocScript, kv_map, io_map);
     return lret;
 }
 

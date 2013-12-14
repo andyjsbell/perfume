@@ -13,7 +13,6 @@ $title = $eau_record_in.title;
 $desc = $eau_record_in.desc;
 $logo = $eau_record_in.logo;
 $status = $eau_record_in.status;
-$date = $eau_record_in.date;
 
 $record = {   
     id: $id, 
@@ -21,7 +20,6 @@ $record = {
     desc: $desc, 
     logo: $logo, 
     status: $status, 
-    date: $date,
     documents: []
 };
 
