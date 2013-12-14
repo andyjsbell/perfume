@@ -1,0 +1,48 @@
+$__result__ = -1;
+
+$collection = 'database';
+$schema = {user: 'string', passwd: 'string', desc: 'string'};
+
+
+if (count($argv) != 6)
+{
+    return;
+}
+
+$id = $argv[0];
+$title = $argv[1];
+$desc = $argv[2];
+$logo = $argv[3]
+$status = $argv[4]
+$date = $argv[5];
+
+$record = {   
+    id: $id, 
+    title: $title, 
+    desc: $desc, 
+    logo: $logo, 
+    status: $status, 
+    date: $date,
+    documents: []
+};
+
+if (!db_exists($collection))
+{
+    $ret = db_create($collection);
+    if (!$ret) {
+        print db_errlog();
+        return;
+    }
+}
+
+while(($rec=db_fetch($collection)) != NULL) 
+{
+    if($rec.id == $record.id) {
+        db_drop_record($collection, $rec.__id);
+        break;
+    }
+}
+
+$ret = db_store($collection, $record);
+$__result__ = $ret ? 0 : -1;
+

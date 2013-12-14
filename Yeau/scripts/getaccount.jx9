@@ -1,9 +1,9 @@
+$__record__ = {};
 $__result__ = -1;
-$user = '';
-$passwd = '';
-$desc = '';
+
 $collection = 'account';
 $schema = {user: 'string', passwd: 'string', desc: 'string'};
+
 
 // unqlite_vm_config(pVM, UNQLITE_VM_CONFIG_ARGV_ENTRY, argv[n]);
 if (count($argv) != 1) 
@@ -24,8 +24,7 @@ if (!db_exists($collection))
 while(($rec=db_fetch($collection)) != NULL) 
 {
     if($rec.user == $user) {
-        $passwd = $rec.passwd;
-        $desc = $rec.desc;
+        $__record__ = $rec;
         $__result__ = 0;
         break;
     }

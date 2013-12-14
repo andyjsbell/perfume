@@ -1,7 +1,8 @@
 $__result__ = -1;
+
 $collection = 'account';
-$record = {};
 $schema = {user: 'string', passwd: 'string', desc: 'string'};
+
 
 // unqlite_vm_config(pVM, UNQLITE_VM_CONFIG_ARGV_ENTRY, argv[n]);
 if (count($argv) != 3) 
@@ -31,8 +32,10 @@ if (!db_exists($collection))
 /* check records from collection and remove previous the same record */
 while(($rec=db_fetch($collection)) != NULL) 
 {
-    if($rec.user == $record.user)
+    if($rec.user == $record.user) {
         db_drop_record($collection, $rec.__id);
+        break;
+    }
 }
 
 $ret = db_store($collection, $record);
