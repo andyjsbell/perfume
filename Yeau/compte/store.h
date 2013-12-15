@@ -3,6 +3,7 @@
 
 #include "types.h"
 #include "struct.h"
+#include "refcount.h"
 
 #include <string>
 using namespace std;

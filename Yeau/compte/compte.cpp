@@ -1,40 +1,44 @@
 #include "compte.h"
-#include <string>
+#include "error.h"
 
 using namespace eau;
 
-#define IMPL_IBASE_INTF \
-    public: virtual bool GetUUID(uuid_t &id) { id = __uuid; return true; } \
-    private: uuid_t __uuid
+SinCloudy* SinCloudy::s_pInst = NULL;
 
-class Item : public IItem
+SinCloudy* SinCloudy::inst()
 {
-    IMPL_IBASE_INTF;
-public:
-    Item() {}
+    return s_pInst;
+}
 
-private:
-    std::string m_name;
-    std::string m_desc;
-    int32_t m_cash;
-};
-
-class Doc : public IDoc
+SinCloudy::SinCloudy()
 {
-    IMPL_IBASE_INTF;
-public:
-    Doc()
-    {
-    }
-private:
-};
+    m_pCompte = NULL;
+}
 
-class Compte : public ICompte
+long SinCloudy::Create(const string &user, const string &passwd)
 {
-    IMPL_IBASE_INTF;
-public:
-    Compte()
-    {}
-private:
-};
+    return EAU_S_OK;
+}
+
+long SinCloudy::Update(const string &user, const string &passwd)
+{
+    return EAU_S_OK;
+}
+
+long SinCloudy::SignIn(const string &user, const string &passwd)
+{
+    return EAU_S_OK;
+}
+
+long SinCloudy::SignUp()
+{
+    return EAU_S_OK;
+}
+
+long SinCloudy::GetCompte(zeroptr<ICompte> pCompte)
+{
+    pCompte = m_pCompte;
+    return EAU_S_OK;
+}
+
 

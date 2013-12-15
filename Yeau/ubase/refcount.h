@@ -12,7 +12,7 @@ namespace eau
      *      pA->func();
      *      // neednot to delete pA
      *
-     *      class B : public RefCounted<B>{...}; // class B is one normal class
+     *      class B : public RefCounted<A>{...}; // class B is one normal class
      *      zeroptr<B> pB = new B();
      *      pB->func();
      *      // neednot to delete pB

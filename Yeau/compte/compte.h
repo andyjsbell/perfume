@@ -1,54 +1,68 @@
-#ifndef _COMPTE_H_20131213_
-#define _COMPTE_H_20131213_
+#ifndef _EAU_COMPTE_H_
+#define _EAU_COMPTE_H_
 
-#include "types.h"
 #include "refcount.h"
+#include "zeroptr.h"
+
+#include <vector>
+#include <string>
+using namespace std;
 
 namespace eau {
 
+    class ICompte;
+    class IDatabase;
+    class IDocument;
+
     /**  
      * Description:
-     *  one compte => one or many documents
-     *  one document => one or many items
      */
 
-    class IBase : public RefCount
+    class SinCloudy
     {
     public:
-        virtual bool GetUUID(uuid_t & id) { return false; }
-    
-    protected:
-        virtual ~IBase() {}
+        static SinCloudy *inst();
+
+        long Create(const string &user, const string &passwd);
+        long Update(const string &user, const string &passwd);
+        long SignIn(const string &user, const string &passwd);
+        long SignUp();
+        long GetCompte(zeroptr<ICompte> pCompte);
+
+    private:
+        SinCloudy();
+        SinCloudy(const SinCloudy &original);
+        void operator =(const SinCloudy &);
+
+    private:
+        zeroptr<ICompte> m_pCompte; 
+        static SinCloudy* s_pInst;
     };
 
-    class IItem : public IBase
-    {
-    protected:
-        virtual ~IItem() {}
-    };
-
-    class IDoc : public IBase
-    {
-    public:
-        virtual long GetAllItems(uuids_t &ids) = 0;
-        virtual long GetItem(const uuid_t &id, IItem & item) = 0;
-        virtual long PutItem(IItem & item) = 0;
-
-    protected:
-        virtual ~IDoc() {}
-    };
-
-    class ICompte : public IBase
+    class ICompte : public RefCount
     {
     public:
-        virtual long GetAllDocs(uuids_t &ids) = 0;
-        virtual long GetDoc(const uuid_t &id, IDoc & doc) = 0;
-        virtual long PutDoc(IDoc & doc) = 0;
+        virtual long CreateDB(const string &dbname, IDatabase &db) = 0;
+        virtual long GetAllDBs(vector<string> &dbids) = 0;
+        virtual long OpenDB(const string &dbid, IDatabase &db) = 0;
+
+    protected:
+        virtual ~ICompte() {}
+    };
+        
+    class IDatabase : public RefCount
+    {
+    public:
+        virtual long CreateDoc(const string &docname, IDocument &doc) = 0;
+        virtual long GetAllDocs(vector<string> &docids) = 0;
+        virtual long OpenDoc(const string &docid, IDocument &doc) = 0;
     };
 
-    static long OpenCompte(uuid_t &id, ICompte * &compte);
+    class IDocument : public RefCount
+    {
+    public:
+    };
 
 } // end of namespace eau
 
 #endif
-
