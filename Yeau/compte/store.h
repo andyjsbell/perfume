@@ -16,7 +16,7 @@ namespace eau
         explicit StoreImpl();
         ~StoreImpl();
 
-        long Open(const char *pName, int iMode);
+        long Open(const string &fname, int mode);
         long Close();
 
         long PutAccount(const account_t &account);
@@ -36,6 +36,9 @@ namespace eau
 
     class SmartStore : public StoreImpl
     {
+    public:
+        explicit SmartStore() : StoreImpl() {}
+
     private:
         SmartStore(const SmartStore &original);
         void operator =(const SmartStore &);

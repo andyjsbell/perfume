@@ -14,15 +14,13 @@ StoreImpl::~StoreImpl()
     Close();
 }
 
-long StoreImpl::Open(const char* pName, int iMode)
+long StoreImpl::Open(const string &fname, int mode)
 {
-    returnv_if_fail(pName, EAU_E_INVALIDARG);
-
     if (m_pHandle) {
         return EAU_E_EXIST;
     }
 
-    int ret = unqlite_open((unqlite **)&m_pHandle, pName, iMode);
+    int ret = unqlite_open((unqlite **)&m_pHandle, fname.c_str(), mode);
     returnv_if_fail(ret == UNQLITE_OK, EAU_E_FAIL);
     return EAU_S_OK;
 }

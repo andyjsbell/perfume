@@ -28,11 +28,18 @@ namespace eau
     class ICloudy : public RefCount
     {
     public:
-        virtual long Create(const string &user, const string &passwd) = 0;
-        virtual long Update(const string &user, const string &passwd) = 0;
-        virtual long SignIn(const string &user, const string &passwd) = 0;
-        virtual long SignUp() = 0;
-        virtual long GetCompte(zeroptr<ICompte> &pCompte) = 0;
+        virtual bool Init(const string &fname, int mode) = 0;
+
+        virtual bool Create(const string &user) = 0;
+        virtual bool SignIn(const string &user, const string &passwd) = 0;
+        virtual bool SignUp() = 0;
+
+        virtual bool BeginCommit() = 0;
+        virtual void SetPasswd(const string &passwd) = 0;
+        virtual void SetDesc(const string &desc) = 0;
+        virtual bool EndCommit() = 0;
+
+        virtual bool GetCompte(zeroptr<ICompte> &pCompte) = 0;
 
     protected:
         virtual ~ICloudy() {}
@@ -41,9 +48,9 @@ namespace eau
     class ICompte : public RefCount
     {
     public:
-        virtual long CreateDB(const string &dbname, zeroptr<IDatabase> &db) = 0;
-        virtual long GetAllDBs(vector<string> &dbids) = 0;
-        virtual long OpenDB(const string &dbid, zeroptr<IDatabase> &db) = 0;
+        virtual bool CreateDB(const string &title, zeroptr<IDatabase> &pDB) = 0;
+        virtual bool GetAllDBs(vector<string> &dbids) = 0;
+        virtual bool OpenDB(const string &dbid, zeroptr<IDatabase> &pDB) = 0;
 
     protected:
         virtual ~ICompte() {}
@@ -52,14 +59,27 @@ namespace eau
     class IDatabase : public RefCount
     {
     public:
-        virtual long CreateDoc(const string &docname, zeroptr<IDocument> &doc) = 0;
-        virtual long GetAllDocs(vector<string> &docids) = 0;
-        virtual long OpenDoc(const string &docid, zeroptr<IDocument> &doc) = 0;
+        virtual bool CreateDoc(const string &title, zeroptr<IDocument> &pDoc) = 0;
+        virtual bool GetAllDocs(vector<string> &docids) = 0;
+        virtual bool OpenDoc(const string &docid, zeroptr<IDocument> &pDoc) = 0;
+
+        virtual bool BeginCommit() = 0;
+        virtual void SetTitle(const string &title) = 0;
+        virtual void SetDesc(const string &desc) = 0;
+        virtual void SetLogo(const string &logo) = 0;
+        virtual void SetStatus(const string &status) = 0;
+        virtual bool EndCommit() = 0;
     };
 
     class IDocument : public RefCount
     {
     public:
+        virtual bool BeginCommit() = 0;
+        virtual void SetTitle(const string &title) = 0;
+        virtual void SetDesc(const string &desc) = 0;
+        virtual void SetLogo(const string &logo) = 0;
+        virtual void SetStatus(const string &status) = 0;
+        virtual bool EndCommit() = 0;
     };
 
 } // end of namespace eau

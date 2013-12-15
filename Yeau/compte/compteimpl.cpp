@@ -7,44 +7,195 @@ zeroptr<ICloudy> CCloudy::s_pInst = NULL;
 
 zeroptr<ICloudy> CCloudy::inst()
 {
+    if (!s_pInst) {
+        s_pInst = new RefCounted<CCloudy>();
+    }
+
     return s_pInst;
 }
 
 CCloudy::CCloudy()
 {
+    m_pStore = NULL;
     m_pCompte = NULL;
-    m_pStore  = NULL;
+    m_bInit = false;
+    m_bSignIn = false;
 }
 
-zeroptr<CStore> CCloudy::GetStore()
+CCloudy::~CCloudy()
 {
-    return m_pStore;
+    m_pStore = NULL;
+    m_pCompte = NULL;
 }
 
-long CCloudy::Create(const string &user, const string &passwd)
+bool CCloudy::Init(const string &fname, int mode)
 {
-    return EAU_S_OK;
+    returnv_if_fail(m_bInit == false, false);
+
+    m_pStore = new RefCounted<CStore>();
+    long lret = m_pStore->Open(fname, mode);
+    m_bInit = (lret == EAU_S_OK);
+    return m_bInit;
 }
 
-long CCloudy::Update(const string &user, const string &passwd)
+bool CCloudy::Create(const string &user)
 {
-    return EAU_S_OK;
+    returnv_if_fail(m_bInit, false);
+
+    account_t acc = {user,};
+    long lret = m_pStore->PutAccount(acc);
+    return (lret == EAU_S_OK);
 }
 
-long CCloudy::SignIn(const string &user, const string &passwd)
+bool CCloudy::SignIn(const string &user, const string &passwd)
 {
-    return EAU_S_OK;
+    returnv_if_fail(m_bInit, false);
+    returnv_if_fail(m_bSignIn == false, false);
+
+    account_t acc = {user, };
+    long lret = m_pStore->GetAccount(acc);
+    returnv_if_fail(lret == EAU_S_OK, false);
+    if (acc.passwd != passwd)
+        return false;
+
+    m_bSignIn = true;
+    m_cid = user; // maybe replace with random uuid
+    m_pCompte = new RefCounted<CCompte>(m_cid, m_pStore);
+    return true;
 }
 
-long CCloudy::SignUp()
+bool CCloudy::SignUp()
 {
-    return EAU_S_OK;
+    m_bSignIn = false;
+    m_pCompte = NULL;
+    return true;
 }
 
-long CCloudy::GetCompte(zeroptr<ICompte> &pCompte)
+bool CCloudy::BeginCommit()
 {
+    returnv_if_fail(m_bInit, false);
+    returnv_if_fail(m_bSignIn, false);
+
+    m_account.user = m_cid;
+    long lret = m_pStore->GetAccount(m_account);
+    return (lret == EAU_S_OK);
+}
+
+bool CCloudy::EndCommit()
+{
+    returnv_if_fail(m_bInit, false);
+    returnv_if_fail(m_bSignIn, false);
+
+    long lret = m_pStore->PutAccount(m_account);
+    return (lret == EAU_S_OK);
+}
+
+bool CCloudy::GetCompte(zeroptr<ICompte> &pCompte)
+{
+    returnv_if_fail(m_bInit, false);
+    returnv_if_fail(m_bSignIn, false);
+
     pCompte = m_pCompte;
-    return EAU_S_OK;
+    return true;
 }
 
+///======================
+
+CCompte::CCompte(const string &cid, zeroptr<CStore> pStore) 
+    : m_cid(cid), m_pStore(pStore)
+{}
+
+bool CCompte::CreateDB(const string &title, zeroptr<IDatabase> &pDB)
+{
+    db_t db;
+    db.id = "123456"; // To gen one random string
+    db.title = title;
+    long lret = m_pStore->PutDB(db);
+    returnv_if_fail(lret == EAU_S_OK, false);
+
+    pDB = new RefCounted<CDatabase>(db.id, m_pStore);
+    return true;
+}
+
+bool CCompte::GetAllDBs(vector<string> &dbids)
+{
+    return true;
+}
+
+bool CCompte::OpenDB(const string &dbid, zeroptr<IDatabase> &pDB)
+{
+    db_t db;
+    db.id = dbid; 
+    long lret = m_pStore->GetDB(db);
+    returnv_if_fail(lret == EAU_S_OK, false);
+
+    pDB = new RefCounted<CDatabase>(db.id, m_pStore);
+    return true;
+}
+
+///======================
+
+CDatabase::CDatabase(const string &dbid, zeroptr<CStore> pStore)
+    : m_dbid(dbid), m_pStore(pStore)
+{}
+
+bool CDatabase::CreateDoc(const string &title, zeroptr<IDocument> &pDoc)
+{
+    doc_t doc;
+    doc.id = "123456"; // To gen one random string
+    doc.title = title;
+    long lret = m_pStore->PutDoc(doc);
+    returnv_if_fail(lret == EAU_S_OK, false);
+
+    pDoc = new RefCounted<CDocument>(doc.id, m_pStore);
+    return true;
+}
+
+bool CDatabase::GetAllDocs(vector<string> &docids)
+{
+    return true;
+}
+
+bool CDatabase::OpenDoc(const string &docid, zeroptr<IDocument> &pDoc)
+{
+    doc_t doc;
+    doc.id = docid; 
+    long lret = m_pStore->GetDoc(doc);
+    returnv_if_fail(lret == EAU_S_OK, false);
+
+    pDoc = new RefCounted<CDocument>(doc.id, m_pStore);
+    return true;
+}
+
+bool CDatabase::BeginCommit()
+{
+    m_db.id = m_dbid; 
+    long lret = m_pStore->GetDB(m_db);
+    return (lret == EAU_S_OK);
+}
+
+bool CDatabase::EndCommit()
+{
+    long lret = m_pStore->PutDB(m_db);
+    return (lret == EAU_S_OK);
+}
+
+///======================
+
+CDocument::CDocument(const string &docid, zeroptr<CStore> pStore)
+    : m_docid(docid), m_pStore(pStore)
+{}
+
+bool CDocument::BeginCommit()
+{
+    m_doc.id = m_docid; 
+    long lret = m_pStore->GetDoc(m_doc);
+    return (lret == EAU_S_OK);
+}
+
+bool CDocument::EndCommit()
+{
+    long lret = m_pStore->PutDoc(m_doc);
+    return (lret == EAU_S_OK);
+}
 
