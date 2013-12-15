@@ -5,22 +5,11 @@ $schema = {id: 'string', title: 'string', desc: 'string'};
 
 if ($eau_record_in == undefined)
 {
+    print '[error] no input var $eau_record_in';
     return -1;
 }
 
-$id = $eau_record_in.id;
-$title = $eau_record_in.title;
-$desc = $eau_record_in.desc;
-$logo = $eau_record_in.logo;
-$status = $eau_record_in.status;
-
-$record = {   
-    id: $id, 
-    title: $title, 
-    desc: $desc, 
-    logo: $logo, 
-    status: $status, 
-};
+$record = $eau_record_in;
 
 if (!db_exists($collection))
 {

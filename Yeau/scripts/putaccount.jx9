@@ -5,14 +5,11 @@ $schema = {user: 'string', passwd: 'string', desc: 'string'};
 
 if ($eau_record_in == undefined)
 {
+    print '[error] no input var $eau_record_in';
     return -1;
 }
 
-$user = $eau_record_in.user;
-$passwd = $eau_record_in.passwd;
-$desc = $eau_record_in.desc;
-
-$record = {user: '$user', passwd: '$passwd', desc: '$desc'};
+$record = $eau_record_in;
 
 /* check collection */
 if (!db_exists($collection)) 
@@ -21,13 +18,6 @@ if (!db_exists($collection))
     if (!$ret) {
         print db_errlog();
         return -2;
-    }
-
-    // set collection's schema
-    $ret = db_set_schema($collection, $schema);
-    if (!$ret) {
-        print db_errlog();
-        return -3;
     }
 }
 

@@ -2,41 +2,13 @@
 #define _EAU_STORE_H_
 
 #include "types.h"
+#include "struct.h"
 
 #include <string>
 using namespace std;
 
 namespace eau
 {
-    typedef struct {
-        string user;
-        string passwd;
-        string desc;
-        string cdate;
-        string mdate;
-    }account_t;
-
-    typedef struct {
-        string id;
-        string title;
-        string desc;
-        string logo;
-        string status;
-        string cdate;
-        string mdate;
-    }db_t;
-
-    typedef struct {
-        string id;
-        string title;
-        string desc;
-        string logo;
-        string status;
-        string cdate;
-        string mdate;
-    }doc_t;
-
-
     class StoreImpl
     {
     public:

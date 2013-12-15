@@ -38,10 +38,24 @@ namespace eau
         ret = unqlite_value_to_int(jx9_return, NULL);
         unqlite_vm_release_value(jx9_vm, jx9_return);
 
-        return (ret == UNQLITE_OK) ? EAU_S_OK : EAU_E_FAIL;
+        return (ret == 0) ? EAU_S_OK : EAU_E_FAIL;
     }
 
-    static long parse_jx9_string(unqlite_value* jx9_array, const string &key, string &value)
+    static long parse_jx9_value(unqlite_value* jx9_array, const string &key, int &value)
+    {
+        returnv_if_fail(jx9_array, EAU_E_INVALIDARG);
+        returnv_if_fail(!key.empty(), EAU_E_INVALIDARG);
+
+        unqlite_value* jx9_elem = unqlite_array_fetch(jx9_array, key.c_str(), key.size());
+        returnv_if_fail(jx9_elem, EAU_E_FAIL);
+
+        value = (string)unqlite_value_to_int(jx9_elem, NULL);
+        unqlite_vm_release_value(jx9_vm, jx9_elem);
+
+        return EAU_S_OK;
+    }
+
+    static long parse_jx9_value(unqlite_value* jx9_array, const string &key, string &value)
     {
         returnv_if_fail(jx9_array, EAU_E_INVALIDARG);
         returnv_if_fail(!key.empty(), EAU_E_INVALIDARG);
@@ -86,17 +100,22 @@ namespace eau
         returnv_if_fail(jx9_vm, EAU_E_INVALIDARG);
         returnv_if_fail(!kv_map.empty(), EAU_E_INVALIDARG);
 
-        unqlite_value *jx9_array = unqlite_vm_new_array(jx9_vm);
+        unqlite_value* jx9_array = unqlite_vm_new_array(jx9_vm);
         returnv_if_fail(jx9_array, EAU_E_FAIL);
         
         int ret = UNQLITE_OK;
         map<int, string>::iterator iter = kv_map.begin();
         for(iter=kv_map.begin(); iter != kv_map.end(); iter++) {
-            ret = unqlite_array_add_strkey_elem(jx9_array, iter->first.c_str(), iter->second.c_str());
+            unqlite_value* jx9_val = unqlite_vm_new_scalar(jx9_vm);
+            ret = unqlite_value_string(jx9_val, iter->second.c_str(), iter->second.size());
+            break_if_fail(ret == UNQLITE_OK);
+            ret = unqlite_array_add_strkey_elem(jx9_array, iter->first.c_str(), jx9_val);
+            unqlite_vm_release_value(jx9_vm, jx9_val);
             break_if_fail(ret == UNQLITE_OK);
         }
-        ret = unqlite_vm_config(jx9_vm, UNQLITE_VM_CONFIG_CREATE_VAR, kEauRecordInVar, jx9_array);
 
+        returnv_if_fail(ret == UNQLITE_OK, EAU_E_FAIL);
+        ret = unqlite_vm_config(jx9_vm, UNQLITE_VM_CONFIG_CREATE_VAR, kEauRecordInVar, jx9_array);
         unqlite_vm_release_value(jx9_vm, jx9_array);
 
         return (ret == UNQLITE_OK) ? EAU_S_OK : EAU_E_FAIL;

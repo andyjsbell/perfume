@@ -6,6 +6,7 @@ $schema = {id: 'string', title: 'string', desc: 'string'};
 
 if ($eau_record_in == undefined)
 {
+    print '[error] no input var $eau_record_in';
     return -1;
 }
 
