@@ -13,6 +13,12 @@ zeroptr<ICloudy> CCloudy::inst()
 CCloudy::CCloudy()
 {
     m_pCompte = NULL;
+    m_pStore  = NULL;
+}
+
+zeroptr<CStore> CCloudy::GetStore()
+{
+    return m_pStore;
 }
 
 long CCloudy::Create(const string &user, const string &passwd)

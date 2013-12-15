@@ -2,6 +2,7 @@
 #define _EAU_COMPTEIMPL_H_
 
 #include "compte.h"
+#include "store.h"
 
 namespace eau 
 {
@@ -12,6 +13,7 @@ namespace eau
 
     public:
         CCloudy();
+        zeroptr<CStore> GetStore();
 
         virtual long Create(const string &user, const string &passwd);
         virtual long Update(const string &user, const string &passwd);
@@ -21,6 +23,8 @@ namespace eau
 
     private:
         zeroptr<ICompte> m_pCompte; 
+        zeroptr<CStore>  m_pStore;        
+
         static zeroptr<ICloudy> s_pInst;
     };
 

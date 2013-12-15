@@ -10,7 +10,7 @@ using namespace std;
 
 namespace eau
 {
-    class StoreImpl
+    class StoreImpl : public RefCount
     {
     public:
         explicit StoreImpl();
@@ -41,7 +41,7 @@ namespace eau
         void operator =(const SmartStore &);
     };
 
-    typedef SmartStore Store;
+    typedef SmartStore CStore;
 
 } // namespace eau
 
