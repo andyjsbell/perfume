@@ -34,7 +34,7 @@ MutexImpl::~MutexImpl()
     if (s_pthread_enabled)
     {
         pthread_mutex_t* mutex = (pthread_mutex_t*)_data;
-        int rval = pthread_mutex_destroy(mutex);
+        pthread_mutex_destroy(mutex);
     }
 }
 
