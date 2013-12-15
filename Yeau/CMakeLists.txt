@@ -5,7 +5,6 @@ project(Yeau)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -Wall -O2")  
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -O2") 
 
-#set(CMAKE_INSTALL_PREFIX /Yeau)
 #add_definitions(-g -Wall)
 add_definitions(-DHAVE_PTHREAD_H -DHAS_ATOMICS=1)
 
@@ -22,10 +21,7 @@ link_directories(
 #add_subdirectory(compte)
 #add_subdirectory(ubase)
 #add_subdirectory(unqlite)
-
-#set (EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
-#set (LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
-#install(DIRECTORY DESTINATION . PATTERN "*.*" EXCLUDE)
+add_subdirectory(testing)
 
 set(Yeau_LIB_SRCS
     unqlite/unqlite.c
@@ -37,3 +33,7 @@ set(Yeau_LIB_SRCS
 
 add_library(Yeau STATIC ${Yeau_LIB_SRCS})
 set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib/) 
+
+#set(CMAKE_INSTALL_PREFIX /Yeau)
+#install(DIRECTORY DESTINATION . PATTERN "*.*" EXCLUDE)
+
