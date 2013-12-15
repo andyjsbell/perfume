@@ -31,7 +31,7 @@ CCloudy::~CCloudy()
 
 bool CCloudy::Init(const string &fname, int mode)
 {
-    returnv_if_fail(m_bInit == false, false);
+    returnv_assert(!m_bInit, false);
 
     m_pStore = new RefCounted<CStore>();
     long lret = m_pStore->Open(fname, mode);
@@ -41,7 +41,7 @@ bool CCloudy::Init(const string &fname, int mode)
 
 bool CCloudy::Create(const string &user)
 {
-    returnv_if_fail(m_bInit, false);
+    returnv_assert(m_bInit, false);
 
     account_t acc = {user,};
     long lret = m_pStore->PutAccount(acc);
@@ -50,12 +50,12 @@ bool CCloudy::Create(const string &user)
 
 bool CCloudy::SignIn(const string &user, const string &passwd)
 {
-    returnv_if_fail(m_bInit, false);
-    returnv_if_fail(m_bSignIn == false, false);
+    returnv_assert(m_bInit, false);
+    returnv_assert(!m_bSignIn, false);
 
     account_t acc = {user, };
     long lret = m_pStore->GetAccount(acc);
-    returnv_if_fail(lret == EAU_S_OK, false);
+    returnv_assert2(lret, EAU_S_OK, false);
     if (acc.passwd != passwd)
         return false;
 
@@ -74,8 +74,8 @@ bool CCloudy::SignUp()
 
 bool CCloudy::BeginCommit()
 {
-    returnv_if_fail(m_bInit, false);
-    returnv_if_fail(m_bSignIn, false);
+    returnv_assert(m_bInit, false);
+    returnv_assert(m_bSignIn, false);
 
     m_account.user = m_cid;
     long lret = m_pStore->GetAccount(m_account);
@@ -84,8 +84,8 @@ bool CCloudy::BeginCommit()
 
 bool CCloudy::EndCommit()
 {
-    returnv_if_fail(m_bInit, false);
-    returnv_if_fail(m_bSignIn, false);
+    returnv_assert(m_bInit, false);
+    returnv_assert(m_bSignIn, false);
 
     long lret = m_pStore->PutAccount(m_account);
     return (lret == EAU_S_OK);
@@ -93,8 +93,8 @@ bool CCloudy::EndCommit()
 
 bool CCloudy::GetCompte(zeroptr<ICompte> &pCompte)
 {
-    returnv_if_fail(m_bInit, false);
-    returnv_if_fail(m_bSignIn, false);
+    returnv_assert(m_bInit, false);
+    returnv_assert(m_bSignIn, false);
 
     pCompte = m_pCompte;
     return true;
@@ -112,7 +112,7 @@ bool CCompte::CreateDB(const string &title, zeroptr<IDatabase> &pDB)
     db.id = uuid_generate_string(); 
     db.title = title;
     long lret = m_pStore->PutDB(db);
-    returnv_if_fail(lret == EAU_S_OK, false);
+    returnv_assert2(lret, EAU_S_OK, false);
 
     pDB = new RefCounted<CDatabase>(db.id, m_pStore);
     return true;
@@ -128,7 +128,7 @@ bool CCompte::OpenDB(const string &dbid, zeroptr<IDatabase> &pDB)
     db_t db;
     db.id = dbid; 
     long lret = m_pStore->GetDB(db);
-    returnv_if_fail(lret == EAU_S_OK, false);
+    returnv_assert2(lret, EAU_S_OK, false);
 
     pDB = new RefCounted<CDatabase>(db.id, m_pStore);
     return true;
@@ -146,7 +146,7 @@ bool CDatabase::CreateDoc(const string &title, zeroptr<IDocument> &pDoc)
     doc.id = uuid_generate_string();
     doc.title = title;
     long lret = m_pStore->PutDoc(doc);
-    returnv_if_fail(lret == EAU_S_OK, false);
+    returnv_assert2(lret, EAU_S_OK, false);
 
     pDoc = new RefCounted<CDocument>(doc.id, m_pStore);
     return true;
@@ -162,7 +162,7 @@ bool CDatabase::OpenDoc(const string &docid, zeroptr<IDocument> &pDoc)
     doc_t doc;
     doc.id = docid; 
     long lret = m_pStore->GetDoc(doc);
-    returnv_if_fail(lret == EAU_S_OK, false);
+    returnv_assert2(lret, EAU_S_OK, false);
 
     pDoc = new RefCounted<CDocument>(doc.id, m_pStore);
     return true;

@@ -20,8 +20,9 @@ long StoreImpl::Open(const string &fname, int mode)
         return EAU_E_EXIST;
     }
 
+    mode = UNQLITE_OPEN_CREATE;
     int ret = unqlite_open((unqlite **)&m_pHandle, fname.c_str(), mode);
-    returnv_if_fail(ret == UNQLITE_OK, EAU_E_FAIL);
+    returnv_assert2(ret, UNQLITE_OK, EAU_E_FAIL);
     return EAU_S_OK;
 }
 

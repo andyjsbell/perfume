@@ -4,12 +4,11 @@ project(Yeau)
 
 # CMAKE_C_FLAGS CMAKE_CXX_FLAGS
 add_definitions(-O2 -Wall)
-add_definitions(-DHAVE_PTHREAD_H -DHAS_ATOMICS=1)
 
 include_directories(
     ${PROJECT_SOURCE_DIR}/compte
     ${PROJECT_SOURCE_DIR}/ubase
-    ${PROJECT_SOURCE_DIR}/unqlite
+    ${PROJECT_SOURCE_DIR}/misc/unqlite
     ${PROJECT_SOURCE_DIR}/misc/libuuid
 )
 
@@ -22,8 +21,9 @@ link_directories(
 #add_subdirectory(unqlite)
 add_subdirectory(testing)
 
+# For Yeau
+add_definitions(-DHAVE_PTHREAD_H -DHAS_ATOMICS=1)
 set(Yeau_LIB_SRCS
-    unqlite/unqlite.c
     ubase/atomic.cpp
     ubase/mutex.cpp
     ubase/umisc.cpp
@@ -31,8 +31,13 @@ set(Yeau_LIB_SRCS
     compte/compteimpl.cpp
     compte/store.cpp
     compte/jx9util.cpp
+    misc/unqlite/unqlite.c
 )
 
+# for uuid
+add_definitions(-DHAVE_UNISTD_H)
+add_definitions(-DHAVE_STDLIB_H)
+add_definitions(-DHAVE_SYS_TIME_H)
 set(uuid_LIB_SRCS
     misc/libuuid/clear.c     
     #misc/libuuid/gen_uuid_nt.c  
