@@ -28,6 +28,7 @@ set(Yeau_LIB_SRCS
     ubase/atomic.cpp
     ubase/mutex.cpp
     compte/compte.cpp
+    compte/compteimpl.cpp
     compte/store.cpp
 )
 
