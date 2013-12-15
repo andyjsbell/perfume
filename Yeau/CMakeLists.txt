@@ -2,10 +2,8 @@ cmake_minimum_required(VERSION 2.8)
 
 project(Yeau)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -Wall -O2")  
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -O2") 
-
-#add_definitions(-g -Wall)
+# CMAKE_C_FLAGS CMAKE_CXX_FLAGS
+add_definitions(-O2 -Wall)
 add_definitions(-DHAVE_PTHREAD_H -DHAS_ATOMICS=1)
 
 include_directories(
@@ -32,14 +30,24 @@ set(Yeau_LIB_SRCS
     compte/store.cpp
 )
 
-add_library(Yeau STATIC ${Yeau_LIB_SRCS})
+
+set(so_NAME Yeau)
+add_library(${so_NAME} SHARED ${Yeau_LIB_SRCS})
+set_target_properties(${so_NAME} PROPERTIES CLEAN_DIRECT_OUTPUT 1) 
+#set_target_properties(${so_NAME} PROPERTIES VERSION 1.0 SOVERSION 1)
+
+set(a_NAME Yeau_static)
+add_library(${a_NAME} STATIC ${Yeau_LIB_SRCS})
+set_target_properties(${a_NAME} PROPERTIES OUTPUT_NAME ${so_NAME})
+set_target_properties(${a_NAME} PROPERTIES CLEAN_DIRECT_OUTPUT 1) 
+
 set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib/) 
 
 #set(CMAKE_INSTALL_PREFIX /tmp/Yeau)
-INSTALL(PROGRAMS ${PROJECT_BINARY_DIR}/bin/testYeau DESTINATION bin)
-INSTALL(DIRECTORY ${PROJECT_SOURCE_DIR}/scripts DESTINATION bin)
-INSTALL(PROGRAMS ${PROJECT_BINARY_DIR}/lib/libYeau.a DESTINATION lib)
-INSTALL(FILES ${PROJECT_SOURCE_DIR}/compte/compte.h DESTINATION inc)
-INSTALL(DIRECTORY ${PROJECT_SOURCE_DIR}/ubase/ DESTINATION inc 
+install(TARGETS ${so_NAME} LIBRARY DESTINATION lib)
+install(TARGETS ${a_NAME}  ARCHIVE DESTINATION lib)
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/scripts DESTINATION bin)
+install(FILES ${PROJECT_SOURCE_DIR}/compte/compte.h DESTINATION inc)
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/ubase/ DESTINATION inc 
         FILES_MATCHING PATTERN "*.h")
 
