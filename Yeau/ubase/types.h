@@ -1,6 +1,8 @@
 #ifndef _EAU_TYPES_H_
 #define _EAU_TYPES_H_
 
+#include <stdlib.h>
+
 // basic data types
 #ifdef WIN32
 typedef signed char         int8_t;
@@ -19,27 +21,5 @@ typedef unsigned long       uintptr_t;
 
 typedef void *              voidptr_t;
 typedef void *              handle_t;
-
-
-#ifndef _UUID_T
-#define	_UUID_T
-// uuid, 16bytes
-// e.g. F8A287DD-2970-4147-889E-1606464BBCC8
-#pragma pack(push, 1)
-typedef struct {
-    uint32_t u0;
-    uint16_t u1;
-    uint16_t u2;
-    uint16_t u3;
-    uint8_t u4[6];
-}uuid_t;
-#pragma pack(pop)
-#endif
-#define UUID_DEFINE(name,u0,u1,u2,u3,u4) \
-    static const uuid_t name __attribute__ ((unused)) = {u0,u1,u2,u3,u4}
-
-#include <vector>
-typedef std::vector<uuid_t> uuids_t;
-
 
 #endif

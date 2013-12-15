@@ -1,5 +1,6 @@
 #include "compteimpl.h"
 #include "error.h"
+#include "umisc.h"
 
 using namespace eau;
 
@@ -108,7 +109,7 @@ CCompte::CCompte(const string &cid, zeroptr<CStore> pStore)
 bool CCompte::CreateDB(const string &title, zeroptr<IDatabase> &pDB)
 {
     db_t db;
-    db.id = "123456"; // To gen one random string
+    db.id = uuid_generate_string(); 
     db.title = title;
     long lret = m_pStore->PutDB(db);
     returnv_if_fail(lret == EAU_S_OK, false);
@@ -142,7 +143,7 @@ CDatabase::CDatabase(const string &dbid, zeroptr<CStore> pStore)
 bool CDatabase::CreateDoc(const string &title, zeroptr<IDocument> &pDoc)
 {
     doc_t doc;
-    doc.id = "123456"; // To gen one random string
+    doc.id = uuid_generate_string();
     doc.title = title;
     long lret = m_pStore->PutDoc(doc);
     returnv_if_fail(lret == EAU_S_OK, false);
