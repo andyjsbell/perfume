@@ -30,6 +30,5 @@ while(($rec=db_fetch($collection)) != NULL)
     }
 }
 
-$ret = db_store($collection, $record);
-
+$ret = (db_store($collection, $record) == TRUE) ? 0 : -3;
 return $ret;

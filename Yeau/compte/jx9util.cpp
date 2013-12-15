@@ -12,6 +12,7 @@ namespace eau
 
         ret = unqlite_value_to_int(jx9_return);
         unqlite_vm_release_value(jx9_vm, jx9_return);
+        log_assert2(ret, UNQLITE_OK);
 
         return (ret == UNQLITE_OK) ? EAU_S_OK : EAU_E_FAIL;
     }
@@ -107,9 +108,11 @@ namespace eau
             break_assert2(config_jx9_variable(jx9_vm, in_map), EAU_S_OK);
             break_assert2(unqlite_vm_exec(jx9_vm), UNQLITE_OK);
             break_assert2(check_jx9_return(jx9_vm), EAU_S_OK);
+            lret = EAU_S_OK;
         }while(false);
-
         unqlite_vm_release(jx9_vm);
+        log_assert2(lret, EAU_S_OK);
+
         return lret;
     }
 
