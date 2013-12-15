@@ -22,7 +22,7 @@ long StoreImpl::Open(const char* pName, int iMode)
         return EAU_E_EXIST;
     }
 
-    int ret = unqlite_open(&((unqlite *)m_pHandle), pName, iMode);
+    int ret = unqlite_open((unqlite **)&m_pHandle, pName, iMode);
     returnv_if_fail(ret == UNQLITE_OK, EAU_E_FAIL);
     return EAU_S_OK;
 }

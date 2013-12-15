@@ -16,7 +16,7 @@ MutexImpl::MutexImpl(bool recursive) : _data(0)
     {
         pthread_mutexattr_t attr;
         int rval = pthread_mutexattr_init(&attr);
-        int kind = (recursive ? PTHREAD_MUTEX_RECURSVE : PTHREAD_MUTEX_NORMAL);
+        int kind = (recursive ? PTHREAD_MUTEX_RECURSIVE : PTHREAD_MUTEX_NORMAL);
         rval = pthread_mutexattr_settype(&attr, kind);
 
 #if !defined(__FreeBSD__) && !defined(__OpenBSD__) && !defined(__NetBSD__)
@@ -34,11 +34,8 @@ MutexImpl::~MutexImpl()
     if (s_pthread_enabled)
     {
         pthread_mutex_t* mutex = (pthread_mutex_t*)_data;
-        int rval = pthread_mutex_lock(mutex);
-        return rval == 0;
+        int rval = pthread_mutex_destroy(mutex);
     }
-    else
-        return false;
 }
 
 bool MutexImpl::acquire()

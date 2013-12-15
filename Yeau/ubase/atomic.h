@@ -1,6 +1,8 @@
 #ifndef _EAU_ATOMIC_H_
 #define _EAU_ATOMIC_H_
 
+#include "types.h"
+
 namespace eau
 {
     /**

@@ -4,14 +4,15 @@
 #include <windows.h>
 #endif
 
-using namespace eau;
-
+namespace eau
+{
 namespace atomic 
 {
     void memfence() 
     {
 #if HAS_ATOMICS == 0
-        return;
+       return;
+#  warning HAS_ATOMICS == 0, no memory fency operations for your platform!
 #elif defined(__GNUC__)
         __sync_synchronize();
 #elif defined(_MSC_VER)
@@ -101,5 +102,5 @@ namespace atomic
         return result;
     }
 
-} // end of namespace atomic
-
+} // namespace atomic
+}

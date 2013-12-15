@@ -24,8 +24,8 @@ namespace eau
     static const char kPutDBScript[] = "scripts/putdb.jx9";
     static const char kGetDBScript[] = "scripts/getdb.jx9";
 
-    static const char kPutDBScript[] = "scripts/putdoc.jx9";
-    static const char kGetDBScript[] = "scripts/getdoc.jx9";
+    static const char kPutDocScript[] = "scripts/putdoc.jx9";
+    static const char kGetDocScript[] = "scripts/getdoc.jx9";
 
     static long check_jx9_return(unqlite_vm* jx9_vm)
     {
@@ -35,7 +35,7 @@ namespace eau
         int ret = unqlite_vm_config(jx9_vm, UNQLITE_VM_CONFIG_EXEC_VALUE, &jx9_return);
         returnv_if_fail(ret == UNQLITE_OK, EAU_E_FAIL);
 
-        ret = unqlite_value_to_int(jx9_return, NULL);
+        ret = unqlite_value_to_int(jx9_return);
         unqlite_vm_release_value(jx9_vm, jx9_return);
 
         return (ret == 0) ? EAU_S_OK : EAU_E_FAIL;
@@ -48,9 +48,7 @@ namespace eau
 
         unqlite_value* jx9_elem = unqlite_array_fetch(jx9_array, key.c_str(), key.size());
         returnv_if_fail(jx9_elem, EAU_E_FAIL);
-
-        value = (string)unqlite_value_to_int(jx9_elem, NULL);
-        unqlite_vm_release_value(jx9_vm, jx9_elem);
+        value = unqlite_value_to_int(jx9_elem);
 
         return EAU_S_OK;
     }
@@ -62,9 +60,7 @@ namespace eau
 
         unqlite_value* jx9_elem = unqlite_array_fetch(jx9_array, key.c_str(), key.size());
         returnv_if_fail(jx9_elem, EAU_E_FAIL);
-
         value = (string)unqlite_value_to_string(jx9_elem, NULL);
-        unqlite_vm_release_value(jx9_vm, jx9_elem);
 
         return EAU_S_OK;
     }
@@ -104,7 +100,7 @@ namespace eau
         returnv_if_fail(jx9_array, EAU_E_FAIL);
         
         int ret = UNQLITE_OK;
-        map<int, string>::iterator iter = kv_map.begin();
+        map<string, string>::iterator iter = kv_map.begin();
         for(iter=kv_map.begin(); iter != kv_map.end(); iter++) {
             unqlite_value* jx9_val = unqlite_vm_new_scalar(jx9_vm);
             ret = unqlite_value_string(jx9_val, iter->second.c_str(), iter->second.size());
@@ -121,7 +117,7 @@ namespace eau
         return (ret == UNQLITE_OK) ? EAU_S_OK : EAU_E_FAIL;
     }
 
-    static long process_jx9_put(const unqlite* jx9_db, const char* jx9_prog, map<string, string> &in_map)
+    static long process_jx9_put(unqlite* jx9_db, const char* jx9_prog, map<string, string> &in_map)
     {
         returnv_if_fail(jx9_db, EAU_E_INVALIDARG);
         returnv_if_fail(jx9_prog, EAU_E_INVALIDARG);
@@ -141,9 +137,10 @@ namespace eau
         }while(false);
 
         unqlite_vm_release(jx9_vm);
+        return lret;
     }
 
-    static long process_jx9_get(const unqlite* jx9_db, const char* jx9_prog, const map<string, string> &in_map, map<string, string> &io_map)
+    static long process_jx9_get(unqlite* jx9_db, const char* jx9_prog, map<string, string> &in_map, map<string, string> &io_map)
     {
         returnv_if_fail(jx9_db, EAU_E_INVALIDARG);
         returnv_if_fail(jx9_prog, EAU_E_INVALIDARG);
@@ -166,7 +163,7 @@ namespace eau
 
             map<string, string>::iterator iter;
             for (iter=io_map.begin(); iter != io_map.end(); iter++) {
-                break_if_fail(parse_jx9_string(jx9_record, iter->first, iter->second) == EAU_S_OK);
+                break_if_fail(parse_jx9_value(jx9_record, iter->first, iter->second) == EAU_S_OK);
             }
             lret = EAU_S_OK;
         }while(false);

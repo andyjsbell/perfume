@@ -12,10 +12,10 @@ namespace eau {
      *  one document => one or many items
      */
 
-    class IBase : public RefCounted<IBase>
+    class IBase : public RefCount
     {
     public:
-        virtual bool GetUUID(uuid_t & id) = 0;
+        virtual bool GetUUID(uuid_t & id) { return false; }
     
     protected:
         virtual ~IBase() {}

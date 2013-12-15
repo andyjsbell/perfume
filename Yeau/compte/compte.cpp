@@ -32,7 +32,7 @@ private:
 class Compte : public ICompte
 {
     IMPL_IBASE_INTF;
-public
+public:
     Compte()
     {}
 private:
