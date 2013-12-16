@@ -2,9 +2,7 @@ $eau_record_out = {};
 $collection = 'account';
 $schema = {user: 'string', passwd: 'string', desc: 'string'};
 
-//===========================================================
-
-if ($eau_record_in == undefined)
+if ($eau_record_in == NULL)
 {
     print '[error] no input var $eau_record_in';
     return -1;
@@ -31,4 +29,5 @@ while(($rec=db_fetch($collection)) != NULL)
     }
 }
 
+#print $eau_record_out;
 return $ret;

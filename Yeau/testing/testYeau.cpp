@@ -9,8 +9,9 @@ using namespace std;
 
 #define FUNCTAG "["<<__FUNCTION__<<"]"
 
+#define PRINT_BEGIN  cout << "=============" << endl << FUNCTAG << endl;
 #define PRINT_CRLF  cout << endl;
-#define PRINT_STR(s) cout << #s"=" <<(s) << endl;
+#define PRINT_STR(s) cout << #s"=" <<(s).str() << endl;
 #define PRINT_FUNC_LONG(f) \
     {   cout << "["#f"]" << " --- begin" << endl; \
         long lret = f; \
@@ -24,6 +25,8 @@ static int get_cnt()
 
 static int test_log()
 {
+    PRINT_BEGIN;
+
     log_assert2(get_cnt(), 0);
     log_assert2(get_cnt(), 1);
     log_assert2(get_cnt(), 3);
@@ -36,14 +39,18 @@ static int test_log()
 
 static int test_uuid()
 {
+    PRINT_BEGIN;
+
     string uuidstr = eau::uuid_generate_string();
     cout << FUNCTAG << ", uuid=" << uuidstr <<endl;
     PRINT_CRLF;
     return 0;
 }
 
-static int test_store()
+static int test_account()
 {
+    PRINT_BEGIN;
+
     eau::zeroptr<eau::CStore> pStore = new eau::RefCounted<eau::CStore>();
     string fname = "/tmp/unqlite_jx9_testing.db";
     PRINT_FUNC_LONG(pStore->Open(fname, 0));
@@ -52,17 +59,42 @@ static int test_store()
     eau::account_t acc;
     acc.user = "user_testing";
     PRINT_FUNC_LONG(pStore->GetAccount(acc));
-    PRINT_CRLF;
 
     acc.passwd = "passwd_testing";
     PRINT_FUNC_LONG(pStore->PutAccount(acc));
-    PRINT_CRLF;
 
     acc.user = "user_testing";
     acc.passwd = "";
     PRINT_FUNC_LONG(pStore->GetAccount(acc));
-    PRINT_STR(acc.passwd.str());
+    PRINT_STR(acc.passwd);
+
+    PRINT_FUNC_LONG(pStore->Close());
+
     PRINT_CRLF;
+    return 0;
+}
+
+static int test_db()
+{
+    PRINT_BEGIN;
+
+    eau::zeroptr<eau::CStore> pStore = new eau::RefCounted<eau::CStore>();
+    string fname = "/tmp/unqlite_jx9_testing.db";
+    PRINT_FUNC_LONG(pStore->Open(fname, 0));
+    PRINT_CRLF;
+
+    eau::db_t db;
+    db.id = eau::uuid_generate_string();
+    PRINT_FUNC_LONG(pStore->PutDB(db));
+    PRINT_FUNC_LONG(pStore->GetDB(db));
+    
+    db.title = "db title";
+    PRINT_FUNC_LONG(pStore->PutDB(db));
+    db.title = "";
+    PRINT_FUNC_LONG(pStore->GetDB(db));
+    PRINT_STR(db.title);
+    
+
     return 0;
 }
 
@@ -70,7 +102,8 @@ int main(int argc, char* argv[])
 {
     test_log();
     test_uuid();
-    test_store();
+    test_account();
+    test_db();
     return 0;
 }
 

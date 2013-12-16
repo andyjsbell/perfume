@@ -28,6 +28,36 @@ namespace eau
     static const char kPutDocScript[] = "scripts/putdoc.jx9";
     static const char kGetDocScript[] = "scripts/getdoc.jx9";
 
+    //
+    // $eau_jx9_arg = {
+    //      ## [mandary] for col, [option] for url
+    //      uri: {col:"collection name"[, url:"http put/get url"]}, 
+    //      ## if not exists, process all in uri.col; else process one of this key. 
+    //      key: {full/part members of record in uri.col},
+    //      ## [option] only valid for putter
+    //      val: {full/part members of record in uri.col},  
+    //      ## [option] see below
+    //      err: {...},
+    //  }
+    static const char kEauJx9Arg[] = "eau_jx9_arg"; 
+
+    //
+    // $eau_jx9_arg.err = {
+    //      s_ok:           {ret: 0,    msg: jx9_s_ok},
+    //      s_false:        {ret: -1,   msg: jx9_s_false},
+    //      e_fail:         {ret: 1,    msg: jx9_e_fail},
+    //      e_uri:          {ret: 10,   msg: jx9_e_uri},
+    //      e_arg:          {ret: 11,   msg: jx9_e_arg},
+    //      e_db_create:    {ret: 20,   msg: jx9_e_db_create},
+    //      e_db_store:     {ret: 21,   msg: jx9_e_db_store},
+    //      e_db_exists:    {ret: 22,   msg: jx9_e_db_exists},
+    // };
+    //
+    // $eau_jx9_out = {one of $eau_jx9_arg.err's values}, e.g, $eau_jx9_out={ret: 0,  msg: jx9_s_ok};
+    static const char kEauJx9Out[] = "eau_jx9_out";
+    static const char kEauJx9Putter[] = "scripts/jx9_putter.jx9";
+    static const char kEauJx9Getter[] = "scripts/jx9_getter.jx9";
+
 
     long check_jx9_return(unqlite_vm* jx9_vm);
     long parse_jx9_value(unqlite_value* jx9_array, const string &key, int &value);

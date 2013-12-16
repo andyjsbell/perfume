@@ -4,6 +4,74 @@
 namespace eau
 {
     /**
+     * class oneptr is one kind of weak ptr
+     */ 
+    template <class T> class oneptr
+    {
+        oneptr() : _ptr(NULL) {}
+
+        oneptr(T* ptr) : _ptr(ptr)
+        {
+        }
+
+        oneptr(const oneptr<T> &optr) : _ptr(optr._ptr)
+        {
+        }
+
+        template <typename U> oneptr(const oneptr<U> &optr) : _ptr(optr.get())
+        {
+        }
+
+        virtual ~oneptr()
+        {
+            delete _ptr;
+        }
+
+        T* get() const {return _ptr;}
+        operator T*() const {return _ptr;}
+        T* operator ->() const {return _ptr;}
+
+        T* release()
+        {
+            T* ptr = _ptr;
+            _ptr = NULL;
+            return ptr;
+        }
+
+        oneptr<T> &operator =(T* ptr)
+        {
+            delete _ptr;
+            _ptr = ptr;
+            return *this;
+        }
+    
+        oneptr<T> &operator =(const oneptr<T> &optr)
+        {
+            return *this = optr._ptr;
+        }
+
+        template <typename U> oneptr<T> &operator =(const oneptr<U> &optr)
+        {
+            return *this = optr.get();
+        }
+
+        void swap(T** pptr)
+        {
+            T* ptr = _ptr;
+            _ptr = *pptr;
+            *pptr = ptr; 
+        }
+
+        void swap(oneptr<T> &optr)
+        {
+            swap(&optr._ptr);
+        }
+    protected:
+        T* _ptr;
+    }; // class oneptr
+
+
+    /**
      * class zeroptr is using with class RefCount/RefCounted
      * The detail is shown in refcount.h 
      */

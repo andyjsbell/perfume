@@ -1,0 +1,62 @@
+#!jx9 getter script
+# uskee.org
+#
+
+##
+# Two input variables from native C/C++ caller
+#   $eau_uri: {url:'http url', col:'db collection'}
+#   $eau_arg: {"one record.id for $eau_uri.col"}
+#
+# One output variable for native C/C++ caller
+#   $eau_out: {"one record for $eau_uri.col"}
+##
+
+## To check input variables
+while(1) {
+    if ($eau_uri == NULL) {
+        print '[error] no input var $eau_uri';
+        return $jx9_err.e_uri;
+    }
+
+    if ($eau_arg == NULL) {
+        print '[error] no input var $eau_json';
+        return $jx9_err.e_arg;
+    }
+    break;
+}
+
+$jx9_err = {
+    s_ok:           {ret: 0,    msg: jx9_s_ok},
+    s_false:        {ret: -1,   msg: jx9_s_false},
+    e_fail:         {ret: 1,    msg: jx9_e_fail},
+    e_uri:          {ret: 10,   msg: jx9_e_uri},
+    e_arg:          {ret: 11,   msg: jx9_e_arg},
+    e_db_create:    {ret: 20,   msg: jx9_e_db_create},
+    e_db_store:     {ret: 21,   msg: jx9_e_db_store},
+    e_db_exists:    {ret: 22,   msg: jx9_e_db_exists},
+};
+
+$jx9_col = $eau_uri.col;
+$jx9_rec = $eau_arg;
+
+## check the collection whether valid or not?
+if (!db_exists($jx9_col)) {
+    print db_errlog();
+    return $jx9_err.e_db_exists;
+}
+
+## search the record
+while(($rec=db_fetch($jx9_col)) != NULL) {
+    array_intersect($jx9_arg, $rec)
+    if($rec.id == $jx9_arg.id) {
+        $eau_out = $rec;
+        break;
+    }
+}
+
+if($eau_out != NULL) {
+    return $jx9_err.s_ok;
+}else {
+    return $jx9_err.s_false;
+}
+
