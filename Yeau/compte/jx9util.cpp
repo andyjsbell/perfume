@@ -180,5 +180,39 @@ namespace eau
         return lret;
     }
 
+    long new_jx9_variable(unqlite_vm* jx9_vm, const vector<pair_t> &cpp_variable, unqlite_value* &jx9_variable)
+    {
+        returnv_assert(jx9_vm, EAU_E_INVALIDARG);
+        returnv_assert(!cpp_variable.empty(), EAU_E_INVALIDARG);
+
+        long lret = EAU_E_FAIL;
+        unqlite_value* jx9_array = NULL;
+        unqlite_value* jx9_value = NULL;
+
+        do {
+            jx9_array = unqlite_vm_new_array(jx9_vm);
+            break_assert2(jx9_array, EAU_E_FAIL);
+            jx9_value = unqlite_vm_new_scalar(jx9_vm);
+            break_assert2(jx9_value, EAU_E_FAIL);
+
+            int ret = UNQLITE_OK;
+            vector<pair_t>::const_iterator iter;
+            for(iter=cpp_variable.begin(); iter != cpp_variable.end(); iter++) {
+                ret = unqlite_value_string(jx9_value, iter->second.c_str(), iter->second.size());
+                break_assert2(ret, UNQLITE_OK);
+                ret = unqlite_array_add_strkey_elem(jx9_array, iter->first.c_str(), jx9_value);
+                break_assert2(ret, UNQLITE_OK);
+            }
+            lret = (ret == UNQLITE_OK) ? EAU_S_OK : EAU_E_FAIL;
+        }while(false);
+        unqlite_vm_release_value(jx9_vm, jx9_value);
+
+        if (lret == EAU_S_OK)
+            jx9_variable = jx9_array;
+        else
+            unqlite_vm_release_value(jx9_vm, jx9_array);
+        return lret;
+    }
+
 } // namespace eau
 
