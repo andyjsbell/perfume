@@ -2,6 +2,24 @@
 
 namespace eau
 {
+    int jx9_out_callback(const void* msg, unsigned int len, void* data)
+    {
+        string sztag = "jx9";
+        if (data) {
+            sztag = (char *)data;
+        }
+        sztag = "[" + sztag + "]";
+
+        string szmsg = "";
+        if (msg && len > 0) {
+            szmsg.resize(len+1);
+            memcpy((void *)szmsg.data(), msg, len);
+        }
+    
+        cout << sztag << " jx9 msg: " << szmsg << endl;
+        return 0;
+    }
+
     long check_jx9_return(unqlite_vm* jx9_vm)
     {
         returnv_assert(jx9_vm, EAU_E_INVALIDARG);
@@ -114,6 +132,7 @@ namespace eau
 
         int ret = unqlite_compile_file(jx9_db, jx9_prog, &jx9_vm);
         returnv_assert2(ret, UNQLITE_OK, EAU_E_FAIL);
+        config_jx9_output(jx9_vm, jx9_out_callback, (void *)jx9_prog);
 
         do {
             break_assert2(config_jx9_variable(jx9_vm, ivar), EAU_S_OK);
@@ -138,6 +157,7 @@ namespace eau
 
         int ret = unqlite_compile_file(jx9_db, jx9_prog, &jx9_vm);
         returnv_assert2(ret, UNQLITE_OK, EAU_E_FAIL);
+        config_jx9_output(jx9_vm, jx9_out_callback, (void *)jx9_prog);
 
         do {
             break_assert2(config_jx9_variable(jx9_vm, ivar), EAU_S_OK);

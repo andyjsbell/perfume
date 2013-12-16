@@ -61,6 +61,7 @@ namespace eau
         bool operator!=(const string &value) {return this->second != value;}
         void operator>>(vector<pair_t> &vp) const {vp.push_back(pair_t(this->first, this->second));}
         void operator>>(pair_t &p) const {p=pair_t(this->first, this->second);}
+        void operator<<(const pair_t &p) {this->first=p.first; this->second=p.second;}
     };
 
     // user account

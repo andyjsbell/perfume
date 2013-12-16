@@ -4,7 +4,6 @@
 
 using namespace eau;
 
-
 StoreImpl::StoreImpl() : m_pHandle(NULL)
 {
 }
@@ -57,6 +56,9 @@ long StoreImpl::GetAccount(account_t &account)
     account.desc >> ovar;
 
     long lret = process_jx9_get((unqlite *)m_pHandle, kGetAccountScript, ivar, ovar);
+    account.passwd << ovar[0];
+    account.desc << ovar[1];
+
     return lret;
 }
 
@@ -88,6 +90,11 @@ long StoreImpl::GetDB(db_t &db)
     db.status >> ovar;
 
     long lret = process_jx9_get((unqlite *)m_pHandle, kGetDBScript, ivar, ovar);
+    db.title << ovar[0];
+    db.desc << ovar[1];
+    db.logo << ovar[2];
+    db.status << ovar[3];
+
     return lret;
 }
 
@@ -119,6 +126,11 @@ long StoreImpl::GetDoc(doc_t &doc)
     doc.status >> ovar;
 
     long lret = process_jx9_get((unqlite *)m_pHandle, kGetDocScript, ivar, ovar);
+    doc.title << ovar[0];
+    doc.desc << ovar[1];
+    doc.logo << ovar[2];
+    doc.status << ovar[3];
+
     return lret;
 }
 
