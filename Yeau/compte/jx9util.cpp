@@ -12,9 +12,9 @@ namespace eau
 
         ret = unqlite_value_to_int(jx9_return);
         unqlite_vm_release_value(jx9_vm, jx9_return);
-        log_assert2(ret, UNQLITE_OK);
 
-        return (ret == UNQLITE_OK) ? EAU_S_OK : EAU_E_FAIL;
+        returnv_assert2(ret, UNQLITE_OK, EAU_E_FAIL);        
+        return EAU_S_OK;
     }
 
     long parse_jx9_value(unqlite_value* jx9_array, const string &key, int &value)
@@ -64,7 +64,8 @@ namespace eau
         }
         va_end(ap);
 
-        return (ret == UNQLITE_OK) ? EAU_S_OK : EAU_E_FAIL;
+        returnv_assert2(ret, UNQLITE_OK, EAU_E_FAIL);        
+        return EAU_S_OK;
     }
     
     long config_jx9_variable(unqlite_vm* jx9_vm, const vector<pair_t> &ivar)
@@ -90,7 +91,17 @@ namespace eau
         ret = unqlite_vm_config(jx9_vm, UNQLITE_VM_CONFIG_CREATE_VAR, kEauRecordInVar, jx9_array);
         unqlite_vm_release_value(jx9_vm, jx9_array);
 
-        return (ret == UNQLITE_OK) ? EAU_S_OK : EAU_E_FAIL;
+        returnv_assert2(ret, UNQLITE_OK, EAU_E_FAIL);        
+        return EAU_S_OK;
+    }
+
+    long config_jx9_output(unqlite_vm* jx9_vm, jx9_out_cb_t pf_out, void *data)
+    {
+        returnv_assert(jx9_vm, EAU_E_INVALIDARG);
+
+        int ret = unqlite_vm_config(jx9_vm, UNQLITE_VM_CONFIG_OUTPUT, pf_out, data);
+        returnv_assert2(ret, UNQLITE_OK, EAU_E_FAIL);        
+        return EAU_S_OK;
     }
 
     long process_jx9_put(unqlite* jx9_db, const char* jx9_prog, const vector<pair_t> &ivar)

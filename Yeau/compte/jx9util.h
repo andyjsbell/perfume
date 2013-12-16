@@ -36,6 +36,9 @@ namespace eau
     long config_jx9_argv(unqlite_vm* jx9_vm, char *fmt, ...);
     long config_jx9_variable(unqlite_vm* jx9_vm, const vector<pair_t> &ivar);
 
+    typedef int (*jx9_out_cb_t)(const void* msg, unsigned int len, void* data);
+    long config_jx9_output(unqlite_vm* jx9_vm, jx9_out_cb_t pf_out, void *data);
+
     long process_jx9_put(unqlite* jx9_db, const char* jx9_prog, const vector<pair_t> &ivar);
     long process_jx9_get(unqlite* jx9_db, const char* jx9_prog, const vector<pair_t> &ivar, vector<pair_t> &ovar);
 

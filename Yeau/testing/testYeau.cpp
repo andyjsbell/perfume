@@ -61,7 +61,7 @@ static int test_store()
     acc.user = "user_testing";
     acc.passwd = "";
     PRINT_FUNC_LONG(pStore->GetAccount(acc));
-    PRINT_STR(acc.passwd.first);
+    PRINT_STR(acc.passwd.str());
     PRINT_CRLF;
     return 0;
 }
