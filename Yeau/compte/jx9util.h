@@ -11,6 +11,7 @@ extern "C" {
 #include "unqlite.h"
 }
 
+#include "struct.h"
 #include "error.h"
 
 namespace eau
@@ -33,10 +34,10 @@ namespace eau
     long parse_jx9_value(unqlite_value* jx9_array, const string &key, string &value);
 
     long config_jx9_argv(unqlite_vm* jx9_vm, char *fmt, ...);
-    long config_jx9_variable(unqlite_vm* jx9_vm, map<string, string> &kv_map);
+    long config_jx9_variable(unqlite_vm* jx9_vm, const vector<pair_t> &ivar);
 
-    long process_jx9_put(unqlite* jx9_db, const char* jx9_prog, map<string, string> &in_map);
-    long process_jx9_get(unqlite* jx9_db, const char* jx9_prog, map<string, string> &in_map, map<string, string> &io_map);
+    long process_jx9_put(unqlite* jx9_db, const char* jx9_prog, const vector<pair_t> &ivar);
+    long process_jx9_get(unqlite* jx9_db, const char* jx9_prog, const vector<pair_t> &ivar, vector<pair_t> &ovar);
 
 } // namespace eau
 

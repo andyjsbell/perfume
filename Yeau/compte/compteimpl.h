@@ -33,7 +33,7 @@ namespace eau
         zeroptr<ICompte> m_pCompte; 
 
         account_t m_account;
-        string m_cid;
+        atom_t<K_id> m_cid;
         bool m_bInit;
         bool m_bSignIn;
 
@@ -50,7 +50,7 @@ namespace eau
         virtual bool OpenDB(const string &dbid, zeroptr<IDatabase> &pDB);
 
     private:
-        string m_cid;
+        atom_t<K_id> m_cid;
         zeroptr<CStore>  m_pStore;        
     };
         
@@ -72,7 +72,7 @@ namespace eau
 
     private:
         db_t m_db;
-        string m_dbid;
+        atom_t<K_id> m_dbid;
         zeroptr<CStore>  m_pStore;        
     };
 
@@ -90,7 +90,7 @@ namespace eau
         
     private:
         doc_t m_doc;
-        string m_docid;
+        atom_t<K_id> m_docid;
         zeroptr<CStore>  m_pStore;        
     };
 

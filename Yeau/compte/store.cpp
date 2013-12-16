@@ -36,104 +36,89 @@ long StoreImpl::Close()
 long StoreImpl::PutAccount(const account_t &account)
 {
     // set var in script
-    map<string, string> kv_map;
-    kv_map["user"] = account.user;
-    kv_map["passwd"] = account.passwd;
-    kv_map["desc"] = account.desc;
-    kv_map["cdate"] = account.cdate;
-    kv_map["mdate"] = account.mdate;
+    vector<pair_t> ivar;
+    account.user >> ivar;
+    account.passwd >> ivar;
+    account.desc >> ivar;
 
-    long lret = process_jx9_put((unqlite *)m_pHandle, kPutAccountScript, kv_map);
+    long lret = process_jx9_put((unqlite *)m_pHandle, kPutAccountScript, ivar);
     return lret;
 }
 
 long StoreImpl::GetAccount(account_t &account)
 {
     // set var in script
-    map<string, string> kv_map;
-    kv_map["user"] = account.user;
+    vector<pair_t> ivar;
+    account.user >> ivar;
 
     // get var from script
-    map<string, string> io_map;
-    //io_map["user"] = account.user;
-    io_map["passwd"] = account.passwd;
-    io_map["desc"] = account.desc;
-    kv_map["cdate"] = account.cdate;
-    kv_map["mdate"] = account.mdate;
+    vector<pair_t> ovar;
+    account.passwd >> ovar;
+    account.desc >> ovar;
 
-    long lret = process_jx9_get((unqlite *)m_pHandle, kGetAccountScript, kv_map, io_map);
+    long lret = process_jx9_get((unqlite *)m_pHandle, kGetAccountScript, ivar, ovar);
     return lret;
 }
 
 long StoreImpl::PutDB(const db_t &db)
 {
     // set var in script
-    map<string, string> kv_map;
-    kv_map["id"] = db.id;
-    kv_map["title"] = db.title;
-    kv_map["desc"] = db.desc;
-    kv_map["logo"] = db.logo;
-    kv_map["status"] = db.status;
-    kv_map["cdate"] = db.cdate;
-    kv_map["mdate"] = db.mdate;
+    vector<pair_t> ivar;
+    db.id >> ivar;
+    db.title >> ivar;
+    db.desc >> ivar;
+    db.logo >> ivar;
+    db.status >> ivar;
 
-    long lret = process_jx9_put((unqlite *)m_pHandle, kPutDBScript, kv_map);
+    long lret = process_jx9_put((unqlite *)m_pHandle, kPutDBScript, ivar);
     return lret;
 }
 
 long StoreImpl::GetDB(db_t &db)
 {
     // set var in script
-    map<string, string> kv_map;
-    kv_map["id"] = db.id;
+    vector<pair_t> ivar;
+    db.id >> ivar;
 
     // get var from script
-    map<string, string> io_map;
-    //io_map["id"] = db.id;
-    io_map["title"] = db.title;
-    io_map["desc"] = db.desc;
-    io_map["logo"] = db.logo;
-    io_map["status"] = db.status;
-    kv_map["cdate"] = db.cdate;
-    kv_map["mdate"] = db.mdate;
+    vector<pair_t> ovar;
+    db.title >> ovar;
+    db.desc >> ovar;
+    db.logo >> ovar;
+    db.status >> ovar;
 
-    long lret = process_jx9_get((unqlite *)m_pHandle, kGetDBScript, kv_map, io_map);
+    long lret = process_jx9_get((unqlite *)m_pHandle, kGetDBScript, ivar, ovar);
     return lret;
 }
 
 long StoreImpl::PutDoc(const doc_t &doc)
 {
     // set var in script
-    map<string, string> kv_map;
-    kv_map["id"] = doc.id;
-    kv_map["title"] = doc.title;
-    kv_map["desc"] = doc.desc;
-    kv_map["logo"] = doc.logo;
-    kv_map["status"] = doc.status;
-    kv_map["cdate"] = doc.cdate;
-    kv_map["mdate"] = doc.mdate;
+    vector<pair_t> ivar;
+    doc.id >> ivar;
+    doc.title >> ivar;
+    doc.desc >> ivar;
+    doc.logo >> ivar;
+    doc.status >> ivar;
 
-    long lret = process_jx9_put((unqlite *)m_pHandle, kPutDocScript, kv_map);
+    long lret = process_jx9_put((unqlite *)m_pHandle, kPutDocScript, ivar);
     return lret;
 }
 
 long StoreImpl::GetDoc(doc_t &doc)
 {
     // set var in script
-    map<string, string> kv_map;
-    kv_map["id"] = doc.id;
+    vector<pair_t> ivar;
+    doc.id >> ivar;
 
     // get var from script
-    map<string, string> io_map;
-    //io_map["id"] = db.id;
-    io_map["title"] = doc.title;
-    io_map["desc"] = doc.desc;
-    io_map["logo"] = doc.logo;
-    io_map["status"] = doc.status;
-    kv_map["cdate"] = doc.cdate;
-    kv_map["mdate"] = doc.mdate;
+    vector<pair_t> ovar;
+    doc.title >> ovar;
+    doc.desc >> ovar;
+    doc.logo >> ovar;
+    doc.status >> ovar;
 
-    long lret = process_jx9_get((unqlite *)m_pHandle, kGetDocScript, kv_map, io_map);
+    long lret = process_jx9_get((unqlite *)m_pHandle, kGetDocScript, ivar, ovar);
     return lret;
 }
 

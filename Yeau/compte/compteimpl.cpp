@@ -61,7 +61,7 @@ bool CCloudy::SignIn(const string &user, const string &passwd)
 
     m_bSignIn = true;
     m_cid = user; // maybe replace with random uuid
-    m_pCompte = new RefCounted<CCompte>(m_cid, m_pStore);
+    m_pCompte = new RefCounted<CCompte>(m_cid.str(), m_pStore);
     return true;
 }
 
@@ -77,7 +77,7 @@ bool CCloudy::BeginCommit()
     returnv_assert(m_bInit, false);
     returnv_assert(m_bSignIn, false);
 
-    m_account.user = m_cid;
+    m_account.user = m_cid.str();
     long lret = m_pStore->GetAccount(m_account);
     return (lret == EAU_S_OK);
 }
@@ -114,7 +114,7 @@ bool CCompte::CreateDB(const string &title, zeroptr<IDatabase> &pDB)
     long lret = m_pStore->PutDB(db);
     returnv_assert2(lret, EAU_S_OK, false);
 
-    pDB = new RefCounted<CDatabase>(db.id, m_pStore);
+    pDB = new RefCounted<CDatabase>(db.id.str(), m_pStore);
     return true;
 }
 
@@ -130,7 +130,7 @@ bool CCompte::OpenDB(const string &dbid, zeroptr<IDatabase> &pDB)
     long lret = m_pStore->GetDB(db);
     returnv_assert2(lret, EAU_S_OK, false);
 
-    pDB = new RefCounted<CDatabase>(db.id, m_pStore);
+    pDB = new RefCounted<CDatabase>(db.id.str(), m_pStore);
     return true;
 }
 
@@ -148,7 +148,7 @@ bool CDatabase::CreateDoc(const string &title, zeroptr<IDocument> &pDoc)
     long lret = m_pStore->PutDoc(doc);
     returnv_assert2(lret, EAU_S_OK, false);
 
-    pDoc = new RefCounted<CDocument>(doc.id, m_pStore);
+    pDoc = new RefCounted<CDocument>(doc.id.str(), m_pStore);
     return true;
 }
 
@@ -164,7 +164,7 @@ bool CDatabase::OpenDoc(const string &docid, zeroptr<IDocument> &pDoc)
     long lret = m_pStore->GetDoc(doc);
     returnv_assert2(lret, EAU_S_OK, false);
 
-    pDoc = new RefCounted<CDocument>(doc.id, m_pStore);
+    pDoc = new RefCounted<CDocument>(doc.id.str(), m_pStore);
     return true;
 }
 
