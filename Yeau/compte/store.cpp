@@ -34,6 +34,7 @@ long StoreImpl::Close()
 
 long StoreImpl::PutAccount(const account_t &account)
 {
+#if 0
     // set var in script
     vector<pair_t> ivar;
     account.user >> ivar;
@@ -42,10 +43,31 @@ long StoreImpl::PutAccount(const account_t &account)
 
     long lret = process_jx9_put((unqlite *)m_pHandle, kPutAccountScript, ivar);
     return lret;
+#else
+    json1_t juri;
+    juri.push_back(pair_t("col", "account"));
+
+    json1_t jkey;
+    account.id >> jkey;
+
+    json1_t jval;
+    account.passwd >> jval;
+    account.desc >> jval;
+
+    json2_t json;
+    json["uri"] = juri;
+    json["key"] = jkey;
+    json["val"] = jval;
+   
+    bool bret = process_jx9_json_put((unqlite*)m_pHandle, json);
+    log_assert(bret);
+    return 0;
+#endif
 }
 
 long StoreImpl::GetAccount(account_t &account)
 {
+#if 0
     // set var in script
     vector<pair_t> ivar;
     account.user >> ivar;
@@ -60,6 +82,29 @@ long StoreImpl::GetAccount(account_t &account)
     account.desc << ovar[1];
 
     return lret;
+#else
+    json1_t juri;
+    juri.push_back(pair_t("col", "account"));
+
+    json1_t jkey;
+    account.id >> jkey;
+
+    json1_t jout;
+    account.passwd >> jout;
+    account.desc >> jout;
+
+    json2_t json;
+    json["uri"] = juri;
+    json["key"] = jkey;
+    json["val"] = jout;
+   
+    long lret = process_jx9_json_get((unqlite*)m_pHandle, json, jout);
+    log_assert(lret);
+    account.passwd << jout[0];
+    account.desc << jout[1];
+
+    return 0;
+#endif
 }
 
 long StoreImpl::PutDB(const db_t &db)

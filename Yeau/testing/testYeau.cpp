@@ -59,6 +59,7 @@ static int test_account()
     eau::account_t acc;
     acc.id = "user_testing";
     PRINT_FUNC_LONG(pStore->GetAccount(acc));
+    PRINT_STR(acc.passwd);
 
     acc.passwd = "passwd_testing";
     PRINT_FUNC_LONG(pStore->PutAccount(acc));
@@ -68,7 +69,7 @@ static int test_account()
     PRINT_FUNC_LONG(pStore->GetAccount(acc));
     PRINT_STR(acc.passwd);
 
-    PRINT_FUNC_LONG(pStore->Close());
+    //PRINT_FUNC_LONG(pStore->Close());
 
     PRINT_CRLF;
     return 0;
@@ -100,10 +101,10 @@ static int test_db()
 
 int main(int argc, char* argv[])
 {
-    test_log();
-    test_uuid();
+    //test_log();
+    //test_uuid();
     test_account();
-    test_db();
+    //test_db();
     return 0;
 }
 

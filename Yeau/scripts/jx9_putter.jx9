@@ -76,13 +76,22 @@ if (!db_exists($jx9_col)) {
 }
 
 ## drop old record searched at first, not recursively.
-$new_rec = $jx9_val;
+$bfind = false;
 while(($rec=db_fetch($jx9_col)) != NULL) {
     if (rec_contain($jx9_key, $rec)) {
         $new_rec = rec_putter($jx9_val, $rec);
         db_drop_record($jx9_rec, $rec.__id);
+        $bfind = true;
         break;
     }
+}
+
+if (!$bfind) {
+    $new_rec = rec_putter($jx9_val, $jx9_key);
+}
+
+if (is_null($new_rec.id)) {
+    return $jx9_err.e_fail;
 }
 
 ## store new record
