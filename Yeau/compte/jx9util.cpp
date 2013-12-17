@@ -188,15 +188,14 @@ namespace eau
         const string &value, 
         unqlite_value* &jx9_value)
     {
-        returnv_assert(jx9_vm, false);
+        returnb_assert(jx9_vm);
 
-        bool bret = false;
         unqlite_value* pvalue = jx9_value;
         if (pvalue == NULL) {
-            returnv_assert((pvalue=unqlite_vm_new_scalar(jx9_vm)), false);
+            returnb_assert((pvalue=unqlite_vm_new_scalar(jx9_vm)));
         }
 
-        bret = (unqlite_value_string(pvalue, value.c_str(), value.size()) == UNQLITE_OK);
+        bool bret = (unqlite_value_string(pvalue, value.c_str(), value.size()) == UNQLITE_OK);
         if(bret) {
             jx9_value = pvalue;
         }else if (jx9_value == NULL && pvalue != NULL) {
@@ -206,205 +205,176 @@ namespace eau
     }
 
     // json format: {k:v}, {..., k:v}
-    long add_jx9_json_object(unqlite_vm* jx9_vm,
+    bool add_jx9_json_object(unqlite_vm* jx9_vm,
         const pair_ptr_t &key, 
         unqlite_value* &jx9_json)
     {
-        returnv_assert(jx9_vm, EAU_E_FAIL);
+        returnb_assert(jx9_vm);
 
-        long lret = EAU_E_FAIL;
         unqlite_value* pjson = jx9_json;
         if (pjson == NULL) {
-            pjson = unqlite_vm_new_array(jx9_vm);
-            returnv_assert(pjson, EAU_E_FAIL);
+            returnb_assert((pjson=unqlite_vm_new_array(jx9_vm)));
         }
 
-        do {
-            unqlite_value* pvalue = (unqlite_value*) key.second;
-            int ret = unqlite_array_add_strkey_elem(pjson, key.first.c_str(), pvalue);
-            break_assert2(ret, UNQLITE_OK);
-            lret = EAU_S_OK;
-        }while(false);
-
-        if (lret == EAU_S_OK) {
+        unqlite_value* pvalue = (unqlite_value*) key.second;
+        bool bret = (unqlite_array_add_strkey_elem(pjson, key.first.c_str(), pvalue) == UNQLITE_OK);
+        if (bret) {
             jx9_json = pjson;
         }else if (jx9_json == NULL && pjson != NULL) {
             unqlite_vm_release_value(jx9_vm, pjson);
         }
-        return lret;
+        return bret;
     }
 
     // json format: {k:v}, {..., k:v}
-    long add_jx9_json_object(unqlite_vm* jx9_vm,
+    bool add_jx9_json_object(unqlite_vm* jx9_vm,
             const pair_t &key, 
             unqlite_value* &jx9_json)
     {
-        returnv_assert(jx9_vm, EAU_E_FAIL);
+        returnb_assert(jx9_vm);
 
-        long lret = EAU_E_FAIL;
+        bool bret = false;
         unqlite_value* pvalue = NULL;
-
         do {
-            lret = new_jx9_json_value(jx9_vm, key.second, pvalue);
-            break_assert2(lret, EAU_S_OK);
-
+            break_assert(new_jx9_json_value(jx9_vm, key.second, pvalue));
             pair_ptr_t key_ptr(key.first, pvalue);
-            lret = add_jx9_json_object(jx9_vm, key_ptr, jx9_json);
+            bret = add_jx9_json_object(jx9_vm, key_ptr, jx9_json);
         }while(false);
-
         unqlite_vm_release_value(jx9_vm, pvalue);
-        return lret;
+        return bret;
     }
 
     // json format:  {k1:v1, k2:v2, ...}
-    long add_jx9_json_object(unqlite_vm* jx9_vm,
-            const vector<pair_t> &keys, 
+    bool add_jx9_json_object(unqlite_vm* jx9_vm,
+            const json1_t &keys, 
             unqlite_value* &jx9_json)
     {
-        returnv_assert(jx9_vm, EAU_E_FAIL);
+        returnb_assert(jx9_vm);
 
-        long lret = EAU_E_FAIL;
-        unqlite_value* vjson = NULL;
-
-        vector<pair_t>::const_iterator iter;
+        bool bret = false;
+        unqlite_value* json1 = NULL;
+        json1_t::const_iterator iter;
         for (iter=keys.begin(); iter != keys.end(); iter++) {
-            lret = add_jx9_json_object(jx9_vm, *iter, vjson);
-            break_assert(lret == EAU_S_OK);
+            break_assert((bret=add_jx9_json_object(jx9_vm, *iter, json1)));
         }
 
-        if (lret == EAU_S_OK)
-            jx9_json = vjson;
-        else
-            unqlite_vm_release_value(jx9_vm, vjson);
-        return lret;
+        if (bret) {
+            jx9_json = json1;
+        }else {
+            unqlite_vm_release_value(jx9_vm, json1);
+        }
+        return bret;
     }
 
     // json format:  {k1:{k11:v11,k12:v12}, k2:{..}, ...}
-    long add_jx9_json_object(unqlite_vm* jx9_vm, 
-            const map<string, vector<pair_t> > &keys, 
+    bool add_jx9_json_object(unqlite_vm* jx9_vm, 
+            const json2_t &keys, 
             unqlite_value* &jx9_json)
     {
-        returnv_assert(jx9_vm, EAU_E_FAIL);
+        returnb_assert(jx9_vm);
 
-        long lret = EAU_E_FAIL;
-        unqlite_value* mjson = NULL;
-        unqlite_value* vjson = NULL;
+        bool bret = false;
+        unqlite_value* json1 = NULL;
+        unqlite_value* json2 = NULL;
 
-        map<string, vector<pair_t> >::const_iterator miter;
-        for (miter=keys.begin(); miter != keys.end(); miter++) {
-            lret = add_jx9_json_object(jx9_vm, miter->second, vjson);
-            break_assert(lret == EAU_S_OK);
+        json2_t::const_iterator iter1;
+        for (iter1=keys.begin(); iter1 != keys.end(); iter1++) {
+            break_assert((bret=add_jx9_json_object(jx9_vm, iter1->second, json1)));
 
-            pair_ptr_t kv_mpair(miter->first, vjson);
-            lret = add_jx9_json_object(jx9_vm, kv_mpair, mjson);
-            break_assert(lret == EAU_S_OK);
+            pair_ptr_t kv_pair(iter1->first, json1);
+            break_assert((bret=add_jx9_json_object(jx9_vm, kv_pair, json2)));
 
-            unqlite_vm_release_value(jx9_vm, vjson);
-            vjson = NULL;
+            unqlite_vm_release_value(jx9_vm, json1);
+            json1 = NULL;
         }
-        unqlite_vm_release_value(jx9_vm, vjson);
+        unqlite_vm_release_value(jx9_vm, json1);
 
-        if (lret == EAU_S_OK)
-            jx9_json = mjson;
-        else
-            unqlite_vm_release_value(jx9_vm, mjson);
-        return lret;
+        if (bret) {
+            jx9_json = json2;
+        }else {
+            unqlite_vm_release_value(jx9_vm, json2);
+        }
+        return bret;
     }
 
-    long set_jx9_json_variable(unqlite_vm* jx9_vm, const char *jx9_var_name, const unqlite_value *jx9_var)
+    bool set_jx9_json_variable(unqlite_vm* jx9_vm, const char *jx9_var_name, const unqlite_value *jx9_var)
     {
-        returnv_assert(jx9_vm, EAU_E_INVALIDARG);
-        returnv_assert(jx9_var_name, EAU_E_INVALIDARG);
-        returnv_assert(jx9_var, EAU_E_INVALIDARG);
+        returnb_assert(jx9_vm);
+        returnb_assert(jx9_var_name);
+        returnb_assert(jx9_var);
+        bool bret = (unqlite_vm_config(jx9_vm, UNQLITE_VM_CONFIG_CREATE_VAR, jx9_var_name, jx9_var) == UNQLITE_OK);
+        return bret;
+    }
+
+    bool set_jx9_json_output(unqlite_vm* jx9_vm, jx9_out_cb_t pf_out, void *data)
+    {
+        returnb_assert(jx9_vm);
+        bool bret = (unqlite_vm_config(jx9_vm, UNQLITE_VM_CONFIG_OUTPUT, pf_out, data) == UNQLITE_OK);
+        return bret;
+    }
+
+    bool parse_jx9_json_return(unqlite_vm* jx9_vm, int &value)
+    {
+        returnb_assert(jx9_vm);
         
-        int ret = unqlite_vm_config(jx9_vm, UNQLITE_VM_CONFIG_CREATE_VAR, jx9_var_name, jx9_var);
-        returnv_assert2(ret, UNQLITE_OK, EAU_E_FAIL);        
-        return EAU_S_OK;
-    }
-
-    long set_jx9_json_output(unqlite_vm* jx9_vm, jx9_out_cb_t pf_out, void *data)
-    {
-        returnv_assert(jx9_vm, EAU_E_INVALIDARG);
-
-        int ret = unqlite_vm_config(jx9_vm, UNQLITE_VM_CONFIG_OUTPUT, pf_out, data);
-        returnv_assert2(ret, UNQLITE_OK, EAU_E_FAIL);        
-        return EAU_S_OK;
-    }
-
-    long parse_jx9_json_return(unqlite_vm* jx9_vm, int &value)
-    {
-        returnv_assert(jx9_vm, EAU_E_INVALIDARG);
-
+        bool bret = false;
         unqlite_value* jx9_return = NULL;
         int ret = unqlite_vm_config(jx9_vm, UNQLITE_VM_CONFIG_EXEC_VALUE, &jx9_return);
-        returnv_assert2(ret, UNQLITE_OK, EAU_E_FAIL);
-
-        int lret = parse_jx9_value(jx9_return, "ret", value);
-        return lret;
+        returnb_assert2(ret, UNQLITE_OK);
+        bret = (parse_jx9_value(jx9_return, "ret", value) == EAU_S_OK);
+        return bret;
     }
 
-    long process_jx9_json(unqlite* jx9_db, 
-            const char* jx9_prog, 
-            const map<string, vector<pair_t> > &ivar, 
-            vector<pair_t> &ovar)
+    bool process_jx9_json(unqlite* jx9_db, const char* jx9_prog, const json2_t &ivar, json1_t &ovar) 
     {
-        returnv_assert(jx9_db, EAU_E_INVALIDARG);
-        returnv_assert(jx9_prog, EAU_E_INVALIDARG);
+        returnb_assert(jx9_db);
+        returnb_assert(jx9_prog);
 
-        long lret = EAU_E_FAIL;
+        bool bret = false;
         unqlite_vm* jx9_vm = NULL;
 
-        int ret = unqlite_compile_file(jx9_db, jx9_prog, &jx9_vm);
-        returnv_assert2(ret, UNQLITE_OK, EAU_E_FAIL);
-        set_jx9_json_output(jx9_vm, jx9_out_callback, (void *)jx9_prog);
+        returnb_assert(unqlite_compile_file(jx9_db, jx9_prog, &jx9_vm) == UNQLITE_OK);
+        bret = set_jx9_json_output(jx9_vm, jx9_out_callback, (void *)jx9_prog);
 
         unqlite_value* jx9_json = NULL;
         unqlite_value* jx9_arg = NULL;
         do {
             if (!ivar.empty()) {
-                lret = add_jx9_json_object(jx9_vm, ivar, jx9_json);
-                break_assert(lret == EAU_S_OK);
-                lret = set_jx9_json_variable(jx9_vm, kEauJx9Arg, jx9_json);
-                break_assert(lret == EAU_S_OK);
+                break_assert(bret=add_jx9_json_object(jx9_vm, ivar, jx9_json));
+                break_assert(bret=set_jx9_json_variable(jx9_vm, kEauJx9Arg, jx9_json));
             }
 
-            ret = unqlite_vm_exec(jx9_vm);
-            break_assert2(ret, UNQLITE_OK);
+            break_assert2(unqlite_vm_exec(jx9_vm), UNQLITE_OK);
             
             int jx9_ret = 0xff;
-            lret = parse_jx9_json_return(jx9_vm, jx9_ret);
-            break_assert(lret == EAU_S_OK && jx9_ret == 0);
+            break_assert(parse_jx9_json_return(jx9_vm, jx9_ret));
+            break_assert2(jx9_ret, 0);
 
             // extract value from jx9 script
             if(!ovar.empty()) {
                 jx9_arg = unqlite_vm_extract_variable(jx9_vm, kEauJx9Out);
-                vector<pair_t>::iterator iter;
+                json1_t::iterator iter;
                 for (iter=ovar.begin(); iter != ovar.end(); iter++) {
                     parse_jx9_value(jx9_arg, iter->first, iter->second);
                 }
             }
-            lret = EAU_S_OK;
+            bret = true;
         }while(false);
 
         unqlite_vm_release_value(jx9_vm, jx9_json);
         unqlite_vm_release_value(jx9_vm, jx9_arg);
-        return lret;
+        return bret;
     }
 
-    long process_jx9_json_get(unqlite* jx9_db, 
-            const char* jx9_prog, 
-            const map<string, vector<pair_t> > &ivar, 
-            vector<pair_t> &ovar)
+    bool process_jx9_json_get(unqlite* jx9_db, const json2_t &ivar, json1_t &ovar)
     {
-        return process_jx9_json(jx9_db, jx9_prog, ivar, ovar);
+        return process_jx9_json(jx9_db, kEauJx9Getter, ivar, ovar);
     }
 
-    long process_jx9_json_put(unqlite* jx9_db, 
-            const char* jx9_prog, 
-            const map<string, vector<pair_t> > &ivar) 
+    bool process_jx9_json_put(unqlite* jx9_db, const json2_t &ivar) 
     {
-        vector<pair_t> ovar;
-        return process_jx9_json(jx9_db, jx9_prog, ivar, ovar);
+        json1_t ovar;
+        return process_jx9_json(jx9_db, kEauJx9Putter, ivar, ovar);
     }
 
 } // namespace eau

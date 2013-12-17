@@ -4,23 +4,8 @@
 
 ##
 # Two input variables from native C/C++ caller
-#   $eau_uri: {url:'http url', col:'db collection'}
-#   $eau_arg: {"one record(part/full members) for $eau_uri.col"}
+#   $eau_jx9_arg: see detail in jx9util.h
 ##
-
-## To check input variables
-while(1) {
-    if ($eau_uri == NULL) {
-        print '[error] no input var $eau_uri';
-        return $jx9_err.e_uri;
-    }
-
-    if ($eau_arg == NULL) {
-        print '[error] no input var $eau_json';
-        return $jx9_err.e_arg;
-    }
-    break;
-}
 
 $jx9_err = {
     s_ok:           {ret: 0,    msg: jx9_s_ok},
@@ -33,8 +18,54 @@ $jx9_err = {
     e_db_exists:    {ret: 22,   msg: jx9_e_db_exists},
 };
 
-$jx9_col = $eau_uri.col;
-$jx9_rec = $eau_arg;
+
+$jx9_col = $eau_jx9_arg.uri.col;
+$jx9_key = $eau_jx9_arg.key;
+$jx9_val = $eau_jx9_arg.val;
+
+## check input elements
+if (is_null($jx9_col) || is_null($jx9_key) || is_null($jx9_val)) {
+    return $jx9_err.e_arg;
+}
+
+## check contain relationship
+function rec_contain($child, $parent) {
+    if(sizeof($child) > sizeof($parent))
+        return false;
+
+    foreach($child as $key, $val)
+        if($val != $parent[$key])
+            return false;
+    return true;
+}
+
+function rec_putter($child, $parent, $strict=false) {
+    foreach($child as $key, $val) {
+        if ($strict) {
+            if ($parent[$key] != NULL && $parent[$key] != $val)
+                $parent[$key] = $val;
+        }else {
+            if($parent[$key] != $val)
+                $parent[$key] = $val;
+        }
+    }
+    return $parent;
+}
+
+function test_ex()
+{
+    $t1= {"1":{"2":3,"4":5},"6":7,"8":9};
+    $t2= {"1":{"2":3,"4":5}};
+    $t3= {"1":{"22":3,"4":5}};
+    $t4= {"1":{"2":33,"4":5}};
+    $t5= {"11":{"2":3,"4":5}};
+    $t6= {"6":7};
+    $t7= {"8":9};
+    $t8= {"6":7, "8":9};
+
+    foreach ([$t2,$t3,$t4,$t5,$t6,$t7,$t8] as $val)
+        print rec_contain($val, $t1);
+}
 
 ## check the collection whether valid or not?
 if (!db_exists($jx9_col)) {
@@ -44,17 +75,18 @@ if (!db_exists($jx9_col)) {
     }
 }
 
-## check old record
+## drop old record searched at first, not recursively.
+$new_rec = $jx9_val;
 while(($rec=db_fetch($jx9_col)) != NULL) {
-    if($rec.id == $jx9_rec.id) {
+    if (rec_contain($jx9_key, $rec)) {
+        $new_rec = rec_putter($jx9_val, $rec);
         db_drop_record($jx9_rec, $rec.__id);
         break;
     }
 }
 
 ## store new record
-
-if(db_store($jx9_col, $jx9_rec)) {
+if(db_store($jx9_col, $new_rec)) {
     db_commit();
     return $jx9_err.s_ok;
 }else {

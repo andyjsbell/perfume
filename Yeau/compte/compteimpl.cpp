@@ -77,7 +77,7 @@ bool CCloudy::BeginCommit()
     returnv_assert(m_bInit, false);
     returnv_assert(m_bSignIn, false);
 
-    m_account.user = m_cid.str();
+    m_account.id = m_cid.str();
     long lret = m_pStore->GetAccount(m_account);
     return (lret == EAU_S_OK);
 }

@@ -54,7 +54,8 @@ namespace eau
     // jx9 @return = {one of $eau_jx9_arg.err's values}, e.g, {ret: 0,  msg: jx9_s_ok};
     static const char kEauJx9Arg[] = "eau_jx9_arg"; 
 
-    // $eau_jx9_out to output records, like $eau_jx9_arg.val, e.g, {}, {{}, {}}
+    //
+    // $eau_jx9_out: output results, one $eau_jx9_arg.col's record, e.g, {k1:v1, k2:v2, ...}, 
     static const char kEauJx9Out[] = "eau_jx9_out";
 
     static const char kEauJx9Putter[] = "scripts/jx9_putter.jx9";
@@ -75,5 +76,20 @@ namespace eau
     long process_jx9_get(unqlite* jx9_db, const char* jx9_prog, const vector<pair_t> &ivar, vector<pair_t> &ovar);
 
 } // namespace eau
+
+namespace eau 
+{
+    // format: {k1:v1, k2:v2, ...}
+    typedef vector<pair_t> json1_t;
+    // format: {k1:{k11:v11, k12:v12}, k2:...}
+    typedef map<string, vector<pair_t> > json2_t;
+
+    //
+    // @param ivar: see $eau_jx9_arg above
+    // @param ovar: see $eau_jx9_out above
+    bool process_jx9_json_get(unqlite* jx9_db, const json2_t &ivar, json1_t &ovar);
+    bool process_jx9_json_put(unqlite* jx9_db, const json2_t &ivar);
+    bool process_jx9_json(unqlite* jx9_db, const char* jx9_prog, const json2_t &ivar, json1_t &ovar);
+}
 
 #endif

@@ -68,8 +68,9 @@ namespace eau
 
     // user account
     typedef struct account_t {
-        atom_t<K_user>      user;
+        atom_t<K_id>        id;
         atom_t<K_passwd>    passwd;
+        atom_t<K_name>      name;
         atom_t<K_desc>      desc;
         atom_t<K_cdate>     cdate;
         atom_t<K_mdate>     mdate;

@@ -18,10 +18,10 @@
 #define CXX_FUNC_TAG            "["<<__FUNCTION__<<"]"
 #define CXX_INFO_TAG            "["<<__FILE__<<":"<<__LINE__<<"]"
 
-#define log_print(pp)                   {   std::cout << CXX_FUNC_TAG << \
+#define log_print(pp)                   {   std::cout << CXX_FUNC_TAG << " " \
                                             #pp"["<< pp << "] printed!" << \
                                             CXX_INFO_TAG << std::endl;}
-#define log_print2(pp, pv)              {   std::cout << CXX_FUNC_TAG << \
+#define log_print2(pp, pv)              {   std::cout << CXX_FUNC_TAG << " " \
                                             pp"["<< pv << "] printed!" << \
                                             CXX_INFO_TAG << std::endl;}
 #define log_print4(p1, pv1, p2, pv2)    {   std::cout << CXX_FUNC_TAG << " " \
@@ -43,5 +43,9 @@
                                             if(pv1 != pv2) {log_print4(#p1, pv1, #p2, pv2); break;}}
 #define log_assert2(p1, p2)             {   long pv1=long(p1);long pv2=long(p2); \
                                             if(pv1 != pv2) {log_print4(#p1, pv1, #p2, pv2);}}
+
+// return false if failed
+#define returnb_assert(pp)              returnv_assert(pp, false)
+#define returnb_assert2(p1, p2)         returnv_assert2(p1, p2, false)
 
 #endif

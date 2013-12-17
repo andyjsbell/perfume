@@ -57,13 +57,13 @@ static int test_account()
     PRINT_CRLF;
 
     eau::account_t acc;
-    acc.user = "user_testing";
+    acc.id = "user_testing";
     PRINT_FUNC_LONG(pStore->GetAccount(acc));
 
     acc.passwd = "passwd_testing";
     PRINT_FUNC_LONG(pStore->PutAccount(acc));
 
-    acc.user = "user_testing";
+    acc.id = "user_testing";
     acc.passwd = "";
     PRINT_FUNC_LONG(pStore->GetAccount(acc));
     PRINT_STR(acc.passwd);
