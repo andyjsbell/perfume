@@ -280,7 +280,7 @@ namespace eau
     }
 
     // json format:  {k1:{k11:v11,k12:v12}, k2:{..}, ...}
-    long new_jx9_json_object(unqlite_vm* jx9_vm, 
+    long add_jx9_json_object(unqlite_vm* jx9_vm, 
             const map<string, vector<pair_t> > &keys, 
             unqlite_value* &jx9_json)
     {
@@ -311,42 +311,7 @@ namespace eau
         return lret;
     }
 
-#if 0
-    long process_jx9_get(unqlite* jx9_db, const char* jx9_prog, const vector<pair_t> &ivar, vector<pair_t> &ovar)
-    {
-        returnv_assert(jx9_db, EAU_E_INVALIDARG);
-        returnv_assert(jx9_prog, EAU_E_INVALIDARG);
-
-        long lret = EAU_E_FAIL;
-        unqlite_vm* jx9_vm = NULL;
-        unqlite_value* jx9_json = NULL;
-
-        int ret = unqlite_compile_file(jx9_db, jx9_prog, &jx9_vm);
-        returnv_assert2(ret, UNQLITE_OK, EAU_E_FAIL);
-        config_jx9_output(jx9_vm, jx9_out_callback, (void *)jx9_prog);
-
-        do {
-            break_assert2(config_jx9_variable(jx9_vm, ivar), EAU_S_OK);
-            break_assert2(unqlite_vm_exec(jx9_vm), UNQLITE_OK);
-            break_assert2(check_jx9_return(jx9_vm), EAU_S_OK);
-
-            // extract value from jx9 script
-            jx9_record = unqlite_vm_extract_variable(jx9_vm, kEauRecordOutVar);
-            break_assert(jx9_record);
-
-            vector<pair_t>::iterator iter;
-            for (iter=ovar.begin(); iter != ovar.end(); iter++) {
-                break_assert2(parse_jx9_value(jx9_record, iter->first, iter->second), EAU_S_OK);
-            }
-            lret = EAU_S_OK;
-        }while(false);
-
-        unqlite_vm_release_value(jx9_vm, jx9_record);
-        return lret;
-    }
-#endif
-
-    long config_jx9_variable(unqlite_vm* jx9_vm, const char *jx9_var_name, const unqlite_value *jx9_var)
+    long set_jx9_json_variable(unqlite_vm* jx9_vm, const char *jx9_var_name, const unqlite_value *jx9_var)
     {
         returnv_assert(jx9_vm, EAU_E_INVALIDARG);
         returnv_assert(jx9_var_name, EAU_E_INVALIDARG);
@@ -355,6 +320,75 @@ namespace eau
         int ret = unqlite_vm_config(jx9_vm, UNQLITE_VM_CONFIG_CREATE_VAR, jx9_var_name, jx9_var);
         returnv_assert2(ret, UNQLITE_OK, EAU_E_FAIL);        
         return EAU_S_OK;
+    }
+
+    long set_jx9_json_output(unqlite_vm* jx9_vm, jx9_out_cb_t pf_out, void *data)
+    {
+        returnv_assert(jx9_vm, EAU_E_INVALIDARG);
+
+        int ret = unqlite_vm_config(jx9_vm, UNQLITE_VM_CONFIG_OUTPUT, pf_out, data);
+        returnv_assert2(ret, UNQLITE_OK, EAU_E_FAIL);        
+        return EAU_S_OK;
+    }
+
+    long parse_jx9_json_return(unqlite_vm* jx9_vm, int &value)
+    {
+        returnv_assert(jx9_vm, EAU_E_INVALIDARG);
+
+        unqlite_value* jx9_return = NULL;
+        int ret = unqlite_vm_config(jx9_vm, UNQLITE_VM_CONFIG_EXEC_VALUE, &jx9_return);
+        returnv_assert2(ret, UNQLITE_OK, EAU_E_FAIL);
+
+        int lret = parse_jx9_value(jx9_return, "ret", value);
+        return lret;
+    }
+
+    long process_jx9_json_get(unqlite* jx9_db, 
+            const char* jx9_prog, 
+            const map<string, vector<pair_t> > &ivar, 
+            vector<pair_t> &ovar)
+    {
+        returnv_assert(jx9_db, EAU_E_INVALIDARG);
+        returnv_assert(jx9_prog, EAU_E_INVALIDARG);
+
+        long lret = EAU_E_FAIL;
+        unqlite_vm* jx9_vm = NULL;
+
+        int ret = unqlite_compile_file(jx9_db, jx9_prog, &jx9_vm);
+        returnv_assert2(ret, UNQLITE_OK, EAU_E_FAIL);
+        set_jx9_json_output(jx9_vm, jx9_out_callback, (void *)jx9_prog);
+
+        unqlite_value* jx9_json = NULL;
+        unqlite_value* jx9_arg = NULL;
+        do {
+            if (!ivar.empty()) {
+                lret = add_jx9_json_object(jx9_vm, ivar, jx9_json);
+                break_assert(lret == EAU_S_OK);
+                lret = set_jx9_json_variable(jx9_vm, kEauJx9Arg, jx9_json);
+                break_assert(lret == EAU_S_OK);
+            }
+
+            ret = unqlite_vm_exec(jx9_vm);
+            break_assert2(ret, UNQLITE_OK);
+            
+            int jx9_ret = 0xff;
+            lret = parse_jx9_json_return(jx9_vm, jx9_ret);
+            break_assert(lret == EAU_S_OK && jx9_ret == 0);
+
+            // extract value from jx9 script
+            if(!ovar.empty()) {
+                jx9_arg = unqlite_vm_extract_variable(jx9_vm, kEauJx9Out);
+                vector<pair_t>::iterator iter;
+                for (iter=ovar.begin(); iter != ovar.end(); iter++) {
+                    parse_jx9_value(jx9_arg, iter->first, iter->second);
+                }
+            }
+            lret = EAU_S_OK;
+        }while(false);
+
+        unqlite_vm_release_value(jx9_vm, jx9_json);
+        unqlite_vm_release_value(jx9_vm, jx9_arg);
+        return lret;
     }
 
 } // namespace eau

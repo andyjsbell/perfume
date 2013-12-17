@@ -39,8 +39,6 @@ namespace eau
     //      ## [option] see below
     //      err: {...},
     //  }
-    static const char kEauJx9Arg[] = "eau_jx9_arg"; 
-
     //
     // $eau_jx9_arg.err = {
     //      s_ok:           {ret: 0,    msg: jx9_s_ok},
@@ -53,8 +51,12 @@ namespace eau
     //      e_db_exists:    {ret: 22,   msg: jx9_e_db_exists},
     // };
     //
-    // $eau_jx9_out = {one of $eau_jx9_arg.err's values}, e.g, $eau_jx9_out={ret: 0,  msg: jx9_s_ok};
+    // jx9 @return = {one of $eau_jx9_arg.err's values}, e.g, {ret: 0,  msg: jx9_s_ok};
+    static const char kEauJx9Arg[] = "eau_jx9_arg"; 
+
+    // $eau_jx9_out to output records, like $eau_jx9_arg.val, e.g, {}, {{}, {}}
     static const char kEauJx9Out[] = "eau_jx9_out";
+
     static const char kEauJx9Putter[] = "scripts/jx9_putter.jx9";
     static const char kEauJx9Getter[] = "scripts/jx9_getter.jx9";
 
