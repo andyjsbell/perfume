@@ -184,31 +184,31 @@ namespace eau
 
 namespace eau
 {
-    long new_jx9_json_value(unqlite_vm* jx9_vm, const string &value, unqlite_value* &jx9_value)
+    bool new_jx9_json_value(unqlite_vm* jx9_vm, 
+        const string &value, 
+        unqlite_value* &jx9_value)
     {
-        returnv_assert(jx9_vm, EAU_E_FAIL);
+        returnv_assert(jx9_vm, false);
 
+        bool bret = false;
         unqlite_value* pvalue = jx9_value;
         if (pvalue == NULL) {
-            pvalue = unqlite_vm_new_scalar(jx9_vm);
-            returnv_assert(pvalue, EAU_E_FAIL);
+            returnv_assert((pvalue=unqlite_vm_new_scalar(jx9_vm)), false);
         }
 
-        int ret = unqlite_value_string(pvalue, value.c_str(), value.size());
-        if(ret == UNQLITE_OK) {
+        bret = (unqlite_value_string(pvalue, value.c_str(), value.size()) == UNQLITE_OK);
+        if(bret) {
             jx9_value = pvalue;
-            return EAU_S_OK;
-        }else { 
-            if (jx9_value == NULL && pvalue != NULL)
-                unqlite_vm_release_value(jx9_vm, pvalue);
-            return EAU_E_FAIL;
+        }else if (jx9_value == NULL && pvalue != NULL) {
+            unqlite_vm_release_value(jx9_vm, pvalue);
         }
+        return bret;
     }
 
     // json format: {k:v}, {..., k:v}
     long add_jx9_json_object(unqlite_vm* jx9_vm,
-            const pair_ptr_t &key, 
-            unqlite_value* &jx9_json)
+        const pair_ptr_t &key, 
+        unqlite_value* &jx9_json)
     {
         returnv_assert(jx9_vm, EAU_E_FAIL);
 
@@ -343,7 +343,7 @@ namespace eau
         return lret;
     }
 
-    long process_jx9_json_get(unqlite* jx9_db, 
+    long process_jx9_json(unqlite* jx9_db, 
             const char* jx9_prog, 
             const map<string, vector<pair_t> > &ivar, 
             vector<pair_t> &ovar)
@@ -389,6 +389,22 @@ namespace eau
         unqlite_vm_release_value(jx9_vm, jx9_json);
         unqlite_vm_release_value(jx9_vm, jx9_arg);
         return lret;
+    }
+
+    long process_jx9_json_get(unqlite* jx9_db, 
+            const char* jx9_prog, 
+            const map<string, vector<pair_t> > &ivar, 
+            vector<pair_t> &ovar)
+    {
+        return process_jx9_json(jx9_db, jx9_prog, ivar, ovar);
+    }
+
+    long process_jx9_json_put(unqlite* jx9_db, 
+            const char* jx9_prog, 
+            const map<string, vector<pair_t> > &ivar) 
+    {
+        vector<pair_t> ovar;
+        return process_jx9_json(jx9_db, jx9_prog, ivar, ovar);
     }
 
 } // namespace eau
