@@ -41,8 +41,10 @@ namespace eau
         return "none";
     }
 
-    // <key, value>
+    // <string, string>
     typedef std::pair<string, string> pair_t;
+    // <string, void *>
+    typedef std::pair<string, void *> pair_ptr_t;
 
     // <key:idx, value>
     template <int idx>
