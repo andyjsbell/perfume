@@ -2,22 +2,12 @@
 # uskee.org
 #
 
+import 'scripts/jx9_misc.jx9';
+
 ##
 # Two input variables from native C/C++ caller
 #   $eau_jx9_arg: see detail in jx9util.h
 ##
-
-$jx9_err = {
-    s_ok:           {ret: 0,    msg: jx9_s_ok},
-    s_false:        {ret: -1,   msg: jx9_s_false},
-    e_fail:         {ret: 1,    msg: jx9_e_fail},
-    e_uri:          {ret: 10,   msg: jx9_e_uri},
-    e_arg:          {ret: 11,   msg: jx9_e_arg},
-    e_db_create:    {ret: 20,   msg: jx9_e_db_create},
-    e_db_store:     {ret: 21,   msg: jx9_e_db_store},
-    e_db_exists:    {ret: 22,   msg: jx9_e_db_exists},
-};
-
 
 $jx9_col = $eau_jx9_arg.uri.col;
 $jx9_key = $eau_jx9_arg.key;
@@ -26,45 +16,6 @@ $jx9_val = $eau_jx9_arg.val;
 ## check input elements
 if (is_null($jx9_col) || is_null($jx9_key) || is_null($jx9_val)) {
     return $jx9_err.e_arg;
-}
-
-## check contain relationship
-function rec_contain($child, $parent) {
-    if(sizeof($child) > sizeof($parent))
-        return false;
-
-    foreach($child as $key, $val)
-        if($val != $parent[$key])
-            return false;
-    return true;
-}
-
-function rec_putter($child, $parent, $strict=false) {
-    foreach($child as $key, $val) {
-        if ($strict) {
-            if ($parent[$key] != NULL && $parent[$key] != $val)
-                $parent[$key] = $val;
-        }else {
-            if($parent[$key] != $val)
-                $parent[$key] = $val;
-        }
-    }
-    return $parent;
-}
-
-function test_ex()
-{
-    $t1= {"1":{"2":3,"4":5},"6":7,"8":9};
-    $t2= {"1":{"2":3,"4":5}};
-    $t3= {"1":{"22":3,"4":5}};
-    $t4= {"1":{"2":33,"4":5}};
-    $t5= {"11":{"2":3,"4":5}};
-    $t6= {"6":7};
-    $t7= {"8":9};
-    $t8= {"6":7, "8":9};
-
-    foreach ([$t2,$t3,$t4,$t5,$t6,$t7,$t8] as $val)
-        print rec_contain($val, $t1);
 }
 
 ## check the collection whether valid or not?
@@ -77,10 +28,11 @@ if (!db_exists($jx9_col)) {
 
 ## drop old record searched at first, not recursively.
 $bfind = false;
+#print db_fetch_all($jx9_col);
 while(($rec=db_fetch($jx9_col)) != NULL) {
     if (rec_contain($jx9_key, $rec)) {
+        db_drop_record($jx9_col, $rec.__id);
         $new_rec = rec_putter($jx9_val, $rec);
-        db_drop_record($jx9_rec, $rec.__id);
         $bfind = true;
         break;
     }
@@ -97,6 +49,7 @@ if (is_null($new_rec.id)) {
 ## store new record
 if(db_store($jx9_col, $new_rec)) {
     db_commit();
+    #print db_fetch_all($jx9_col);
     return $jx9_err.s_ok;
 }else {
     print db_errlog();
