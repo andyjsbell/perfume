@@ -32,55 +32,46 @@ long StoreImpl::Close()
     return EAU_S_OK;
 }
 
-long StoreImpl::PutAccount(const account_t &account)
+long StoreImpl::PutAccount(account_t &acc)
 {
-#if 0
-    json1_t juri;
-    juri.push_back(pair_t("col", "account"));
-
+#if 1
     json1_t jkey;
-    account.id >> jkey;
+    acc.get(K_id) >> jkey;
 
     json1_t jval;
-    account.passwd >> jval;
-    account.desc >> jval;
-
-    json1_t jscm;
+    acc.get(K_passwd) >> jval;
+    acc.get(K_desc) >> jval;
 
     json2_t json;
-    json["uri"] = juri;
+    json["uri"] = acc.uri();
     json["key"] = jkey;
     json["val"] = jval;
-    json["scm"] = jscm;
+    json["scm"] = acc.schema();
    
     bool bret = process_jx9_json_put((unqlite*)m_pHandle, json);
     log_assert(bret);
 #endif
+
     return 0;
 }
 
-long StoreImpl::GetAccount(account_t &account)
+long StoreImpl::GetAccount(account_t &acc)
 {
-#if 0
-    json1_t juri;
-    juri.push_back(pair_t("col", "account"));
-
+#if 1
     json1_t jkey;
-    account.id >> jkey;
+    acc.get(K_id) >> jkey;
 
-    json1_t jout;
-    account.passwd >> jout;
-    account.desc >> jout;
+    json1_t jval;
+    acc.get(K_passwd) >> jval;
+    acc.get(K_desc) >> jval;
 
     json2_t json;
-    json["uri"] = juri;
+    json["uri"] = acc.uri();
     json["key"] = jkey;
-    json["val"] = jout;
-   
-    long lret = process_jx9_json_get((unqlite*)m_pHandle, json, jout);
+    json["val"] = jval;
+    long lret = process_jx9_json_get((unqlite*)m_pHandle, json, jval);
     log_assert(lret);
-    account.passwd = jout[0];
-    account.desc = jout[1];
+    acc.set(K_passwd, jval);
 #endif
     return 0;
 }

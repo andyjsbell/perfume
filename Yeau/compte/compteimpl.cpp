@@ -43,7 +43,8 @@ bool CCloudy::Create(const string &user)
 {
     returnv_assert(m_bInit, false);
 
-    account_t acc;// = {user,};
+    account_t acc;
+    acc.set(K_id, user);
     long lret = m_pStore->PutAccount(acc);
     return (lret == EAU_S_OK);
 }
@@ -53,7 +54,8 @@ bool CCloudy::SignIn(const string &user, const string &passwd)
     returnv_assert(m_bInit, false);
     returnv_assert(!m_bSignIn, false);
 
-    account_t acc;// = {user, };
+    account_t acc;
+    acc.set(K_id, user);
     long lret = m_pStore->GetAccount(acc);
     returnv_assert2(lret, EAU_S_OK, false);
     if (acc.get(K_passwd) != passwd)

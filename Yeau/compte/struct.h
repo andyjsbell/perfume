@@ -31,6 +31,7 @@ namespace eau
         atom_t &operator=(const string &value) {this->second=value; return *this;}
         atom_t &operator=(const char* value) {this->second=value; return *this;}
         atom_t &operator=(const pair_t &p) {this->first=p.first; this->second=p.second; return *this;}
+        atom_t &operator=(const atom_t &p) {this->first=p.first; this->second=p.second; return *this;}
         bool operator!=(const string &value) {return this->second != value;}
         bool operator!=(const char* value) {return this->second != string(value);}
         void operator>>(json1_t &vp) const {vp.push_back(pair_t(this->first, this->second));}
@@ -71,29 +72,38 @@ namespace eau
         return "none";
     }
 
-    static const atom_t kKeyAtom(int idx)
+    static const atom_t kKeyAtom(int idx, const string val="")
     {
-        return atom_t(kKeyName(idx), "");
+        return atom_t(kKeyName(idx), val);
     }
 
     //========================
     // element generator class
     struct gen_t {
-        explicit gen_t(const int elems[], int num) {_init(elems, num);}
+        explicit gen_t(const int elems[], int num) {
+            _init(elems, num);
+        }
+
         atom_t &get(int idx) {return _all[idx];}
-        bool set(int idx, const atom_t &atom) {_all[idx]=atom;return true;}
         bool set(int idx, const string &str) {_all[idx] = str;return true;}
-    private:
+        bool set(int idx, const pair_t &p) {_all[idx]=p;return true;}
+        bool set(int idx, const json1_t &json) {
+            for(int k=0; k < json.size(); k++) _all[idx]=json[k];return true;
+        }
+        const json1_t &schema() {return _schema;}
+        const json1_t &uri() {return _uri;}
+        void uri(const atom_t &elem) {_uri.push_back(elem);}
+
+    protected:
         void _init(const int elems[], int num) {
-            _schema = "{";
             for (int k=0; k < num; k++) {
                 _all[elems[k]] = kKeyAtom(elems[k]);
-                _schema += kKeyAtom(elems[k]).first + ": 'none'"; 
+                _schema.push_back(kKeyAtom(elems[k], "none"));
             }
-            _schema += "}";
         }
         map<int, atom_t> _all;
-        string _schema;
+        json1_t _schema;
+        json1_t _uri;
     };
 
     // user account
@@ -102,9 +112,6 @@ namespace eau
     };
     struct account_t : public gen_t {
         explicit account_t() : gen_t(kAccountElems, sizeof(kAccountElems)/sizeof(int)){}
-        const string schema() {
-            return "";
-        }
     };
 
     // user db

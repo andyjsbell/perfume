@@ -19,7 +19,7 @@ namespace eau
         long Open(const string &fname, int mode);
         long Close();
 
-        long PutAccount(const account_t &account);
+        long PutAccount(account_t &account);
         long GetAccount(account_t &account);
         long PutDB(const db_t &db);
         long GetDB(db_t &db);
