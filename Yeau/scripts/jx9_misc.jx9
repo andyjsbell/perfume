@@ -21,25 +21,32 @@ function rec_contain($child, $parent) {
     return true;
 }
 
-function rec_putter($child, $parent, $strict=false) {
-    foreach($child as $key, $val) {
-        if ($strict) {
-            if ($parent[$key] != NULL && $parent[$key] != $val)
-                $parent[$key] = $val;
-        }else {
-            if($parent[$key] != $val)
-                $parent[$key] = $val;
-        }
+function rec_putter($update, $orgin) {
+    foreach($update as $key, $val) {
+        if ($orgin[$key] != NULL && $orgin[$key] != $val)
+            $orgin[$key] = $val;
     }
-    return $parent;
+    return $orgin;
 }
 
-function rec_getter($child, $parent) {
+function rec_putter($update, $orgin, $scheme) {
+    $merge = array_copy($scheme);
+    foreach($merge as $key, $val) {
+        $merge[$key] = $orgin[$key];
+    }
+    return rec_putter($update, $merge);
+}
+
+function rec_getter($child, $orgin) {
     foreach($child as $key, $val) {
-        if ($parent[$key] != NULL && $parent[$key] != $val)
-            $child[$key] = $parent[$key];
+        if ($orgin[$key] != NULL)
+            $child[$key] = $orgin[$key];
     }
     return $child;
+}
+
+function log_print($msg) {
+    print $msg;
 }
 
 function test_ex()
