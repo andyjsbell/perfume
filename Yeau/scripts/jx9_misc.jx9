@@ -1,3 +1,6 @@
+#!jx9 misc script
+# uskee.org
+#
 
 $jx9_err = {
     s_ok:           {ret: 0,    msg: jx9_s_ok},
@@ -45,8 +48,24 @@ function rec_getter($child, $orgin) {
     return $child;
 }
 
-function log_print($msg) {
-    print $msg;
+function log_print($tag, $msg) {
+    print "[$tag] => $msg";
+}
+
+function log_debug($msg) {
+    #log_print("debug", $msg);
+}
+
+function log_info($msg) {
+    #log_print("info", $msg);
+}
+
+function log_warn($msg) {
+    log_print("warn", $msg);
+}
+
+function log_error($msg) {
+    log_print("error", $msg);
 }
 
 function test_ex()

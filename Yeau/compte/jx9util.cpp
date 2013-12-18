@@ -4,11 +4,11 @@ namespace eau
 {
     int jx9_out_callback(const void* msg, unsigned int len, void* data)
     {
-        string sztag = "jx9";
+        string sztag = "[.jx9]";
         if (data) {
             sztag = (char *)data;
+            sztag = "[" + sztag + "]";
         }
-        sztag = "[" + sztag + "]";
 
         string szmsg = "";
         if (msg && len > 0) {
@@ -16,7 +16,7 @@ namespace eau
             memcpy((void *)szmsg.data(), msg, len);
         }
     
-        cout << sztag << " jx9 msg: " << szmsg << endl;
+        cout << sztag << szmsg << endl;
         return 0;
     }
 

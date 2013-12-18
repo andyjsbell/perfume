@@ -34,7 +34,6 @@ long StoreImpl::Close()
 
 long StoreImpl::PutAccount(account_t &acc)
 {
-#if 1
     json1_t jkey;
     acc.get(K_id) >> jkey;
 
@@ -42,22 +41,13 @@ long StoreImpl::PutAccount(account_t &acc)
     acc.get(K_passwd) >> jval;
     acc.get(K_desc) >> jval;
 
-    json2_t json;
-    json["uri"] = acc.uri();
-    json["key"] = jkey;
-    json["val"] = jval;
-    json["scm"] = acc.schema();
-   
-    bool bret = process_jx9_json_put((unqlite*)m_pHandle, json);
+    bool bret = Putter(acc, jkey, jval);
     log_assert(bret);
-#endif
-
     return 0;
 }
 
 long StoreImpl::GetAccount(account_t &acc)
 {
-#if 1
     json1_t jkey;
     acc.get(K_id) >> jkey;
 
@@ -65,96 +55,90 @@ long StoreImpl::GetAccount(account_t &acc)
     acc.get(K_passwd) >> jval;
     acc.get(K_desc) >> jval;
 
-    json2_t json;
-    json["uri"] = acc.uri();
-    json["key"] = jkey;
-    json["val"] = jval;
-    long lret = process_jx9_json_get((unqlite*)m_pHandle, json, jval);
-    log_assert(lret);
-    acc.set(K_passwd, jval);
-#endif
+    bool bret = Getter(acc, jkey, jval);
+    acc.set(jval);
+    log_assert(bret);
     return 0;
 }
 
-long StoreImpl::PutDB(const db_t &db)
+long StoreImpl::PutDB(db_t &db)
 {
-#if 0
-    // set var in script
-    vector<pair_t> ivar;
-    db.id >> ivar;
-    db.title >> ivar;
-    db.desc >> ivar;
-    db.logo >> ivar;
-    db.status >> ivar;
+    json1_t jkey;
+    db.get(K_id) >> jkey;
 
-    long lret = process_jx9_put((unqlite *)m_pHandle, kPutDBScript, ivar);
-    return lret;
-#endif
+    json1_t jval;
+    db.get(K_title) >> jval;
+    db.get(K_desc) >> jval;
+    db.get(K_logo) >> jval;
+
+    bool bret = Putter(db, jkey, jval);
+    log_assert(bret);
     return 0;
 }
 
 long StoreImpl::GetDB(db_t &db)
 {
-#if 0
-    // set var in script
-    vector<pair_t> ivar;
-    db.id >> ivar;
+    json1_t jkey;
+    db.get(K_id) >> jkey;
 
-    // get var from script
-    vector<pair_t> ovar;
-    db.title >> ovar;
-    db.desc >> ovar;
-    db.logo >> ovar;
-    db.status >> ovar;
+    json1_t jval;
+    db.get(K_title) >> jval;
+    db.get(K_desc) >> jval;
+    db.get(K_logo) >> jval;
 
-    long lret = process_jx9_get((unqlite *)m_pHandle, kGetDBScript, ivar, ovar);
-    db.title = ovar[0];
-    db.desc = ovar[1];
-    db.logo = ovar[2];
-    db.status = ovar[3];
-    return lret;
-#endif
+    bool bret = Getter(db, jkey, jval);
+    db.set(jval);
+    log_assert(bret);
     return 0;
 }
 
-long StoreImpl::PutDoc(const doc_t &doc)
+long StoreImpl::PutDoc(doc_t &doc)
 {
-#if 0
-    // set var in script
-    vector<pair_t> ivar;
-    doc.id >> ivar;
-    doc.title >> ivar;
-    doc.desc >> ivar;
-    doc.logo >> ivar;
-    doc.status >> ivar;
+    json1_t jkey;
+    doc.get(K_id) >> jkey;
 
-    long lret = process_jx9_put((unqlite *)m_pHandle, kPutDocScript, ivar);
-    return lret;
-#endif
+    json1_t jval;
+    doc.get(K_title) >> jval;
+    doc.get(K_desc) >> jval;
+    doc.get(K_logo) >> jval;
+
+    bool bret = Putter(doc, jkey, jval);
+    log_assert(bret);
     return 0;
 }
 
 long StoreImpl::GetDoc(doc_t &doc)
 {
-#if 0
-    // set var in script
-    vector<pair_t> ivar;
-    doc.id >> ivar;
+    json1_t jkey;
+    doc.get(K_id) >> jkey;
 
-    // get var from script
-    vector<pair_t> ovar;
-    doc.title >> ovar;
-    doc.desc >> ovar;
-    doc.logo >> ovar;
-    doc.status >> ovar;
+    json1_t jval;
+    doc.get(K_title) >> jval;
+    doc.get(K_desc) >> jval;
+    doc.get(K_logo) >> jval;
 
-    long lret = process_jx9_get((unqlite *)m_pHandle, kGetDocScript, ivar, ovar);
-    doc.title = ovar[0];
-    doc.desc = ovar[1];
-    doc.logo = ovar[2];
-    doc.status = ovar[3];
-    return lret;
-#endif
+    bool bret = Getter(doc, jkey, jval);
+    doc.set(jval);
+    log_assert(bret);
     return 0;
 }
 
+bool StoreImpl::Putter(gen_t &gen, json1_t &jkey, json1_t &jval)
+{
+    json2_t json;
+    json["uri"] = gen.uri();
+    json["key"] = jkey;
+    json["val"] = jval;
+    json["scm"] = gen.schema();
+    return process_jx9_json_put((unqlite*)m_pHandle, json);
+}
+
+bool StoreImpl::Getter(gen_t &gen, json1_t &jkey, json1_t &jval)
+{
+    json2_t json;
+    json["uri"] = gen.uri();
+    json["key"] = jkey;
+    json["val"] = jval;
+    json["scm"] = gen.schema();
+    return process_jx9_json_get((unqlite*)m_pHandle, json, jval);
+}

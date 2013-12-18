@@ -105,7 +105,7 @@ bool CCloudy::GetCompte(zeroptr<ICompte> &pCompte)
 ///======================
 
 CCompte::CCompte(const string &cid, zeroptr<CStore> pStore) 
-    : m_cid(cid), m_pStore(pStore)
+    : m_cid(K_id, cid), m_pStore(pStore)
 {}
 
 bool CCompte::CreateDB(const string &title, zeroptr<IDatabase> &pDB)
@@ -139,7 +139,7 @@ bool CCompte::OpenDB(const string &dbid, zeroptr<IDatabase> &pDB)
 ///======================
 
 CDatabase::CDatabase(const string &dbid, zeroptr<CStore> pStore)
-    : m_dbid(dbid), m_pStore(pStore)
+    : m_dbid(K_id, dbid), m_pStore(pStore)
 {}
 
 bool CDatabase::CreateDoc(const string &title, zeroptr<IDocument> &pDoc)
@@ -186,7 +186,7 @@ bool CDatabase::EndCommit()
 ///======================
 
 CDocument::CDocument(const string &docid, zeroptr<CStore> pStore)
-    : m_docid(docid), m_pStore(pStore)
+    : m_docid(K_id, docid), m_pStore(pStore)
 {}
 
 bool CDocument::BeginCommit()

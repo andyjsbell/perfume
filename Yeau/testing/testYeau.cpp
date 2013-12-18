@@ -23,7 +23,12 @@ static int get_cnt()
     return _cnt++;
 }
 
-static int test_log()
+static string get_random_str()
+{
+    return eau::uuid_generate_string();
+}
+
+int test_log()
 {
     PRINT_BEGIN;
 
@@ -37,7 +42,7 @@ static int test_log()
     return 0;
 }
 
-static int test_uuid()
+int test_uuid()
 {
     PRINT_BEGIN;
 
@@ -47,7 +52,7 @@ static int test_uuid()
     return 0;
 }
 
-static int test_account()
+int test_account()
 {
     PRINT_BEGIN;
 
@@ -59,21 +64,22 @@ static int test_account()
     eau::account_t acc;
     acc.set(eau::K_id, "user_testing");
     PRINT_FUNC_LONG(pStore->GetAccount(acc));
+    PRINT_STR(acc.get(eau::K_passwd));
 
-    acc.set(eau::K_passwd, "passwd_testing");
+    acc.set(eau::K_passwd, string("passwd_testing == ") + get_random_str());
     PRINT_FUNC_LONG(pStore->PutAccount(acc));
 
     acc.set(eau::K_id, "user_testing");
-    acc.set(eau::K_passwd, "passwd_testing2");
     PRINT_FUNC_LONG(pStore->GetAccount(acc));
+    PRINT_STR(acc.get(eau::K_passwd));
 
-    //PRINT_FUNC_LONG(pStore->Close());
+    PRINT_FUNC_LONG(pStore->Close());
 
     PRINT_CRLF;
     return 0;
 }
 
-static int test_db()
+int test_db()
 {
     PRINT_BEGIN;
 

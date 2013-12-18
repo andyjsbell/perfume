@@ -21,14 +21,17 @@ namespace eau
 
         long PutAccount(account_t &account);
         long GetAccount(account_t &account);
-        long PutDB(const db_t &db);
+        long PutDB(db_t &db);
         long GetDB(db_t &db);
-        long PutDoc(const doc_t &doc);
+        long PutDoc(doc_t &doc);
         long GetDoc(doc_t &doc);
 
     private:
         StoreImpl(const StoreImpl &original);
         void operator =(const StoreImpl &);
+
+        bool Putter(gen_t &gen, json1_t &jkey, json1_t &jval);
+        bool Getter(gen_t &gen, json1_t &jkey, json1_t &jval);
 
     private:
         handle_t m_pHandle;

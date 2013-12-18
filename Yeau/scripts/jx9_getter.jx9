@@ -6,6 +6,7 @@
 # Two input variables from native C/C++ caller
 #   $eau_jx9_arg: see detail in jx9util.h
 ##
+
 import 'scripts/jx9_misc.jx9';
 
 $jx9_col = $eau_jx9_arg.uri.col;
@@ -14,13 +15,13 @@ $jx9_val = $eau_jx9_arg.val;
 
 ## check input elements
 if (is_null($jx9_col) || is_null($jx9_key) || is_null($jx9_val)) {
-    log_print("invalid args: $jx9_col, $jx9_key, $jx9_val");
+    log_error("invalid args: $jx9_col, $jx9_key, $jx9_val");
     return $jx9_err.e_arg;
 }
 
 ## check the collection whether valid or not?
 if (!db_exists($jx9_col)) {
-    log_print(db_errlog());
+    log_error(db_errlog());
     return $jx9_err.e_db_exists;
 }
 
@@ -28,9 +29,9 @@ if (!db_exists($jx9_col)) {
 while(($rec=db_fetch($jx9_col)) != NULL) {
     if (rec_contain($jx9_key, $rec)) {
         $eau_jx9_out = rec_getter($jx9_val, $rec);
-        log_print("\$eau_jx9_out: $eau_jx9_out");
+        log_debug("\$jx9_val: $jx9_val, \$eau_jx9_out: $eau_jx9_out");
         return $jx9_err.s_ok;
     }
 }
-log_print("$jx9_key not found in $jx9_col");
+log_error("$jx9_key not found in $jx9_col");
 return $jx9_err.s_false;

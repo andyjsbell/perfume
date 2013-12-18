@@ -16,14 +16,14 @@ $jx9_scm = $eau_jx9_arg.scm;
 
 ## check input elements
 if (is_null($jx9_col) || is_null($jx9_key) || is_null($jx9_val)) {
-    log_print("invalid args: $jx9_col, $jx9_key, or $jx9_val");
+    log_error("invalid args: $jx9_col, $jx9_key, or $jx9_val");
     return $jx9_err.e_arg;
 }
 
 ## check the collection whether valid or not?
 if (!db_exists($jx9_col)) {
     if(!db_create($jx9_col)) {
-        log_print(db_errlog());
+        log_error(db_errlog());
         return $jx9_err.e_db_create;
     }
 }
@@ -31,13 +31,13 @@ if (!db_exists($jx9_col)) {
 if (is_null($jx9_scm)) {
     $jx9_scm = db_get_schema($jx9_col);
 }
+
 if (is_null($jx9_scm)) {
-    log_print("invalid arg: \$jx9_scm");
+    log_error("invalid arg: \$jx9_scm");
     return $jx9_err.e_arg;
 }
 
 ## drop old record searched at first, not recursively.
-log_print("all =>"..db_fetch_all($jx9_col));
 while(($rec=db_fetch($jx9_col)) != NULL) {
     if (rec_contain($jx9_key, $rec)) {
         db_drop_record($jx9_col, $rec.__id);
@@ -50,18 +50,18 @@ if (is_null($new_rec)) {
     $new_rec = rec_putter($jx9_key, $jx9_scm);
     $new_rec = rec_putter($jx9_val, $new_rec);
 }
-log_print($new_rec);
+
 if (is_null($new_rec.id)) {
+    log_error("invalid $new_rec, no 'id'");
     return $jx9_err.e_fail;
 }
 
 ## store new record
 if(db_store($jx9_col, $new_rec)) {
     db_commit();
-    log_print(db_fetch_all($jx9_col));
     return $jx9_err.s_ok;
 }else {
-    log_print(db_errlog());
+    log_error(db_errlog());
     db_rollback();
     return $jx9_err.e_db_store;
 }
