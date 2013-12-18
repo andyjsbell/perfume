@@ -43,7 +43,7 @@ bool CCloudy::Create(const string &user)
 {
     returnv_assert(m_bInit, false);
 
-    account_t acc = {user,};
+    account_t acc;// = {user,};
     long lret = m_pStore->PutAccount(acc);
     return (lret == EAU_S_OK);
 }
@@ -53,10 +53,10 @@ bool CCloudy::SignIn(const string &user, const string &passwd)
     returnv_assert(m_bInit, false);
     returnv_assert(!m_bSignIn, false);
 
-    account_t acc = {user, };
+    account_t acc;// = {user, };
     long lret = m_pStore->GetAccount(acc);
     returnv_assert2(lret, EAU_S_OK, false);
-    if (acc.passwd != passwd)
+    if (acc.get(K_passwd) != passwd)
         return false;
 
     m_bSignIn = true;
@@ -77,7 +77,7 @@ bool CCloudy::BeginCommit()
     returnv_assert(m_bInit, false);
     returnv_assert(m_bSignIn, false);
 
-    m_account.id = m_cid.str();
+    m_account.set(K_id, m_cid);
     long lret = m_pStore->GetAccount(m_account);
     return (lret == EAU_S_OK);
 }
@@ -109,12 +109,12 @@ CCompte::CCompte(const string &cid, zeroptr<CStore> pStore)
 bool CCompte::CreateDB(const string &title, zeroptr<IDatabase> &pDB)
 {
     db_t db;
-    db.id = uuid_generate_string(); 
-    db.title = title;
+    db.set(K_id, uuid_generate_string()); 
+    db.set(K_title, title);
     long lret = m_pStore->PutDB(db);
     returnv_assert2(lret, EAU_S_OK, false);
 
-    pDB = new RefCounted<CDatabase>(db.id.str(), m_pStore);
+    pDB = new RefCounted<CDatabase>(db.get(K_id).str(), m_pStore);
     return true;
 }
 
@@ -126,11 +126,11 @@ bool CCompte::GetAllDBs(vector<string> &dbids)
 bool CCompte::OpenDB(const string &dbid, zeroptr<IDatabase> &pDB)
 {
     db_t db;
-    db.id = dbid; 
+    db.set(K_id, dbid); 
     long lret = m_pStore->GetDB(db);
     returnv_assert2(lret, EAU_S_OK, false);
 
-    pDB = new RefCounted<CDatabase>(db.id.str(), m_pStore);
+    pDB = new RefCounted<CDatabase>(db.get(K_id).str(), m_pStore);
     return true;
 }
 
@@ -143,12 +143,12 @@ CDatabase::CDatabase(const string &dbid, zeroptr<CStore> pStore)
 bool CDatabase::CreateDoc(const string &title, zeroptr<IDocument> &pDoc)
 {
     doc_t doc;
-    doc.id = uuid_generate_string();
-    doc.title = title;
+    doc.set(K_id, uuid_generate_string());
+    doc.set(K_title, title);
     long lret = m_pStore->PutDoc(doc);
     returnv_assert2(lret, EAU_S_OK, false);
 
-    pDoc = new RefCounted<CDocument>(doc.id.str(), m_pStore);
+    pDoc = new RefCounted<CDocument>(doc.get(K_id).str(), m_pStore);
     return true;
 }
 
@@ -160,17 +160,17 @@ bool CDatabase::GetAllDocs(vector<string> &docids)
 bool CDatabase::OpenDoc(const string &docid, zeroptr<IDocument> &pDoc)
 {
     doc_t doc;
-    doc.id = docid; 
+    doc.set(K_id, docid); 
     long lret = m_pStore->GetDoc(doc);
     returnv_assert2(lret, EAU_S_OK, false);
 
-    pDoc = new RefCounted<CDocument>(doc.id.str(), m_pStore);
+    pDoc = new RefCounted<CDocument>(doc.get(K_id).str(), m_pStore);
     return true;
 }
 
 bool CDatabase::BeginCommit()
 {
-    m_db.id = m_dbid; 
+    m_db.set(K_id, m_dbid); 
     long lret = m_pStore->GetDB(m_db);
     return (lret == EAU_S_OK);
 }
@@ -189,7 +189,7 @@ CDocument::CDocument(const string &docid, zeroptr<CStore> pStore)
 
 bool CDocument::BeginCommit()
 {
-    m_doc.id = m_docid; 
+    m_doc.set(K_id, m_docid); 
     long lret = m_pStore->GetDoc(m_doc);
     return (lret == EAU_S_OK);
 }

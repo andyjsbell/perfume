@@ -57,17 +57,15 @@ static int test_account()
     PRINT_CRLF;
 
     eau::account_t acc;
-    acc.id = "user_testing";
+    acc.set(eau::K_id, "user_testing");
     PRINT_FUNC_LONG(pStore->GetAccount(acc));
-    PRINT_STR(acc.passwd);
 
-    acc.passwd = "passwd_testing";
+    acc.set(eau::K_passwd, "passwd_testing");
     PRINT_FUNC_LONG(pStore->PutAccount(acc));
 
-    acc.id = "user_testing";
-    acc.passwd = "";
+    acc.set(eau::K_id, "user_testing");
+    acc.set(eau::K_passwd, "passwd_testing2");
     PRINT_FUNC_LONG(pStore->GetAccount(acc));
-    PRINT_STR(acc.passwd);
 
     //PRINT_FUNC_LONG(pStore->Close());
 
@@ -85,17 +83,15 @@ static int test_db()
     PRINT_CRLF;
 
     eau::db_t db;
-    db.id = eau::uuid_generate_string();
+    db.set(eau::K_id, eau::uuid_generate_string());
     PRINT_FUNC_LONG(pStore->PutDB(db));
     PRINT_FUNC_LONG(pStore->GetDB(db));
     
-    db.title = "db title";
+    db.set(eau::K_title, "db title");
     PRINT_FUNC_LONG(pStore->PutDB(db));
-    db.title = "";
+    db.set(eau::K_title, "");
     PRINT_FUNC_LONG(pStore->GetDB(db));
-    PRINT_STR(db.title);
     
-
     return 0;
 }
 

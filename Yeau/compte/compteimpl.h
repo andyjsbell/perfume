@@ -22,8 +22,8 @@ namespace eau
         virtual bool SignUp();
 
         virtual bool BeginCommit();
-        virtual void SetPasswd(const string &passwd) {m_account.passwd = passwd;}
-        virtual void SetDesc(const string &desc) {m_account.desc = desc;}
+        virtual void SetPasswd(const string &passwd) {m_account.set(K_passwd, passwd);}
+        virtual void SetDesc(const string &desc) {m_account.set(K_desc, desc);}
         virtual bool EndCommit();
 
         virtual bool GetCompte(zeroptr<ICompte> &pCompte);
@@ -33,7 +33,7 @@ namespace eau
         zeroptr<ICompte> m_pCompte; 
 
         account_t m_account;
-        atom_t<K_id> m_cid;
+        atom_t m_cid;
         bool m_bInit;
         bool m_bSignIn;
 
@@ -50,7 +50,7 @@ namespace eau
         virtual bool OpenDB(const string &dbid, zeroptr<IDatabase> &pDB);
 
     private:
-        atom_t<K_id> m_cid;
+        atom_t m_cid;
         zeroptr<CStore>  m_pStore;        
     };
         
@@ -64,15 +64,14 @@ namespace eau
         virtual bool OpenDoc(const string &docid, zeroptr<IDocument> &pDoc);
 
         virtual bool BeginCommit();
-        virtual void SetTitle(const string &title) {m_db.title=title;}
-        virtual void SetDesc(const string &desc) {m_db.desc=desc;}
-        virtual void SetLogo(const string &logo) {m_db.logo=logo;}
-        virtual void SetStatus(const string &status) {m_db.status=status;}
+        virtual void SetTitle(const string &title) {m_db.set(K_title, title);}
+        virtual void SetDesc(const string &desc) {m_db.set(K_desc, desc);}
+        virtual void SetLogo(const string &logo) {m_db.set(K_logo, logo);}
         virtual bool EndCommit();
 
     private:
         db_t m_db;
-        atom_t<K_id> m_dbid;
+        atom_t m_dbid;
         zeroptr<CStore>  m_pStore;        
     };
 
@@ -82,15 +81,14 @@ namespace eau
         explicit CDocument(const string &docid, zeroptr<CStore> pStore);
 
         virtual bool BeginCommit();
-        virtual void SetTitle(const string &title) {m_doc.title=title;}
-        virtual void SetDesc(const string &desc) {m_doc.desc=desc;}
-        virtual void SetLogo(const string &logo) {m_doc.logo=logo;}
-        virtual void SetStatus(const string &status) {m_doc.status=status;}
+        virtual void SetTitle(const string &title) {m_doc.set(K_title, title);}
+        virtual void SetDesc(const string &desc) {m_doc.set(K_desc, desc);}
+        virtual void SetLogo(const string &logo) {m_doc.set(K_logo, logo);}
         virtual bool EndCommit();
         
     private:
         doc_t m_doc;
-        atom_t<K_id> m_docid;
+        atom_t m_docid;
         zeroptr<CStore>  m_pStore;        
     };
 

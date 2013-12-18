@@ -67,7 +67,6 @@ namespace eau
         virtual void SetTitle(const string &title) = 0;
         virtual void SetDesc(const string &desc) = 0;
         virtual void SetLogo(const string &logo) = 0;
-        virtual void SetStatus(const string &status) = 0;
         virtual bool EndCommit() = 0;
     };
 
@@ -78,7 +77,6 @@ namespace eau
         virtual void SetTitle(const string &title) = 0;
         virtual void SetDesc(const string &desc) = 0;
         virtual void SetLogo(const string &logo) = 0;
-        virtual void SetStatus(const string &status) = 0;
         virtual bool EndCommit() = 0;
     };
 

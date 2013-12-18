@@ -36,6 +36,8 @@ namespace eau
     //      key: {full/part members of record in uri.col},
     //      ## [option] only valid for putter
     //      val: {full/part members of record in uri.col},  
+    //      ## [option] for col's schema
+    //      scm: {},
     //      ## [option] see below
     //      err: {...},
     //  }
@@ -79,11 +81,6 @@ namespace eau
 
 namespace eau 
 {
-    // format: {k1:v1, k2:v2, ...}
-    typedef vector<pair_t> json1_t;
-    // format: {k1:{k11:v11, k12:v12}, k2:...}
-    typedef map<string, vector<pair_t> > json2_t;
-
     //
     // @param ivar: see $eau_jx9_arg above
     // @param ovar: see $eau_jx9_out above

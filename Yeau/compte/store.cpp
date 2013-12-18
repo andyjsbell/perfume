@@ -35,15 +35,6 @@ long StoreImpl::Close()
 long StoreImpl::PutAccount(const account_t &account)
 {
 #if 0
-    // set var in script
-    vector<pair_t> ivar;
-    account.user >> ivar;
-    account.passwd >> ivar;
-    account.desc >> ivar;
-
-    long lret = process_jx9_put((unqlite *)m_pHandle, kPutAccountScript, ivar);
-    return lret;
-#else
     json1_t juri;
     juri.push_back(pair_t("col", "account"));
 
@@ -54,35 +45,23 @@ long StoreImpl::PutAccount(const account_t &account)
     account.passwd >> jval;
     account.desc >> jval;
 
+    json1_t jscm;
+
     json2_t json;
     json["uri"] = juri;
     json["key"] = jkey;
     json["val"] = jval;
+    json["scm"] = jscm;
    
     bool bret = process_jx9_json_put((unqlite*)m_pHandle, json);
     log_assert(bret);
-    return 0;
 #endif
+    return 0;
 }
 
 long StoreImpl::GetAccount(account_t &account)
 {
 #if 0
-    // set var in script
-    vector<pair_t> ivar;
-    account.user >> ivar;
-
-    // get var from script
-    vector<pair_t> ovar;
-    account.passwd >> ovar;
-    account.desc >> ovar;
-
-    long lret = process_jx9_get((unqlite *)m_pHandle, kGetAccountScript, ivar, ovar);
-    account.passwd << ovar[0];
-    account.desc << ovar[1];
-
-    return lret;
-#else
     json1_t juri;
     juri.push_back(pair_t("col", "account"));
 
@@ -100,15 +79,15 @@ long StoreImpl::GetAccount(account_t &account)
    
     long lret = process_jx9_json_get((unqlite*)m_pHandle, json, jout);
     log_assert(lret);
-    account.passwd << jout[0];
-    account.desc << jout[1];
-
-    return 0;
+    account.passwd = jout[0];
+    account.desc = jout[1];
 #endif
+    return 0;
 }
 
 long StoreImpl::PutDB(const db_t &db)
 {
+#if 0
     // set var in script
     vector<pair_t> ivar;
     db.id >> ivar;
@@ -119,10 +98,13 @@ long StoreImpl::PutDB(const db_t &db)
 
     long lret = process_jx9_put((unqlite *)m_pHandle, kPutDBScript, ivar);
     return lret;
+#endif
+    return 0;
 }
 
 long StoreImpl::GetDB(db_t &db)
 {
+#if 0
     // set var in script
     vector<pair_t> ivar;
     db.id >> ivar;
@@ -135,16 +117,18 @@ long StoreImpl::GetDB(db_t &db)
     db.status >> ovar;
 
     long lret = process_jx9_get((unqlite *)m_pHandle, kGetDBScript, ivar, ovar);
-    db.title << ovar[0];
-    db.desc << ovar[1];
-    db.logo << ovar[2];
-    db.status << ovar[3];
-
+    db.title = ovar[0];
+    db.desc = ovar[1];
+    db.logo = ovar[2];
+    db.status = ovar[3];
     return lret;
+#endif
+    return 0;
 }
 
 long StoreImpl::PutDoc(const doc_t &doc)
 {
+#if 0
     // set var in script
     vector<pair_t> ivar;
     doc.id >> ivar;
@@ -155,10 +139,13 @@ long StoreImpl::PutDoc(const doc_t &doc)
 
     long lret = process_jx9_put((unqlite *)m_pHandle, kPutDocScript, ivar);
     return lret;
+#endif
+    return 0;
 }
 
 long StoreImpl::GetDoc(doc_t &doc)
 {
+#if 0
     // set var in script
     vector<pair_t> ivar;
     doc.id >> ivar;
@@ -171,11 +158,12 @@ long StoreImpl::GetDoc(doc_t &doc)
     doc.status >> ovar;
 
     long lret = process_jx9_get((unqlite *)m_pHandle, kGetDocScript, ivar, ovar);
-    doc.title << ovar[0];
-    doc.desc << ovar[1];
-    doc.logo << ovar[2];
-    doc.status << ovar[3];
-
+    doc.title = ovar[0];
+    doc.desc = ovar[1];
+    doc.logo = ovar[2];
+    doc.status = ovar[3];
     return lret;
+#endif
+    return 0;
 }
 
