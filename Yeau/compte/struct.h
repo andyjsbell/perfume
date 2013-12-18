@@ -167,7 +167,9 @@ namespace eau
         K_id, K_title, K_desc, K_logo, K_status, K_cdate, K_mdate
     };
     struct db_t : public gen_t{
-        explicit db_t() : gen_t(kDBElems, sizeof(kDBElems)/sizeof(int)){}
+        explicit db_t() : gen_t(kDBElems, sizeof(kDBElems)/sizeof(int)){
+            uri(pair_t("col", "database"));
+        }
     };
 
     // user document
@@ -175,7 +177,9 @@ namespace eau
         K_id, K_title, K_desc, K_logo, K_status, K_cdate, K_mdate
     };
     struct doc_t : public gen_t{
-        explicit doc_t() : gen_t(kDocElems, sizeof(kDocElems)/sizeof(int)){}
+        explicit doc_t() : gen_t(kDocElems, sizeof(kDocElems)/sizeof(int)){
+            uri(pair_t("col", "document"));
+        }
     };
 
 } // namespace eau

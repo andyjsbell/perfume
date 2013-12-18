@@ -89,14 +89,17 @@ int test_db()
     PRINT_CRLF;
 
     eau::db_t db;
-    db.set(eau::K_id, eau::uuid_generate_string());
-    PRINT_FUNC_LONG(pStore->PutDB(db));
+    db.set(eau::K_id, "eau::uuid_generate_string()");
     PRINT_FUNC_LONG(pStore->GetDB(db));
-    
+    PRINT_STR(db.get(eau::K_title));
+
+    db.set(eau::K_id, "eau::uuid_generate_string()");
     db.set(eau::K_title, "db title");
     PRINT_FUNC_LONG(pStore->PutDB(db));
+
     db.set(eau::K_title, "");
     PRINT_FUNC_LONG(pStore->GetDB(db));
+    PRINT_STR(db.get(eau::K_title));
     
     return 0;
 }
@@ -105,8 +108,8 @@ int main(int argc, char* argv[])
 {
     //test_log();
     //test_uuid();
-    test_account();
-    //test_db();
+    //test_account();
+    test_db();
     return 0;
 }
 
