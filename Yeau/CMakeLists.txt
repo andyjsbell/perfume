@@ -19,6 +19,7 @@ link_directories(
 #add_subdirectory(compte)
 #add_subdirectory(ubase)
 #add_subdirectory(unqlite)
+add_subdirectory(misc/jx9eau)
 add_subdirectory(testing)
 
 # For Yeau
