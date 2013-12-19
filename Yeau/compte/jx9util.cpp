@@ -363,6 +363,7 @@ namespace eau
 
         unqlite_vm_release_value(jx9_vm, jx9_json);
         unqlite_vm_release_value(jx9_vm, jx9_arg);
+        unqlite_vm_release(jx9_vm);
         return bret;
     }
 
