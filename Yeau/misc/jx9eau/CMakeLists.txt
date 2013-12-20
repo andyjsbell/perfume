@@ -4,7 +4,7 @@ set(jx9eau_EXEC_SRCS
 )
 
 include_directories(
-    .
+    ..
 )
 
 link_directories(
