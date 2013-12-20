@@ -32,6 +32,10 @@
  * %End-Header%
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 /*
  * Force inclusion of SVID stuff since we need it if we're compiling in
  * gcc-wall wall mode

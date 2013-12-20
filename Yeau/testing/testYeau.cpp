@@ -107,7 +107,7 @@ int test_db()
 int main(int argc, char* argv[])
 {
     //test_log();
-    //test_uuid();
+    test_uuid();
     //test_account();
     test_db();
     return 0;
