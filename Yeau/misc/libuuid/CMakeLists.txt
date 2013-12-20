@@ -5,8 +5,7 @@
 add_definitions(-DHAVE_CONFIG_H)
 
 include_directories(
-    ${PROJECT_SOURCE_DIR}/misc/libuuid
-    ${PROJECT_SOURCE_DIR}/misc/libuuid/src
+    .
 )
 
 link_directories(
@@ -14,8 +13,6 @@ link_directories(
 
 set(uuid_LIB_SRCS
     clear.c     
-    #gen_uuid_nt.c  
-    #tst_uuid.c
     compare.c   
     isnull.c       
     unpack.c
@@ -25,6 +22,8 @@ set(uuid_LIB_SRCS
     gen_uuid.c  
     parse.c        
     uuid_time.c
+    #gen_uuid_nt.c  
+    #tst_uuid.c
 )
 
 set(so_NAME uuid)

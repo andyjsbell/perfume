@@ -8,7 +8,7 @@
 using namespace std;
 
 extern "C" {
-#include "unqlite.h"
+#include "unqlite/unqlite.h"
 }
 
 #include "struct.h"

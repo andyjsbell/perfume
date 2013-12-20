@@ -1,6 +1,6 @@
 #include <iostream>
 extern "C" {
-#include "unqlite.h"
+#include "unqlite/unqlite.h"
 }
 
 #define println(p)   std::cout<<p<<std::endl;

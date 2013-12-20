@@ -1,5 +1,5 @@
 #include "umisc.h"
-#include "uuid.h"
+#include "libuuid/uuid.h"
 
 namespace eau
 {

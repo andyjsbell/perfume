@@ -1,10 +1,11 @@
-#include "unqlite.h"
 #include <string.h>
 #include <stdlib.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+
+#include "unqlite/unqlite.h"
 
 #define CHECK_ARGV_RETURN(ctx, argc, argv) { \
     if ((argc) != 1 || !unqlite_value_is_json_object(argv)) { \
