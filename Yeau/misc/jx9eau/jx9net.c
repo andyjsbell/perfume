@@ -8,10 +8,14 @@ static const struct jx9_funcs {
     /* Pointer to the C function performing the computation*/
     int (*xProc)(unqlite_context *, int, unqlite_value **); 
 }aFuncs[] = {
-    {"jsocket",     jx9_socket_func}, 
-    {"jconnect",    jx9_connect_func}, 
-    {"jsend",       jx9_send_func}, 
-    {"jrecv",       jx9_recv_func}, 
+    {"socket",     jx9_socket_func}, 
+    {"connect",    jx9_connect_func}, 
+    {"send",       jx9_send_func}, 
+    {"recv",       jx9_recv_func}, 
+    {"listen",     jx9_listen_func}, 
+    {"accept",     jx9_accept_func}, 
+    {"sendto",     jx9_sendto_func}, 
+    {"recvfrom",   jx9_recvfrom_func}, 
 };
 
 int register_jx9net_funcs(unqlite_vm* pVM)
