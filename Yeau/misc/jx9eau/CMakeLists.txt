@@ -1,5 +1,6 @@
 set(jx9eau_EXEC_SRCS
     jx9eau.cpp
+    jx9net.c
     ../unqlite/unqlite.c
 )
 
