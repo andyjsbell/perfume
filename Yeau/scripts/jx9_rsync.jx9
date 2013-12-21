@@ -37,20 +37,25 @@ function parse_http($msg)
     }
 
     if (sizeof($resp["status"]) > 1) {
-        $resp["status"] = (int)$resp["status"];
+        $resp["status"][1] = (int)$resp["status"][1];
     }
 
     return $resp;
 }
 
-function send_http($cmd, $uri, $host, $port=80, $accept="*/*")
+function send_http($req)
 {
-    $cmd = strtoupper($cmd);
-    $req = "$cmd $uri HTTP/1.1\r\n" ..
-    "Host: $host:$port\r\n" ..
-    "Accept: $accept\r\n" .. 
-    "\r\n";
-    print "send http: $req";
+    $cmd = strtoupper($req.cmd);
+    $shttp = "$cmd $req.uri HTTP/1.1\r\n" ..
+        "Host: $req.host:$req.port\r\n" ..
+        "Accept: $req.accept\r\n";
+
+    if (($cmd == "PUT" || $cmd = "POST") && $req.content) {
+        $length = strlen($req.content);
+        $shttp = $shttp .. "Content-Length: $length\r\n";
+    }
+    $shttp = $shttp .. "\r\n";
+    #print "send http: $shttp";
 
     $sock = socket();
     if ($sock <= 0) {
@@ -59,17 +64,30 @@ function send_http($cmd, $uri, $host, $port=80, $accept="*/*")
     }
 
     while(true){
-        $ret = connect({sock:$sock, host:$host, port:$port});
+        # connect server
+        $ret = connect({sock:$sock, host:$req.host, port:$req.port});
         if ($ret != 0) {
             print "connect() failed and return $ret";
             break;
         }
-        $ret = send({sock:$sock, msg:$req, size:strlen($req)});
+
+        # send http head
+        $ret = send({sock:$sock, msg:$shttp, size:strlen($shttp)});
         if ($ret <= 0) {
             print "send() failed and return $ret";
             break;
         }
 
+        # send http content data
+        if ($req.content) {
+            $ret = send({sock:$sock, msg:$req.content, size:strlen($req.content)});
+            if ($ret <= 0) {
+                print "send() failed and return $ret";
+                break;
+            }
+        }
+
+        # recv http response
         $rhttp = {sock:$sock, size:2048};
         $ret = recv($rhttp);
         if ($ret <= 0) {
@@ -80,15 +98,16 @@ function send_http($cmd, $uri, $host, $port=80, $accept="*/*")
         $resp = parse_http($rhttp.msg); 
         #print "recv msg: $resp";
         if ($resp["content-length"] > $resp["content"]["length"]) {
-            $content = {sock:$sock, size:$resp["content-length"]};
-            #print "content: $content";
-            $ret = recv($content);
+            # recv http content data
+            $rdata = {sock:$sock, size:$resp["content-length"]};
+            #print "rdata: $rdata";
+            $ret = recv($rdata);
             if ($ret <= 0) {
                 print "recv() content failed and return $ret";
                 break;
             }
-            $resp["content"] = json_decode($content.msg);
-            $resp["content"]["length"] = strlen($content.msg);
+            $resp["content"] = json_decode($rdata.msg);
+            $resp["content"]["length"] = strlen($rdata.msg);
             #print "content: " .. $resp["content"];
         }
         break;
@@ -99,13 +118,19 @@ function send_http($cmd, $uri, $host, $port=80, $accept="*/*")
 }
 
 
-
 $all_syncs = ["account", "database", "document"];
 $jx9_col = $all_syncs[1];
 print $jx9_col;
 
-#$resp = send_http("GET", "/_all_dbs", "127.0.0.1", 5984);
-$resp = send_http("PUT", "/test_account", "127.0.0.1", 5984, "application/json");
+$req = {
+    cmd: "PUT", # GET, PUT, POST
+    uri: "/test_account",
+    host: "127.0.0.1",
+    port: 5984,
+    accept: "application/json",
+    content: "test",
+};
+$resp = send_http($req);
 print $resp;
 
 if (!db_exists($jx9_col)) {
