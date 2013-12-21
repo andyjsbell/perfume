@@ -1,3 +1,5 @@
+=============
+The Structure
 
 0. The basic types
     a. string:  ascii + digit
@@ -5,53 +7,54 @@
     c. uuid: 16-byte string
 
 1. The account structure
-{ account: [
-    {
-        id: 'uuid'
-        user: 'string', 
+{ account: {
+        id: 'uuid',
         passwd: 'string', 
+        name: 'string', 
         desc: 'string', 
+        mdate: 'string',
+        cdate: 'string',
     }, 
     ...
-]}
+}
 
 2. The database structure
-{ database: [
-    {   
+{ database: {   
         id: 'uuid', 
         title: 'string', 
         desc: 'string', 
         logo: 'string', 
         status: 'string', 
-        date: 'string',
+        mdate: 'string',
+        cdate: 'string',
         documents: [uuid, ...]
     },
     ...
-]}
+}
 
 3. The document structure
-{ database/documents: [
-    {
+{ database/documents: {
         id: 'uuid', 
         title: 'string', 
         desc: 'string', 
         status: 'string', 
+        mdate: 'string',
+        cdate: 'string',
         attachments:[uuid,...]
     },
     ...
-]}
+}
 
 4. The attachment structure
-{ document/attachments: [
-    {
+{ document/attachments: {
         id: 'uuid', 
         title: 'string', 
         desc: 'string', 
-        name: 'string', 
         mime: 'string', 
-        status: 'string'
+        status: 'string',
+        mdate: 'string',
+        cdate: 'string',
     },
     ...
-]}
- 
+}
  

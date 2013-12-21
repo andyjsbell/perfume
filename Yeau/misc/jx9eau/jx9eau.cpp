@@ -1,6 +1,7 @@
 #include <iostream>
 extern "C" {
 #include "unqlite/unqlite.h"
+#include "jx9net.h"
 }
 
 #define println(p)   std::cout<<p<<std::endl;
@@ -40,6 +41,8 @@ int main(int argc, char* argv[])
         }
         goto __error;
     }
+
+    register_jx9net_funcs(pVM);
 
     if(unqlite_vm_config(pVM, UNQLITE_VM_CONFIG_OUTPUT, jx9_stdout_callback, NULL) != UNQLITE_OK)
         goto __error;
