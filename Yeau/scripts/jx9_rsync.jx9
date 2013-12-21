@@ -1,0 +1,119 @@
+#!jx9 rsync script
+# uskee.org
+#
+
+function parse_http($msg)
+{
+    $off = strpos($msg, "\r\n\r\n");
+    if (!$off) 
+        return false;
+
+    $len = strlen($msg);
+    $head = substr($msg, 0, $off);
+    $content = substr($msg, $off+4, $len-$off-4);
+
+    $http = explode("\r\n", $head);
+    foreach ($http as $line) {
+        $kv = explode(": ", $line, 2);
+        if (sizeof($kv) == 2) {
+            $resp[strtolower($kv[0])] = $kv[1];
+        }else if ($kv){
+            $resp["status"] = explode(" ", $kv[0], 3);
+        }
+    }
+
+    if ($resp["content-length"]) {
+        $resp["content-length"] = (int)$resp["content-length"];
+    }else {
+        $resp["content-length"] = 0;
+    }
+
+    if ($content) {
+        $resp["content"] = json_decode($content);
+        $resp["content"]["length"] = strlen($content);
+    }else {
+        $resp["content"] = "";
+        $resp["content"]["length"] = 0;
+    }
+
+    if (sizeof($resp["status"]) > 1) {
+        $resp["status"] = (int)$resp["status"];
+    }
+
+    return $resp;
+}
+
+function send_http($cmd, $uri, $host, $port=80, $accept="*/*")
+{
+    $cmd = strtoupper($cmd);
+    $req = "$cmd $uri HTTP/1.1\r\n" ..
+    "Host: $host:$port\r\n" ..
+    "Accept: $accept\r\n" .. 
+    "\r\n";
+    print "send http: $req";
+
+    $sock = socket();
+    if ($sock <= 0) {
+        print "socket() failed and return $ret";
+        return false;
+    }
+
+    while(true){
+        $ret = connect({sock:$sock, host:$host, port:$port});
+        if ($ret != 0) {
+            print "connect() failed and return $ret";
+            break;
+        }
+        $ret = send({sock:$sock, msg:$req, size:strlen($req)});
+        if ($ret <= 0) {
+            print "send() failed and return $ret";
+            break;
+        }
+
+        $rhttp = {sock:$sock, size:2048};
+        $ret = recv($rhttp);
+        if ($ret <= 0) {
+            print "recv() head failed and return $ret";
+            break;
+        }
+
+        $resp = parse_http($rhttp.msg); 
+        #print "recv msg: $resp";
+        if ($resp["content-length"] > $resp["content"]["length"]) {
+            $content = {sock:$sock, size:$resp["content-length"]};
+            #print "content: $content";
+            $ret = recv($content);
+            if ($ret <= 0) {
+                print "recv() content failed and return $ret";
+                break;
+            }
+            $resp["content"] = json_decode($content.msg);
+            $resp["content"]["length"] = strlen($content.msg);
+            #print "content: " .. $resp["content"];
+        }
+        break;
+    }
+    close($sock);
+
+    return $resp;
+}
+
+
+
+$all_syncs = ["account", "database", "document"];
+$jx9_col = $all_syncs[1];
+print $jx9_col;
+
+#$resp = send_http("GET", "/_all_dbs", "127.0.0.1", 5984);
+$resp = send_http("PUT", "/test_account", "127.0.0.1", 5984, "application/json");
+print $resp;
+
+if (!db_exists($jx9_col)) {
+    log_error(db_errlog());
+    return $jx9_err.e_db_exists;
+}
+
+while(($rec=db_fetch($jx9_col)) != NULL) {
+    print "rec: $rec";
+}
+

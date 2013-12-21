@@ -1,0 +1,25 @@
+
+$sock=socket();
+$host="127.0.0.1";
+$port=9090;
+
+$ret=bind({sock:$sock, host:$host, port:$port});
+$ret=listen({sock:$sock});
+
+$rsock=accept({sock:$sock});
+while($rsock != -1)
+{
+    $rinfo={sock:$rsock, size:128};
+    $ret = recv($rinfo);
+    if ($ret <= 0 || $rinfo.msg == "quit") {
+        print "[jx9_svr] recv failed and exit";
+        break;
+    }
+    print "[jx9_svr] recv bytes: $ret, msg: $rinfo.msg";
+}
+
+if ($rsock != -1) {
+    close($rsock);
+}
+close($sock);
+

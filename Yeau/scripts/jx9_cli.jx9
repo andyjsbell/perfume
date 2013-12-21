@@ -1,0 +1,23 @@
+
+
+$sock=socket();
+$host="127.0.0.1";
+$port=9090;
+
+$ret=connect({sock:$sock, host:$host, port:$port});
+print "[jx9_cli] connect status: $ret";
+if ($ret == 0) {
+    while(true) {
+        $uinfo = {id:"input"};
+        $ret = testnet($uinfo);
+        print "[jx9_cli] input msg: $uinfo.msg, size: $ret";
+        if ($ret <= 0 || $uinfo.msg == "exit") {
+            print "[jx9_cli] exit!";
+            break;
+        }
+        $ret = send({sock:$sock,msg:$uinfo.msg,size:$ret});
+        print "[jx9_cli] sent bytes: $ret, msg: $uinfo.msg";
+    }
+}
+close($sock);
+
