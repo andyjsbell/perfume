@@ -12,12 +12,15 @@ static const struct jx9_funcs {
 }aFuncs[] = {
     {"socket",     jx9_socket_func}, 
     {"connect",    jx9_connect_func}, 
+    {"listen",     jx9_listen_func}, 
+    {"bind",       jx9_bind_func}, 
     {"send",       jx9_send_func}, 
     {"recv",       jx9_recv_func}, 
-    {"listen",     jx9_listen_func}, 
     {"accept",     jx9_accept_func}, 
     {"sendto",     jx9_sendto_func}, 
     {"recvfrom",   jx9_recvfrom_func}, 
+    {"shutdown",   jx9_shutdown_func}, 
+    {"close",      jx9_close_func}, 
     {"testnet",    jx9_testnet_func} 
 };
 
@@ -58,7 +61,10 @@ int jx9_testnet_func(unqlite_context* pCtx, int argc, unqlite_value** argv)
     if (idstr) {
         char msg[128] = "";
         bzero(msg, sizeof(msg));
-        iret = snprintf(msg, sizeof(msg), "%s => 12345-67890", idstr);
+        printf(">");
+        gets(msg);
+        //iret = snprintf(msg, sizeof(msg), "%s => 12345-67890", idstr);
+        iret = strlen(msg);
         if (iret > 0) {
             unqlite_value *jx9_msg = unqlite_context_new_scalar(pCtx);
             unqlite_value_string(jx9_msg, (const char *)msg, iret);

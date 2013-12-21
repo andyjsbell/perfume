@@ -82,6 +82,7 @@ int jx9_connect_func(unqlite_context* pCtx, int argc, unqlite_value** argv)
 }
 
 /**
+ * @define: int send({sock:int, msg:string, size:int});
  * @define: int send({sock:int, msg:string, size:int, flags:int});
  * ssize_t send(int socket, const void *buffer, size_t length, int flags);
  */
@@ -111,6 +112,7 @@ int jx9_send_func(unqlite_context* pCtx, int argc, unqlite_value** argv)
 
 /**
  * @return msg len and @param out {msg:string}
+ * @define: int recv({sock:int, size:int});
  * @define: int recv({sock:int, size:int, flags:int});
  * ssize_t recv(int socket, void *buffer, size_t length, int flags);
  */
@@ -290,6 +292,84 @@ int jx9_recvfrom_func(unqlite_context* pCtx, int argc, unqlite_value** argv)
             unqlite_context_release_value(pCtx, jx9_msg);
         }
         free(msg);
+    }
+    unqlite_result_int(pCtx, iret);
+    return UNQLITE_OK;
+}
+
+/**
+ * @define: int bind({sock: int, host:string, port:int});
+ * int bind(int socket, const struct sockaddr *address, socklen_t address_len);
+ */
+int jx9_bind_func(unqlite_context* pCtx, int argc, unqlite_value** argv)
+{
+    int iret = -1;
+    int sock = 0;
+    const char *host = NULL;
+    int port = 0;
+    struct sockaddr_in raddr; 
+
+    CHECK_ARGV_RETURN(pCtx, argc, argv[0]);
+
+    do {
+        PARSE_JSON_ELEM(argv[0], "sock", sock, int);
+        PARSE_JSON_ELEM(argv[0], "host", host, string);
+        PARSE_JSON_ELEM(argv[0], "port", port, int);
+    }while(0);
+
+    bzero(&raddr, sizeof(raddr));
+    raddr.sin_family = AF_INET;  
+    raddr.sin_port = htons(port);  
+    inet_pton(AF_INET, host, &raddr.sin_addr); 
+
+    iret = bind(sock, (struct sockaddr*)&raddr, sizeof(struct sockaddr));
+    unqlite_result_int(pCtx, iret);
+    return UNQLITE_OK;
+}
+
+/**
+ * @define: int shutdown({sock:int, how:int});
+ * int shutdown(int socket, int how);
+ */
+int jx9_shutdown_func(unqlite_context* pCtx, int argc, unqlite_value** argv)
+{
+    int iret = -1;
+    int sock = 0;
+    int how = 0;
+
+    CHECK_ARGV_RETURN(pCtx, argc, argv[0]);
+
+    do {
+        PARSE_JSON_ELEM(argv[0], "sock", sock, int);
+        PARSE_JSON_ELEM(argv[0], "how", how, int);
+    }while(0);
+
+    if (sock >= 0) {
+        iret = shutdown(sock, how);
+    }
+    unqlite_result_int(pCtx, iret);
+    return UNQLITE_OK;
+}
+
+/**
+ * @define: int close({sock:int});
+ * int close(int socket);
+ */
+#include <unistd.h>
+int jx9_close_func(unqlite_context* pCtx, int argc, unqlite_value** argv)
+{
+    int iret = -1;
+    int sock = 0;
+    int how = 0;
+
+    CHECK_ARGV_RETURN(pCtx, argc, argv[0]);
+
+    do {
+        PARSE_JSON_ELEM(argv[0], "sock", sock, int);
+    }while(0);
+
+    if (sock >= 0) {
+        iret = close(sock);
     }
     unqlite_result_int(pCtx, iret);
     return UNQLITE_OK;
