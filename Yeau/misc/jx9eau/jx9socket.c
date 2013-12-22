@@ -8,20 +8,25 @@
 
 #include "unqlite/unqlite.h"
 
+#ifndef CHECK_ARGV_RETURN
 #define CHECK_ARGV_RETURN(ctx, argc, argv) { \
     if ((argc) != 1 || !unqlite_value_is_json_object(argv)) { \
         unqlite_context_throw_error((ctx), UNQLITE_CTX_WARNING, "wrong argc or argv[0]"); \
         unqlite_result_int((ctx), -1); \
         return UNQLITE_OK; \
     }}
+#endif
 
+#ifndef PARSE_JSON_ELEM
 #define unqlite_value_to_string(p) unqlite_value_to_string((p), 0);
+#define unqlite_value_is_int64  unqlite_value_is_int
 #define PARSE_JSON_ELEM(json, key, value, type) { \
     unqlite_value* kvpair = 0; \
     kvpair = unqlite_array_fetch((json), (key), strlen(key)); \
     if (kvpair && unqlite_value_is_##type(kvpair)) { \
         value = unqlite_value_to_##type(kvpair); \
     }}
+#endif
 
 /**
  * @define: int socket();

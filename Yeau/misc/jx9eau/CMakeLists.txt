@@ -5,13 +5,14 @@ set(jx9eau_EXEC_SRCS
 
 include_directories(
     ..
+    ../libneon/src
 )
 
 link_directories(
     ${PROJECT_BINARY_DIR}/lib
 )
 
-link_libraries(jx9eau unqlite)
+link_libraries(jx9eau unqlite neon)
 
 add_executable(jx9eau ${jx9eau_EXEC_SRCS})
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
