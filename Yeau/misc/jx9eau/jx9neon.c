@@ -169,6 +169,8 @@ int jx9_ne_request_dispatch(unqlite_context* pCtx, int argc, unqlite_value** arg
             unqlite_value *jx9_msg = unqlite_context_new_scalar(pCtx);
             unqlite_value_string(jx9_msg, (const char *)ubody.buf, ubody.len);
             unqlite_array_add_strkey_elem(argv[0], "body", jx9_msg);
+            unqlite_value_int(jx9_msg, ubody.len);
+            unqlite_array_add_strkey_elem(argv[0], "body_length", jx9_msg);
             unqlite_context_release_value(pCtx, jx9_msg);
         }
         free(ubody.buf);
