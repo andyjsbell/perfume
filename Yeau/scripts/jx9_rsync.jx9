@@ -4,58 +4,91 @@
 
 import 'scripts/jx9_misc.jx9';
 
-$all_syncs = ["account", "database", "document"];
-$jx9_col = $all_syncs[1];
-#print $jx9_col;
+function test_neon_http($conf)
+{
+    # get config
+    $hostname = $conf.hostname; # "127.0.0.1"
+    $port = $conf.port;         # 5984
+    $method = $conf.method;     # GET, PUT, POST, DELETE
+    $path = $conf.path;         # "/test_db/_all_docs"
+    $authen = $conf.authen;
+    $req_body = $conf.body;
 
-$host = "127.0.0.1";
-$port = 5984;
-$authen = "Basic user:passwd";
-$authen = "Basic YWRtaW4xOnBhc3N3ZA==";
+    $proto = {scheme:"http", hostname:$hostname, port:$port};
+    $session = ne_session_create($proto);
+    if ($session <= 0) {
+        print "[error] fail to ne_session_create";
+        return;
+    }
+    ne_set_useragent({session:$session, product:"Jx9Agent/1.0"});
 
-$req_uri = "GET /test_db HTTP/1.1";
-$req_data = "test";
-if (strstr($req_uri, "GET")) {
-    $req_data = "";
+    $head = {session:$session, method:$method, path:$path};
+    $request = ne_request_create($head);
+    if ($request <= 0) {
+        print "[error] fail to ne_request_create";
+        return;
+    }
+
+    # add header
+    #$authen = "Basic admin1:passwd";
+    #$authen = "Basic YWRtaW4xOnBhc3N3ZA==";
+    $req_head = {
+        "Host": "$hostname:$port",
+        "Accept": "application/json",
+        "Authorization": $authen,
+        #"User-Agent": "Jx9Agent/1.0",
+        #"Content-Length": strlen($req_data),
+    };
+    foreach ($req_head as $key, $val) {
+        ne_add_request_header({request:$request, name:$key, value:$val});
+    }
+
+    # add content and content-length
+    if ($req_body) {
+        $ctype = {request:$request, name:"Content-Type", value:"application/json"};
+        ne_add_request_header($ctype);
+        $ctype = {request:$request, name:"Content-Length", value:strlen($req_body)};
+        ne_add_request_header($ctype);
+        $cbody = {request:$request, buffer:"$req_body", count:strlen($req_body)};
+        ne_set_request_body_buffer($cbody);
+    }
+
+    $resp_body = {request:$request};
+    $ret = ne_request_dispatch($resp_body);
+    print "ne_request_dispatch: $ret"; 
+    print json_decode($resp_body.body);
+
+    # get response
+    $resp_head = {request:$request, name:"Content-Length"};
+    $ret = ne_get_response_header($resp_head);
+    print "ne_get_reponse_header: $ret, $resp_head.value";
+
+    # get status
+    $resp_status = {request:$request};
+    $ret = ne_get_status($resp_status);
+    print "ne_get_status: $ret, $resp_status";
+
+    $ret = ne_request_destroy({request:$request});
+    #print "ne_request_destroy: $ret";
+
+    $ret = ne_close_connection({session:$session});
+    #print "ne_close_connection: $ret";
+    $ret = ne_session_destroy({session:$session});
+    #print "ne_session_destroy: $ret";
+    return;
 }
-/*
-$req_data = <<<EOD
-function(doc) {
-  var shop, price, value;
-  if (doc.item && doc.prices) {
-      for (shop in doc.prices) {
-          price = doc.prices[shop];
-          value = [doc.item, shop];
-          emit(price, value);
-      }
-  }
-}
-EOD;
-*/
 
-$req_head = {
-    "Host": "$host:$port",
-    "User-Agent": "Jx9Agent/1.0",
-    "Accept": "application/json",
-    "Authorization": $authen;
-    "Content-Type": "application/json",
-    "Content-Length": strlen($req_data),
+$http_conf = {
+    hostname: "127.0.0.1",
+    port: 5984,
+    method: "GET",
+    path: "/test_db/_all_docs",
+    authen: "Basic YWRtaW4xOnBhc3N3ZA==",
+    body: "",
 };
+#test_neon_http($http_conf);
 
-####################
-$req = {
-    uri: $req_uri,
-    head: $req_head,
-    data: $req_data,
-    host: $host,
-    port: $port,
-};
-
-$resp["test"] = "";
-print strlen($resp["test"]);
-$resp = send_http($req);
-print $resp;
-
+$jx9_col = "account";
 if (!db_exists($jx9_col)) {
     log_error(db_errlog());
     return $jx9_err.e_db_exists;
