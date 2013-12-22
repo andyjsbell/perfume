@@ -11,56 +11,39 @@ function parse_http($msg)
     $len = strlen($msg);
     $head = substr($msg, 0, $off);
     $content = substr($msg, $off+4, $len-$off-4);
+    #print "len: $len, head: $off, content: strlen($content)";
 
     $http = explode("\r\n", $head);
     foreach ($http as $line) {
         $kv = explode(": ", $line, 2);
         if (sizeof($kv) == 2) {
             $resp[strtolower($kv[0])] = $kv[1];
-        }else if ($kv){
+        }else if ($kv[0]){
             $resp["status"] = explode(" ", $kv[0], 3);
+            if (sizeof($resp["status"]) > 1)
+                $resp["status"][1] = (int)$resp["status"][1];
         }
     }
 
-    if ($resp["content-length"]) {
-        $resp["content-length"] = (int)$resp["content-length"];
-    }else {
-        $resp["content-length"] = 0;
-    }
-
-    if ($content) {
-        $resp["content"] = json_decode($content);
-        $resp["content"]["length"] = strlen($content);
-    }else {
-        $resp["content"] = "";
-        $resp["content"]["length"] = 0;
-    }
-
-    if (sizeof($resp["status"]) > 1) {
-        $resp["status"][1] = (int)$resp["status"][1];
-    }
-
+    $resp["content-length"] = (int)$resp["content-length"];
+    $resp["content"] = [0, ""];
+    if ($content)
+        $resp["content"] = [strlen($content), json_decode($content)];
     return $resp;
 }
 
 function send_http($req)
 {
-    $cmd = strtoupper($req.cmd);
-    $shttp = "$cmd $req.uri HTTP/1.1\r\n" ..
-        "Host: $req.host:$req.port\r\n" ..
-        "Accept: $req.accept\r\n";
-
-    if (($cmd == "PUT" || $cmd = "POST") && $req.content) {
-        $length = strlen($req.content);
-        $shttp = $shttp .. "Content-Length: $length\r\n";
+    foreach ($req.head as $key, $val) {
+        if ($val)
+            $shttp = $shttp .. "$key: $val\r\n";
     }
-    $shttp = $shttp .. "\r\n";
-    #print "send http: $shttp";
+    $shttp = "$req.uri\r\n$shttp\r\n";
 
     $sock = socket();
     if ($sock <= 0) {
         print "socket() failed and return $ret";
-        return false;
+        return NULL;
     }
 
     while(true){
@@ -79,8 +62,8 @@ function send_http($req)
         }
 
         # send http content data
-        if ($req.content) {
-            $ret = send({sock:$sock, msg:$req.content, size:strlen($req.content)});
+        if ($req.data) {
+            $ret = send({sock:$sock, msg:"$req.data", size:strlen($req.data)});
             if ($ret <= 0) {
                 print "send() failed and return $ret";
                 break;
@@ -96,40 +79,72 @@ function send_http($req)
         }
 
         $resp = parse_http($rhttp.msg); 
-        #print "recv msg: $resp";
-        if ($resp["content-length"] > $resp["content"]["length"]) {
-            # recv http content data
+        if ($resp["content-length"] > $resp["content"][0]) {
             $rdata = {sock:$sock, size:$resp["content-length"]};
-            #print "rdata: $rdata";
             $ret = recv($rdata);
             if ($ret <= 0) {
                 print "recv() content failed and return $ret";
                 break;
             }
-            $resp["content"] = json_decode($rdata.msg);
-            $resp["content"]["length"] = strlen($rdata.msg);
-            #print "content: " .. $resp["content"];
+            $content = json_decode("$rdata.msg");
+            $resp["content"] = [strlen($rada.msg), $content];
         }
         break;
     }
     close($sock);
-
     return $resp;
 }
 
 
 $all_syncs = ["account", "database", "document"];
 $jx9_col = $all_syncs[1];
-print $jx9_col;
+#print $jx9_col;
 
-$req = {
-    cmd: "PUT", # GET, PUT, POST
-    uri: "/test_account",
-    host: "127.0.0.1",
-    port: 5984,
-    accept: "application/json",
-    content: "test",
+$host = "127.0.0.1";
+$port = 5984;
+$authen = "Basic user:passwd";
+$authen = "Basic YWRtaW4xOnBhc3N3ZA==";
+
+$req_uri = "GET /test_db HTTP/1.1";
+$req_data = "test";
+if (strstr($req_uri, "GET")) {
+    $req_data = "";
+}
+/*
+$req_data = <<<EOD
+function(doc) {
+  var shop, price, value;
+  if (doc.item && doc.prices) {
+      for (shop in doc.prices) {
+          price = doc.prices[shop];
+          value = [doc.item, shop];
+          emit(price, value);
+      }
+  }
+}
+EOD;
+*/
+
+$req_head = {
+    "Host": "$host:$port",
+    "User-Agent": "Jx9Agent/1.0",
+    "Accept": "application/json",
+    "Authorization": $authen;
+    "Content-Type": "application/json",
+    "Content-Length": strlen($req_data),
 };
+
+####################
+$req = {
+    uri: $req_uri,
+    head: $req_head,
+    data: $req_data,
+    host: $host,
+    port: $port,
+};
+
+$resp["test"] = "";
+print strlen($resp["test"]);
 $resp = send_http($req);
 print $resp;
 
