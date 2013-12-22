@@ -103,7 +103,7 @@ int jx9_send_func(unqlite_context* pCtx, int argc, unqlite_value** argv)
         PARSE_JSON_ELEM(argv[0], "flags", flags, int);
     }while(0);
 
-    if (size > 0) {
+    if (msg && size > 0) {
         iret = send(sock, (const void *)msg, size, flags);
     }
     unqlite_result_int(pCtx, iret);
@@ -240,7 +240,7 @@ int jx9_sendto_func(unqlite_context* pCtx, int argc, unqlite_value** argv)
         PARSE_JSON_ELEM(argv[0], "port", port, int);
     }while(0);
 
-    if (size > 0) {
+    if (msg && size > 0) {
         bzero(&raddr, sizeof(raddr));
         raddr.sin_family = AF_INET;  
         raddr.sin_port = htons(port);  
