@@ -13,8 +13,6 @@ include(CheckVariableExists)
 check_variable_exists(timezone HAVE_TIMEZONE)
 
 include(CheckSymbolExists)
-check_symbol_exists(socklen_t sys/socket.h HAVE_SOCKLEN_T)
-#check_symbol_exists(socklen_t sys/socket.h sys/types.h HAVE_SOCKLEN_T)
 check_symbol_exists(AI_ADDRCONFIG netdb.h USE_GAI_ADDRCONFIG)
 
 # Check C types
@@ -124,15 +122,20 @@ if(${USE_GAI_ADDRCONFIG})
     set(USE_GETADDRINFO 1)
 endif()
 
+if (${HAVE_SYS_SOCKET_H})
+    set(HAVE_SOCKLEN_T 1)
+endif()
+
+
 set(STDC_HEADERS 1)
-set(_ALL_SOURCE 1)
-set(_GNU_SOURCE 1)
-set(_POSIX_PTHREAD_SEMANTICS 1)
-set(_TANDEM_SOURCE 1)
-set(__EXTENSIONS__ 1)
+#set(_ALL_SOURCE 1)
+#set(_GNU_SOURCE 1)
+#set(_POSIX_PTHREAD_SEMANTICS 1)
+#set(_TANDEM_SOURCE 1)
+#set(__EXTENSIONS__ 1)
 
 set(NEON_IS_LIBRARY 1)
-set(NE_DEBUGGING 1)
+#set(NE_DEBUGGING 1)
 #set(NE_HAVE_DAV 1)
 
 set(NEON_VERSION \"0.30.0\")
