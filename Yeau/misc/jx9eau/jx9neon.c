@@ -168,9 +168,9 @@ int jx9_ne_request_dispatch(unqlite_context* pCtx, int argc, unqlite_value** arg
         if (ubody.buf && ubody.len > 0) { 
             unqlite_value *jx9_msg = unqlite_context_new_scalar(pCtx);
             unqlite_value_string(jx9_msg, (const char *)ubody.buf, ubody.len);
-            unqlite_array_add_strkey_elem(argv[0], "body", jx9_msg);
+            unqlite_array_add_strkey_elem(argv[0], "Content", jx9_msg);
             unqlite_value_int(jx9_msg, ubody.len);
-            unqlite_array_add_strkey_elem(argv[0], "body_length", jx9_msg);
+            unqlite_array_add_strkey_elem(argv[0], "Content-Length", jx9_msg);
             unqlite_context_release_value(pCtx, jx9_msg);
         }
         free(ubody.buf);
@@ -388,8 +388,8 @@ int jx9_ne_get_status(unqlite_context* pCtx, int argc, unqlite_value** argv)
             unqlite_value_string_format(jx9_msg, "%s", status->reason_phrase); 
             unqlite_array_add_strkey_elem(argv[0], "reason", jx9_msg);
             unqlite_context_release_value(pCtx, jx9_msg);
+            iret = 0;
         }
-        iret = 0;
     }
     unqlite_result_int64(pCtx, iret);
     return UNQLITE_OK;

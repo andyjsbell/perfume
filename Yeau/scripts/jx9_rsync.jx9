@@ -17,16 +17,16 @@ function test_neon_http($conf)
     $proto = {scheme:"http", hostname:$hostname, port:$port};
     $session = ne_session_create($proto);
     if ($session <= 0) {
-        print "[error] fail to ne_session_create";
-        return;
+        log_error("fail to ne_session_create");
+        return NULL;
     }
     ne_set_useragent({session:$session, product:"Jx9Agent/1.0"});
 
     $head = {session:$session, method:$method, path:$path};
     $request = ne_request_create($head);
     if ($request <= 0) {
-        print "[error] fail to ne_request_create";
-        return;
+        log_error("fail to ne_request_create");
+        return NULL;
     }
 
     # add header
@@ -55,27 +55,37 @@ function test_neon_http($conf)
 
     $resp_body = {request:$request};
     $ret = ne_request_dispatch($resp_body);
-    print "ne_request_dispatch: $ret"; 
-    print json_decode($resp_body.body);
+    if ($ret == 0 && $resp_body["Content"]) {
+        $resp["Content"] = json_decode($resp_body["Content"]);
+        $resp["Content-Length"] = $resp_body["Content-Length"];
+        #print $resp["Content"];
+    }else {
+        log_error("ne_request_dispatch: $ret"); 
+    }
 
     # get response
-    $resp_head = {request:$request, name:"Content-Length"};
-    $ret = ne_get_response_header($resp_head);
-    print "ne_get_reponse_header: $ret, $resp_head.value";
+    #$resp_head = {request:$request, name:"Content-Length"};
+    #$ret = ne_get_response_header($resp_head);
+    #print "ne_get_reponse_header: $ret, $resp_head.value";
 
     # get status
     $resp_status = {request:$request};
     $ret = ne_get_status($resp_status);
-    print "ne_get_status: $ret, $resp_status";
+    if ($ret == 0) {
+        $resp["code"] = $resp_status.code;
+        $resp["klass"] = $resp_status.klass;
+        $resp["reason"] = $resp_status.reason;
+    }else {
+        log_error("ne_get_status: $ret, $resp_status");
+    }
 
     $ret = ne_request_destroy({request:$request});
     #print "ne_request_destroy: $ret";
-
     $ret = ne_close_connection({session:$session});
     #print "ne_close_connection: $ret";
     $ret = ne_session_destroy({session:$session});
     #print "ne_session_destroy: $ret";
-    return;
+    return $resp;
 }
 
 $http_conf = {
@@ -83,18 +93,33 @@ $http_conf = {
     port: 5984,
     method: "GET",
     path: "/test_db/_all_docs",
-    authen: "Basic YWRtaW4xOnBhc3N3ZA==",
+    #authen: "Basic YWRtaW4xOnBhc3N3ZA==",
     body: "",
 };
-#test_neon_http($http_conf);
+#print test_neon_http($http_conf);
+#return;
 
-$jx9_col = "account";
-if (!db_exists($jx9_col)) {
-    log_error(db_errlog());
-    return $jx9_err.e_db_exists;
+#########
+# step: check account
+$jx9_user = $eau_jx9_arg.account.id;
+$jx9_passwd = $eau_jx9_arg.accout.passwd;
+if (!$jx9_user) {
+    $jx9_user = "user1@gmail.com";
+    $jx9_passwd = "";
 }
 
-while(($rec=db_fetch($jx9_col)) != NULL) {
-    print "rec: $rec";
+$http_conf.path = "/test_account/$jx9_user";
+$resp = test_neon_http($http_conf);
+$klass = $resp["Content"]["klass"];
+if ($klass && $klass != 2) {
+    log_error("fail to request: $http_conf.path");
+    return;
 }
+$passwd = $resp["Content"]["passwd"];
+if ($passwd && $passwd != $jx9_passwd) {
+    log_error("invalid passwd");
+    return;
+}
+print $resp;
+
 
