@@ -1,4 +1,5 @@
 #include <iostream>
+#include <string.h>
 extern "C" {
 #include "unqlite/unqlite.h"
 #include "jx9net.h"

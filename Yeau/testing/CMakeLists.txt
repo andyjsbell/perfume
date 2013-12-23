@@ -11,7 +11,7 @@ link_directories(
     ${PROJECT_BINARY_DIR}/lib
 )
 
-link_libraries(testYeau Yeau)
+link_libraries(testYeau Yeau stdc++)
 
 add_executable(testYeau ${testYeau_EXEC_SRCS})
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)

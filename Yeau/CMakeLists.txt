@@ -10,6 +10,9 @@ cmake_minimum_required(VERSION 2.8)
 project(Yeau C CXX)
 
 
+set(CMAKE_C_COMPILER clang)
+set(CMAKE_CXX_COMPILER clang)
+
 add_subdirectory(misc/libneon)
 add_subdirectory(misc/libuuid)
 add_subdirectory(misc/unqlite)

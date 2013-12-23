@@ -12,7 +12,7 @@ link_directories(
     ${PROJECT_BINARY_DIR}/lib
 )
 
-link_libraries(jx9eau unqlite neon)
+link_libraries(jx9eau unqlite neon stdc++)
 
 add_executable(jx9eau ${jx9eau_EXEC_SRCS})
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)

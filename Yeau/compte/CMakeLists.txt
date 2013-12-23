@@ -22,7 +22,7 @@ set(Yeau_LIB_SRCS
 link_directories(
     ${PROJECT_BINARY_DIR}/lib
 )
-link_libraries(Yeau unqlite)
+link_libraries(Yeau unqlite uuid pthread)
 
 
 set(so_NAME Yeau)

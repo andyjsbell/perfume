@@ -1,4 +1,5 @@
 #include "jx9util.h"
+#include <string.h>
 
 namespace eau
 {
