@@ -3,7 +3,7 @@
 
 # CMAKE_C_FLAGS CMAKE_CXX_FLAGS
 add_definitions(-O2 -Wall)
-add_definitions(-no-cpp-precomp)
+#add_definitions(-no-cpp-precomp)
 add_definitions(-DHAVE_CONFIG_H -DNE_PRIVATE=extern)
 
 include_directories(
@@ -44,6 +44,9 @@ set(neon_LIB_SRCS
     src/ne_request.c   
     src/ne_stubssl.c
 )
+
+# add extra header/function/type check
+include(cmake_check.cmake)
 
 set(so_NAME neon)
 add_library(${so_NAME} SHARED ${neon_LIB_SRCS})
