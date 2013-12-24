@@ -26,6 +26,8 @@ set(uuid_LIB_SRCS
     #tst_uuid.c
 )
 
+include(cmake_check.cmake)
+
 set(so_NAME uuid)
 add_library(${so_NAME} SHARED ${uuid_LIB_SRCS})
 set_target_properties(${so_NAME} PROPERTIES CLEAN_DIRECT_OUTPUT 1) 
