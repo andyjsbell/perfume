@@ -57,7 +57,7 @@ check_include_files("sys/types.h" HAVE_SYS_TYPES_H)
 check_include_files("sys/uio.h" HAVE_SYS_UIO_H)
 check_include_files("trio.h" HAVE_TRIO_H)
 check_include_files("unistd.h" HAVE_UNISTD_H)
-check_include_files("sys/time.h" "time.h" TIME_WITH_SYS_TIME)
+check_include_files("time.h" HAVE_TIME_H)
 
 include(CheckFunctionExists)
 check_function_exists(stpcpy HAVE_DECL_STPCPY)
@@ -126,6 +126,9 @@ if (${HAVE_SYS_SOCKET_H})
     set(HAVE_SOCKLEN_T 1)
 endif()
 
+if (HAVE_SYS_TIME_H AND HAVE_TIME_H)
+    set(TIME_WITH_SYS_TIME 1)
+endif()
 
 set(STDC_HEADERS 1)
 #set(_ALL_SOURCE 1)
