@@ -96,23 +96,42 @@ GET /db_bills_annex/bill1_uuid
 
 1. logging
 user/passwd: user1@gmail.com/passwd1
-proj roles: creator and [owner/member/viewer]
-bill state: draft/submit/process/approve
-proj state: wait/invite/approve
+proj roles: creator/owner/member/viewer
+proj state: invite/wait/approve
+bill state: draft/submit/process/approve/refuse
 
 (design2)
+GET /db_users/_all_docs
+GET /db_users/{docid}
 GET /db_users/user1@gmail.com
-    {"_id<email>", "name:", "passwd", "date", "desc", "logo", "db_uinfo<uuid>"}
-GET /db_uinfo_uuid
-    {_id<uuid>, db_proj1<uuid>, prole, pstate}
-    {_id<uuid>, db_proj2<uuid>, prole, pstate}
+    {"_id<uid>", 
+        passwd, 
+        db_uinfo<uuid,uri>
+    }
 
-GET /db_proj1_uuid
-    {_id<uuid>, name, creator, users[id1,id2], date, desc, logo}
-GET /db_proj1_uuid/bill1_uuid
-    {_id<uuid>, name, creator, cash, bstate, date, desc, logo, items[attachments]}
-GET /db_proj1_uuid/bill2_uuid
-    {_id<uuid>, name, creator, cash, bstate, date, desc, logo, items[attachments]}
+GET /db_uinfo/_all_docs
+GET /db_uinfo/{docid}
+    {_id<uuid>, 
+        name, desc, date, logo,
+        db_projs[<uuid>,..],
+    }
+
+GET /db_projs/_all_docs
+GET /db_projs/{docid}
+    {_id<uuid>, creator<uuid>,
+        name, desc, date, logo,
+        users[<uuid, prole, pstate>]
+        bills[<uuid, bstate>, ..],
+    }
+
+GET /db_bills/_all_docs
+GET /db_bills/{docid}
+    {_id<uuid>, creator<uuid>,
+        name, desc, date, logo,
+        cash,
+        db_proj<uuid>, 
+        items[attachments]
+    }
 
 
 //example:
@@ -135,4 +154,53 @@ GET /db_proj1_uuid/bill2_uuid
     PUT /db/doc, {..} => Content-Type/ETag/Location, {id,ok,rev}
     GET /db/doc?attachments=true => return document with all attached files content 
 
+
+======================================================
+
+/**
+ * step1: register and signin
+ */
+POST /db_users
+{_id:user1@gmail.com, passwd:passwd1,db_uinfo:uinfo1_uuid}
+
+
+/**
+ * step2: create db_uinfo
+ */
+POST /db_uinfo
+{_id:uinfo1_uuid, name, desc, date, logo, db_projs[]}
+
+
+/**
+ * step3: create db_projs
+ */
+POST /db_projs
+{_id:proj1_uuid, 
+    name, desc, date, logo, 
+    users: [uinfo1_uuid:[
+                        prole,
+                        status: [uinfo1_uuid:pstate] ##TODO
+                        ]
+            ],
+    creator:uinfo1_uuid, 
+    bills: []
+}
+PUT /db_uinfo/uinfo1_uuid
+{db_projs[proj1_uuid, ..]}
+
+
+/**
+ * step4: create db_bills
+ */
+POST /db_bills
+{_id:bill1_uuid, 
+    name, desc, date, logo, 
+    cash,
+    status: [uinfo1_uuid:bstate, ], ##TODO
+    creator: uinfo1_uuid, 
+    db_proj: proj1_uuid, 
+    items[]
+}
+PUT /db_projs/proj1_uuid
+{bills=[bill1_uuid, ..]}
 
