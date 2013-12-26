@@ -1,15 +1,17 @@
+rhost="http://127.0.0.1:5984"
+sh bld_design.sh
+
 ###
-curl -X DELETE http://127.0.0.1:5984/db_users
-curl -X PUT http://127.0.0.1:5984/db_users
 ###
 uinfo1="c210820e-3f27-49e9-a4da-ca2a4738890c"
 uinfo2="a59caade-6d19-11e3-98d2-17ebdef4450e"
-curl -X POST http://127.0.0.1:5984/db_users \
+curl -X POST $rhost/db_users \
      -H "Content-Type: application/json" \
      -d '{"_id":"user1@gmail.com", "passwd":"passwd1", "uinfo":"'$uinfo1'"}'
-curl -X POST http://127.0.0.1:5984/db_users \
+curl -X POST $rhost/db_users \
      -H "Content-Type: application/json" \
      -d '{"_id":"user2@baidu.com", "passwd":"passwd2", "uinfo":"'$uinfo2'"}'
+exit 0;
 
 
 ###
