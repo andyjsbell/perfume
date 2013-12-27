@@ -48,9 +48,9 @@ jdata.views.proj.reduce = function(keys, values) {
 
 jdata.updates = new Object();
 jdata.updates.addesc = function(doc, req) {
-    if (!doc || !req.desc)
+    if (!doc || !req.query.desc)
         return [null, "nothing"];
-    doc["desc"] = req.desc;
+    doc["desc"] = req.query.desc;
     return [doc, "ok"];
 }.toString();
 

@@ -19,6 +19,7 @@ curl -X POST $rhost/db_users \
      -H "Content-Type: application/json" \
      -d '{"_id":"'$user2'", "passwd":"'$pass2'", "name":"Tom James", "desc":"Merry Christmas!", "logo":"", "projs":["'$proj3'"]}'
 
+exit 0
 
 ###
 curl -X POST $rhost/db_projs \

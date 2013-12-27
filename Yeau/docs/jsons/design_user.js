@@ -29,7 +29,7 @@ jdata.filters.today = function(doc, req) {
 
 jdata.shows = new Object();
 jdata.shows.all = function(doc, req){
-    if (doc) return "user: " + doc._id;
+    if (doc) return "user: " + doc._id + "\n";
     return "invalid user";
 }.toString();
 
@@ -37,17 +37,21 @@ jdata.views = new Object();
 jdata.views.user = new Object();
 jdata.views.user.map = function(doc) {
     if (doc)
-        emit(doc._id, doc.passwd);
+        emit(doc._id, doc.name);
 }.toString();
 jdata.views.user.reduce = function(keys, values) {
-    return sum(values);
+    var msg = "Have " + values.length + " users";
+    return msg;
 }.toString();
 
 jdata.updates = new Object();
 jdata.updates.setpass = function(doc, req) {
-    if (!doc || !req.passwd)
-        return [null, "nothing"];
-    doc.passwd = req.passwd;
+    if (!doc)
+        return [null, "no doc"];
+    //req.query/body/form/userCtx
+    if (!req.query.passwd)
+        return [null, "no passwd"];
+    doc.passwd = req.query.passwd;
     return [doc, "ok"];
 }.toString();
 
