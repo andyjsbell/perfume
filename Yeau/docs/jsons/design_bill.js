@@ -1,6 +1,6 @@
 var jdata = new Object();
 
-jdata._id = "_design/bill";
+jdata._id = "_design/svc";
 jdata.language = "javascript";
 
 jdata.validate_doc_update = function(newDoc, oldDoc, userCtx, secObj) {
@@ -22,36 +22,40 @@ jdata.validate_doc_update = function(newDoc, oldDoc, userCtx, secObj) {
     return;
 }.toString();
 
+// uri: _changes?filter=svc/owned&creator=xxx
 jdata.filters = new Object();
-jdata.filters.today = function(doc, req) {
-    if (doc.date == "today") {
+jdata.filters.owned = function(doc, req) {
+    if (doc.creator == req.query.creator) {
         return true;
     }
-    return true;
+    return false;
 }.toString();
 
+// uri: _design/svc/_show/detail/{docid}
 jdata.shows = new Object();
-jdata.shows.all = function(doc, req){
-    if (doc) return "bill: " + doc.name;
+jdata.shows.detail = function(doc, req){
+    if (doc) return "bill: " + doc.name + ", " + doc.date;
     return "invalid bill";
 }.toString();
 
+// uri: _design/svc/_view/bill
 jdata.views = new Object();
 jdata.views.bill = new Object();
 jdata.views.bill.map = function(doc) {
     if (doc)
         emit(doc.creator, doc.name);
 }.toString();
-
 jdata.views.bill.reduce = function(keys, values) {
-    return sum(values);
+    var msg = "Have " + values.length + " bills";
+    return msg;
 }.toString();
 
+// uri: _design/svc/_update/setdesc?desc=xxxxxx
 jdata.updates = new Object();
-jdata.updates.addesc = function(doc, req) {
+jdata.updates.setesc = function(doc, req) {
     if (!doc || !req.query.desc)
         return [null, "nothing"];
-    doc["desc"] = req.query.desc;
+    doc.desc = req.query.desc;
     return [doc, "ok"];
 }.toString();
 

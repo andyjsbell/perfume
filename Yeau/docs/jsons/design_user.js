@@ -1,6 +1,6 @@
 var jdata = new Object();
 
-jdata._id = "_design/user";
+jdata._id = "_design/svc";
 jdata.language = "javascript";
 
 jdata.validate_doc_update = function(newDoc, oldDoc, userCtx, secObj) {
@@ -19,20 +19,23 @@ jdata.validate_doc_update = function(newDoc, oldDoc, userCtx, secObj) {
     return;
 }.toString();
 
+// uri: _changes?filter=svc/today&id=xxx
 jdata.filters = new Object();
 jdata.filters.today = function(doc, req) {
-    if (doc.date == "today") {
+    if (doc._id == req.query.id) {
         return true;
     }
-    return true;
+    return false;
 }.toString();
 
+// uri: _design/svc/_show/detail/{docid}
 jdata.shows = new Object();
-jdata.shows.all = function(doc, req){
+jdata.shows.detail = function(doc, req){
     if (doc) return "user: " + doc._id + "\n";
     return "invalid user";
 }.toString();
 
+// uri: _design/svc/_view/user
 jdata.views = new Object();
 jdata.views.user = new Object();
 jdata.views.user.map = function(doc) {
@@ -44,13 +47,12 @@ jdata.views.user.reduce = function(keys, values) {
     return msg;
 }.toString();
 
+// uri: _design/svc/_update/setpass?passwd=xxxxxx
 jdata.updates = new Object();
 jdata.updates.setpass = function(doc, req) {
-    if (!doc)
-        return [null, "no doc"];
     //req.query/body/form/userCtx
-    if (!req.query.passwd)
-        return [null, "no passwd"];
+    if (!doc || !req.query.passwd)
+        return [null, "nothing"];
     doc.passwd = req.query.passwd;
     return [doc, "ok"];
 }.toString();

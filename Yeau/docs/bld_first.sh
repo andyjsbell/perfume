@@ -19,7 +19,6 @@ curl -X POST $rhost/db_users \
      -H "Content-Type: application/json" \
      -d '{"_id":"'$user2'", "passwd":"'$pass2'", "name":"Tom James", "desc":"Merry Christmas!", "logo":"", "projs":["'$proj3'"]}'
 
-exit 0
 
 ###
 curl -X POST $rhost/db_projs \
@@ -33,7 +32,6 @@ curl -X POST $rhost/db_projs \
 curl -X POST $rhost/db_projs \
     -H "Content-Type: application/json" \
     -d '{"_id":"'$proj3'", "name":"mobile cost3", "desc":"mobile cost, network, ...3", "logo":"", "users":[], "bills":[]}'
-
 
 ###
 bill1="c39bb870-6d1b-11e3-a0ac-bf37982f503c"
