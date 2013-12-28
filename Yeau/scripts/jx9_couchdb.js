@@ -21,6 +21,7 @@ function checkdb($db, $msg="failed") {
     }
 }
 function authenx($name, $passwd) {
+    if(!db_exists("user")) return;
     $authcb = function($rec) {
         return (($rec.name == $name) && ($rec.passwd == $passwd));
     };
@@ -32,12 +33,12 @@ function neon_http($conf) {
     // get config
     $proto = {scheme:"http", hostname:$conf.hostname, port:$conf.port};
     $session = ne_session_create($proto);
-    checkint($session);
+    if($session <= 0) return "no session";
 
     $head = {session:$session, method:$conf.method, path:$conf.path};
     //ne_set_useragent({session:$session, product:"Jx9Agent/1.0"});
     $request = ne_request_create($head);
-    checkint($request);
+    if($request <= 0) return;
 
     // add header
     $req_head = {"Host": "$conf.hostname:$conf.port",
@@ -88,12 +89,18 @@ function neon_http($conf) {
 }
 function run_rsync($user, $passwd) {
     $http = {hostname:"127.0.0.1",port:5984,method:"GET"};
-    $http["path"] = "/db_projs/_changes?filter=svc/owned&user=$user";
-    $http["authen"] = "Basic $user:$passwd";
-    $resp = neon_http(conf);
 
+    // for account's projs
+    $http["path"] = "/db_yeau/_changes?filter=svc/owned&name=$user&type=acco";
+    //$http["path"] = "/db_projs/_changes";
+    //$http["authen"] = "Basic $user:$passwd";
+    $resp = neon_http($http);
+    print $resp;
     // get projs from $resp and sync into local
-    // TODO ...
+    if ($resp.klass == 2) {
+        
+    }
+    
 
     // get projs from local and sync into remote
     // TODO ...
@@ -137,13 +144,16 @@ function main() {
     $tag = $eau_jx9_arg.tag;
     $user = $eau_jx9_arg.user;
     $passwd = $eau_jx9_arg.passwd;
+    $tag = "rsync";
+    $user = "user1@gmail.com";
+    $passwd = "";
 
-    required($tag);
-    required($user);
-    required($passwd);
+    required($tag, "no tag");
+    required($user, "no user");
+    //required($passwd, "no passwd");
     authenx($user, $passwd);
 
-    switch($jx9_tag) {
+    switch($tag) {
     case "rsync":
         run_rsync($user, $passwd);
         break;
@@ -156,3 +166,4 @@ function main() {
     }
 }
 
+main();
