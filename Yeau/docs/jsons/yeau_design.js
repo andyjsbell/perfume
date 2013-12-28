@@ -79,22 +79,25 @@ fs.writeFile("/tmp/yeau_design.json", jtxt);
 ///
 
 // accounts
-var users = [ // --------------------------------- projs
-            ["user1@gmail.com", "pass1", "Nick1", [0, 1]],
-            ["user2@163.com", "pass2", "Nick2",   [1, 2]],
-            ];
+var users = [ // -------------------------  projs[c] - projs[e] - projs[in]
+    ["user1@gmail.com", "pass1", "Nick1",   [0,1],     [2],         []],
+    ["user2@163.com", "pass2", "Nick2",     [2],       [],          [1]],
+];
 // projects
-var projs = [ // ---------------------------------  users ----- bills
-            ["32ce8be9-ca4a-4515-b6f0-e5d8ecbbe41f", [1],       [0]],
-            ["417887be-425e-43e9-b5b6-7ff6cdb5d917", [0, 1],    [1]],
-            ["526cf7cc-6d1b-11e3-8245-0f764373fdf5", [0, 1],    [2]],
-            ];
+var projs = [ // --------------------------  users - bills - todobill - todorole
+    ["32ce8be9-ca4a-4515-b6f0-e5d8ecbbe41f", [0],   [0],        [],      [1]],
+    ["417887be-425e-43e9-b5b6-7ff6cdb5d917", [0],   [1],        [5],     []],
+    ["526cf7cc-6d1b-11e3-8245-0f764373fdf5", [0,1], [2,3,4],    [],      []],
+];
 // bills
-var bills = [
-            ["c39bb870-6d1b-11e3-a0ac-bf37982f503c", 0],
-            ["c8e1ea8e-6d1b-11e3-997f-37eb48d16142", 1],
-            ["cfcba89e-6d1b-11e3-a0f6-8be99dff6263", 2],
-            ];
+var bills = [ // --------------------------  proj
+    ["c39bb870-6d1b-11e3-a0ac-bf37982f503c", 0  ],
+    ["c8e1ea8e-6d1b-11e3-997f-37eb48d16142", 1  ],
+    ["cfcba89e-6d1b-11e3-a0f6-8be99dff6263", 2  ],
+    ["d2eb759c-6fd0-11e3-b5f1-001b38309239", 2  ],
+    ["e67ca63a-6fd0-11e3-a118-001b38309239", 2  ],
+    ["61e8885c-6fd1-11e3-80a3-001b38309239", 1  ] ,
+];
 
 
 // for accounts
