@@ -13,6 +13,7 @@ jdata.validate_doc_update = function(newDoc, oldDoc, userCtx, secObj) {
 
     require("_id");
     require("name");
+    require("type");
     if (newDoc.type == "acco") {
         require("passwd");
         if (newDoc.name != newDoc._id) 
@@ -32,7 +33,8 @@ jdata.validate_doc_update = function(newDoc, oldDoc, userCtx, secObj) {
 jdata.filters = new Object();
 jdata.filters.owned = function(doc, req) {
     var Q = req.query;
-    if (doc.type && (doc.type == Q.type) && Q.name) {
+    if (!Q || !Q.type || !Q.name) return false;
+    if (doc.type == Q.type) {
         if (doc.users.indexOf(Q.name) != -1) {
             return true;
         }
@@ -43,29 +45,47 @@ jdata.filters.owned = function(doc, req) {
 // uri: _design/svc/_show/detail/{docid}
 jdata.shows = new Object();
 jdata.shows.detail = function(doc, req){
-    if (doc) return "user: " + doc._id + "\n";
-    return "invalid user";
+    if (doc) return doc;
+    return "invalid docid";
 }.toString();
 
-// uri: _design/svc/_view/user
+// uri: _design/svc/_view/test
 jdata.views = new Object();
-jdata.views.user = new Object();
-jdata.views.user.map = function(doc) {
+jdata.views.test = new Object();
+jdata.views.test.map = function(doc) {
     if (doc)
         emit(doc._id, doc.name);
 }.toString();
-jdata.views.user.reduce = function(keys, values) {
-    var msg = "Have " + values.length + " users";
+jdata.views.test.reduce = function(keys, values) {
+    var msg = "Have " + values.length + " values\n";
     return msg;
 }.toString();
 
-// uri: _design/svc/_update/setpass?passwd=xxxxxx
+// uri: _design/svc/_update/setpass/{docid}?passwd=xxxxxx
 jdata.updates = new Object();
 jdata.updates.setpass = function(doc, req) {
     //req.query/body/form/userCtx
-    if (!doc || !req.query.passwd)
-        return [null, "nothing"];
-    doc.passwd = req.query.passwd;
+    if (!doc || doc.type != "acco") return [null, "invalid type"];
+    var Q = req.query;
+    if (!Q || !Q.passwd) return [null, "invalid Q"];
+    doc.passwd = Q.passwd;
+    return [doc, "ok"];
+}.toString();
+// uri: _design/svc/_update/domyproj/{docid}?proj=xx&action=xx
+jdata.updates.addproj = function(doc, req) {
+    //req.query/body/form/userCtx
+    if (!doc || doc.type != "acco") return [null, "invalid type"];
+    var Q = req.query;
+    if (!Q || !Q.action || !Q.proj) return [null, "invalid Q"];
+    if (action == "add") {
+        doc.projs.push(Q.proj);
+    }else if (action == "del"){
+        var index = doc.projs.indexOf(Q.proj);
+        if (index != -1)
+            doc.projs.splice(index, 1);
+    }else {
+        return [null, "fail"];
+    }
     return [doc, "ok"];
 }.toString();
 
@@ -77,26 +97,43 @@ fs.writeFile("/tmp/yeau_design.json", jtxt);
 ///
 ///==============================================
 ///
+// aim1: query projs of some user: creator/owner/member/viewer/observer
+
 
 // accounts
-var users = [ // -------------------------  projs[c] - projs[e] - projs[in]
-    ["user1@gmail.com", "pass1", "Nick1",   [0,1],     [2],         []],
-    ["user2@163.com", "pass2", "Nick2",     [2],       [],          [1]],
+var users = [ 
+    // uid,              pass,    nick,      projs[<pid>] 
+    ["user1@gmail.com", "pass1", "Nick1",   [0,1,2] ],
+    ["user2@163.com",   "pass2", "Nick2",   [0,2]   ],
 ];
+
 // projects
-var projs = [ // --------------------------  users - bills - todobill - todorole
-    ["32ce8be9-ca4a-4515-b6f0-e5d8ecbbe41f", [0],   [0],        [],      [1]],
-    ["417887be-425e-43e9-b5b6-7ff6cdb5d917", [0],   [1],        [5],     []],
-    ["526cf7cc-6d1b-11e3-8245-0f764373fdf5", [0,1], [2,3,4],    [],      []],
+var uroles = "creator" + ["owner", "member", "viewer", "observer"];
+var pstats = ["wait", "approve"]
+var projs = [ 
+    // pid,  creator<uid>, users[uid, urole, pstat], bills[<bid>],
+    ["proj0",0,     
+        [[0, "owner"]],
+        [0,1],
+    ],
+    ["proj1",1,
+        [[1, "owner"], [0,"member"]],
+        [5],
+    ],
+    ["proj2",1,
+        [[1, "owner"], [0,"member"]],
+        [2,3,4],
+    ],
 ];
 // bills
-var bills = [ // --------------------------  proj
-    ["c39bb870-6d1b-11e3-a0ac-bf37982f503c", 0  ],
-    ["c8e1ea8e-6d1b-11e3-997f-37eb48d16142", 1  ],
-    ["cfcba89e-6d1b-11e3-a0f6-8be99dff6263", 2  ],
-    ["d2eb759c-6fd0-11e3-b5f1-001b38309239", 2  ],
-    ["e67ca63a-6fd0-11e3-a118-001b38309239", 2  ],
-    ["61e8885c-6fd1-11e3-80a3-001b38309239", 1  ] ,
+var bills = [ 
+    // id,  creator,proj
+    ["bill0",0,     0,  ],
+    ["bill1",0,     1,  ],
+    ["bill2",1,     2,  ],
+    ["bill3",1,     2,  ],
+    ["bill4",0,     2,  ],
+    ["bill5",0,     1,  ] ,
 ];
 
 
@@ -105,50 +142,62 @@ for (k in users) {
     user = users[k];
     var jdata = new Object();
     jdata = {
-        _id:user[0], type:"acco", name:user[0], passwd:user[1], nick:user[2],
+        _id:user[0], type:"acco", name:user[0], pass:user[1], nick:user[2],
         desc:"account for " + user[0], 
-        projs:[]
+        projs:{} // 'pid':[]
     };
     for (i in user[3]) {
-        proj = projs[user[3][i]];
-        jdata.projs.push(proj[0]);
+        uproj = projs[user[3][i]];
+        pcreator = users[uproj[1]][0];
+        pid = pcreator+":"+uproj[0];
+        jdata.projs[pid] = [];
     }
-    var jtxt = JSON.stringify(jdata, null, "\t");
+    jtxt = JSON.stringify(jdata, null, "\t");
     require('fs').writeFile("/tmp/yeau_acco_"+k+".json", jtxt);
 }
 
-// for projs
+// for projects: id => user:proj
 for (k in projs) {
     proj = projs[k];
+    creator = users[proj[1]][0];
     var jdata = new Object();
     jdata = {
-        _id:proj[0], type:"proj", name:"proj"+k, desc:"project for "+k,
-        users:[],
-        bills:[]
+        _id:creator+":"+proj[0], type:"proj", name:"proj"+k, desc:"project for "+k, 
+        creator:creator,
+        users:{}, // 'uid:[role,stat]'
+        bills:{}, // 'bid:[]'
     };
-    for (i in proj[1]) {
-        user = users[proj[1][i]];
-        jdata.users.push(user[0]);
+    for (i in proj[2]) {
+        pusers = proj[2][i];
+        uid = users[pusers[0]][0];
+        jdata.users[uid] = pusers[1];
     }
-    for (j in proj[2]) {
-        bill = bills[proj[2][j]];
-        jdata.bills.push(bill[0]);
+    for (j in proj[3]) {
+        pbill = proj[3][j];
+        bill = bills[pbill];
+        bcreator = users[bill[1]][0];
+        bid = bcreator + ":" + bill[0];
+        jdata.bills[bid] = [];
     }
-    var jtxt = JSON.stringify(jdata, null, "\t");
+    jtxt = JSON.stringify(jdata, null, "\t");
     require('fs').writeFile("/tmp/yeau_proj_"+k+".json", jtxt);
 }
 
 // for bills
 for (k in bills) {
     bill = bills[k];
+    creator = users[bill[1]][0];
+    projc = users[projs[bill[2]][1]][0];
+    projn = projs[bill[2]][0];
     var jdata = new Object();
     jdata = {
-        _id:bill[0], type:"bill", name:"bill"+k, desc:"bill for "+k, 
+        _id:creator+":"+bill[0], type:"bill", name:"bill"+k, desc:"bill for "+k, 
+        creator:creator,
         cash: 100,
-        proj:""
+        proj: projc+":"+projn,
+        stat: [] // {name:accepted/refused/none}
     };
-    jdata.proj = projs[bill[1]][0];
-    var jtxt = JSON.stringify(jdata, null, "\t");
+    jtxt = JSON.stringify(jdata, null, "\t");
     require('fs').writeFile("/tmp/yeau_bill_"+k+".json", jtxt);
 }
 
