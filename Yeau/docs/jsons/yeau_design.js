@@ -100,40 +100,44 @@ fs.writeFile("/tmp/yeau_design.json", jtxt);
 // aim1: query projs of some user: creator/owner/member/viewer/observer
 
 
-// accounts
+/// accounts: uid, type, name, pass, nick, desc, projs{<pid:[]>}
 var users = [ 
     // uid,              pass,    nick,      projs[<pid>] 
     ["user1@gmail.com", "pass1", "Nick1",   [0,1,2] ],
     ["user2@163.com",   "pass2", "Nick2",   [0,2]   ],
 ];
 
-// projects
+/// projects: pid, type, name, desc, creator, 
+///             users{<uid:{urole, pstat:xx, todo:{<uid:xx>}}>}, 
+///             bills{<bid:[]>}
 var uroles = "creator" + ["owner", "member", "viewer", "observer"];
-var pstats = ["wait", "approve"]
+var pstats = ["wait", "approve", "refuse", "desperated"] + ["yes", "no"];
 var projs = [ 
-    // pid,  creator<uid>, users[uid, urole, pstat], bills[<bid>],
+    // pid,  creator<uid>, users{uid:{role:xx, stat:xx, todo:{uid:xx}}, bills{bid:[]},
     ["proj0",0,     
-        [[0, "owner"]],
+        [[0, "owner", "approve"]],
         [0,1],
     ],
     ["proj1",1,
-        [[1, "owner"], [0,"member"]],
+        [[1, "owner", "approve"], [0,"member", "approve"]],
         [5],
     ],
     ["proj2",1,
-        [[1, "owner"], [0,"member"]],
+        [[1, "owner", "approve"], [0,"member", "approve"]],
         [2,3,4],
     ],
 ];
-// bills
+
+/// bills: bid, type, name, desc, creator, cash, pid, stats{stat:xx, todo:{uid:xx}}
+var bstats = ["draft", "wait", "approve", "refuse", "desperated"] + ["yes", "no"];
 var bills = [ 
-    // id,  creator,proj
-    ["bill0",0,     0,  ],
-    ["bill1",0,     1,  ],
-    ["bill2",1,     2,  ],
-    ["bill3",1,     2,  ],
-    ["bill4",0,     2,  ],
-    ["bill5",0,     1,  ] ,
+    // bid,  creator<uid>, pid, stats{stat:xx, todo:{uid:xx}}
+    ["bill0",0,     0, {stat:"approve", todo:{uid:null}} ],
+    ["bill1",0,     1, {stat:"approve", todo:{uid:null}} ],
+    ["bill2",1,     2, {stat:"approve", todo:{uid:null}} ],
+    ["bill3",1,     2, {stat:"approve", todo:{uid:null}} ],
+    ["bill4",0,     2, {stat:"approve", todo:{uid:null}} ],
+    ["bill5",0,     1, {stat:"apporve", todo:{uid:null}} ] ,
 ];
 
 
@@ -170,7 +174,8 @@ for (k in projs) {
     for (i in proj[2]) {
         pusers = proj[2][i];
         uid = users[pusers[0]][0];
-        jdata.users[uid] = pusers[1];
+        jdata.users[uid] = {role:pusers[1], stat:pusers[2]};
+        jdata.users[uid]["todo"] = {uid:null};
     }
     for (j in proj[3]) {
         pbill = proj[3][j];
@@ -195,8 +200,9 @@ for (k in bills) {
         creator:creator,
         cash: 100,
         proj: projc+":"+projn,
-        stat: [] // {name:accepted/refused/none}
+        stats: {stat:"approve"},
     };
+    jdata.stats["todo"] = {uid:null};
     jtxt = JSON.stringify(jdata, null, "\t");
     require('fs').writeFile("/tmp/yeau_bill_"+k+".json", jtxt);
 }
