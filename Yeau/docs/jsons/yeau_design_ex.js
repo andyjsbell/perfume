@@ -10,77 +10,69 @@ jdata.validate_doc_update = function(newDoc, oldDoc, userCtx, secObj) {
         msg = msg || "It must have a " + field;
         if (!newDoc[field]) throw({forbidden : msg});
     };
+    function required(subDoc, field, msg) {
+        msg = msg || "It must have a " + field;
+        if (!subDoc[field]) throw({forbidden : msg});
+    }
 
     require("_id");
-    require("type");
     require("name");
-    if (newDoc.type == "acco") {
-        require("passwd");
-        if (newDoc.name != newDoc._id) 
-            throw({forbidden : "account's name must equal to _id"});
-    }else if (newDoc.type == "proj") {
-        require("creator"); // uid
-        //require("users");
-    }else if (newDoc.type == "bill") {
-        require("creator"); // uid
-        require("cash");
-        require("proj");    // pid
-        //require("stats");
-    }else {
-        throw({forbidden : "only support type of [acco/proj/bill]"});
+    require("desc");
+    require("creator");
+    if (newDoc.users) {
+        for (k in newDoc.users) {
+            user = newDoc.users[k];
+            required(user, "role");
+            required(user, "stat");
+        }
     }
-    //require("desc");
-    //require("logo");
+    if (newDoc.bills) {
+        for (k in newDoc.bills) {
+            bill = newDoc.bills[k];
+            required(bill, "name");
+            required(bill, "cash");
+            required(bill, "creator");
+            required(bill, "stat");
+            required(bill, "todo");
+        }
+    }
     return;
 }.toString();
 
 jdata.filters = new Object();
-// uri: _changes?filter=svc/myprojs&uid=xx
+/**
+ * uri: _changes?filter=svc/myprojs&uid=xx[&role=xx]
+ * @return all projs created by uid
+ * @return all projs by uid with role[xx]
+ */
 jdata.filters.myprojs = function(doc, req) {
     var Q = req.query;
     if (!Q || !Q.uid) return false;
-    if (doc.type != "proj") return false;
-    if (Q.uid == doc.creator) return true;
-
-    user = doc.users[Q.uid];
-    if (!user) return false;
-    switch(user.stat) {
-        case "wait":        break;
-        case "approve":     return true;
-        case "refuse":      break;
-        case "desperate":   break;
-    }
-    return false;
-}.toString();
-// uri: _changes?filter=svc/mybills&uid=xx&pid=xx
-jdata.filters.mybills = function(doc, req) {
-    var Q = req.query;
-    if (!Q || !Q.uid || !Q.pid) return false;
-    if (doc.type != "bill") return false;
-    if (Q.pid != doc.proj) return false;
-    if (Q.uid == doc.creator) return true;
-
-    stat = doc.stats[Q.uid];
-    if (!stat) return false;
-    switch(user.stat) {
-        case "draft":       break;
-        case "wait":        break;
-        case "approve":     return true;
-        case "refuse":      break;
-        case "desperate":   break;
+    if (!Q.role) {
+        if (Q.uid == doc.creator) return true;
+    }else {
+        user = doc.users[uid];
+        if (Q.role == user.role && user.stat == "apporve") 
+            return true;
     }
     return false;
 }.toString();
 
-// uri: _design/svc/_show/detail/{docid}
+/**
+ * uri: _design/svc/_show/detail/{docid}
+ */
+/*
 jdata.shows = new Object();
 jdata.shows.detail = function(doc, req){
     if (doc) return doc;
     return "invalid docid";
 }.toString();
+*/
 
+/**
+ * uri: _design/svc/_view/test
+ */
 /*
-// uri: _design/svc/_view/test
 jdata.views = new Object();
 jdata.views.test = new Object();
 jdata.views.test.map = function(doc) {
@@ -93,37 +85,119 @@ jdata.views.test.reduce = function(keys, values) {
 }.toString();
 */
 
-// uri: _design/svc/_update/setpass/{docid}?passwd=xxxxxx
 jdata.updates = new Object();
-jdata.updates.setpass = function(doc, req) {
-    //req.query/body/form/userCtx
-    if (!doc || doc.type != "acco") return [null, "invalid type"];
-    var Q = req.query;
-    if (!Q || !Q.passwd) return [null, "invalid Q"];
-    doc.passwd = Q.passwd;
+/**
+ * uri: _design/svc/_update/addbill/{docid} '{uid, name, cash, desc}'
+ */
+jdata.updates.addbill = function(doc, req) {
+    Q = req.body;
+    if (!Q || !Q.uid || !Q.name || !Q.cash) return [null, "fail"];
+    
+    // check priviledge
+    user = doc.users[Q.uid];
+    if (!user || user.stat != "apporve") return false;
+    if (user.role != "owner" && user.role != "member") return false;
+
+    // create new bill
+    var bill = new Object();
+    bill = {name:Q.name, cash:Q.cash, creator:Q.uid,
+            desc:Q.desc, stat:"draft",
+            todo:{}
+    };
+
+    // need all owners' approve
+    bill.todo[doc.creator] = "ing";
+    for (k in doc.users) {
+        user = doc.users[k];
+        if (user.stat != "apporved" || user.role != "owner") 
+            continue;
+        bill.todo[user.name] = "ing";
+    }
+
+    var d = new Date();
+    bid = d.getTime().toString();
+    doc.bills[bid] = bill;
     return [doc, "ok"];
 }.toString();
-// uri: _design/svc/_update/domyproj/{docid}?proj=xx&action=xx
-jdata.updates.addproj = function(doc, req) {
-    //req.query/body/form/userCtx
-    if (!doc || doc.type != "acco") return [null, "invalid type"];
-    var Q = req.query;
-    if (!Q || !Q.action || !Q.proj) return [null, "invalid Q"];
-    if (action == "add") {
-        doc.projs.push(Q.proj);
-    }else if (action == "del"){
-        var index = doc.projs.indexOf(Q.proj);
-        if (index != -1)
-            doc.projs.splice(index, 1);
-    }else {
+/**
+ * uri: _design/svc/_update/setbill/{docid} '{uid, bid, name, desc, cash}'
+ */
+jdata.updates.setbill = function(doc, req) {
+    Q = req.body;
+    if (!Q || !Q.uid || !Q.bid) return [null, "fail"];
+
+    // check bill stat
+    bill = doc.bills[Q.bid];
+    if (!bill || bill.stat == "apporve" || bill.stat == "refuse") 
         return [null, "fail"];
+
+    // must be bill creator
+    if (bill.creator != bill.uid) return [null, "fail"];
+
+    // update bill data
+    if (Q.name) bill.name = Q.name;
+    if (Q.desc) bill.desc = Q.desc;
+    if (Q.cash) bill.cash = Q.cash;
+
+    // clear bill stat
+    if (Q.name || Q.cash || Q.desc) {
+        for (k in bill.todo) bill.todo[k] = "ing";
+        bill.stat = "draft";
     }
     return [doc, "ok"];
-}.toString();
+}
+/**
+ * uri: _design/svc/_update/dobill/{docid} '{uid, bid, action}'
+ */
+jdata.updates.dobill = function(doc, req) {
+    Q = req.body;
+    if (!Q || !Q.uid || !Q.bid || !Q.action) return [null, "fail"];
+    if (Q.action != "yes" || Q.action != "no" || Q.action != "ing") 
+        return [null, "fail"];
+
+    // check bill stat
+    bill = doc.bills[Q.bid];
+    if (!bill) return [null, "fail"];
+    if(bill.stat == "approve" || bill.stat == "refuse") return [null, "fail"];
+
+    if (Q.uid == bill.creator) {
+        if (Q.action == "no") {
+            bill.stat = "desperate";
+            return [doc, "ok"];
+        }else if (bill.stat == "desperate") {
+            bill.stat = "draft";
+            return [doc, "ok"];
+        }else if (bill.todo[Q.uid]) {
+            bill.todo[Q.uid] = "yes";
+            bill.stat = "wait";
+        }
+    }
+
+    // must be 'wait' for process by other owners
+    if(bill.stat != "wait") return [null, "fail"];
+
+    // check user priviledge: owner
+    user = doc.users[Q.uid];
+    if (!user || user.stat != "apporve" || user.role != "owner") 
+        return [null, "fail"];
+
+    bill.todo[Q.uid] = Q.action;
+    var stat = "approve";
+    for (k in bill.todo) {
+        if (bill.todo[k] == "no") {
+            stat = "refuse";
+        }else if (bill.todo[k] == "ing") {
+            stat = "ing";
+        }
+        if (stat == "refuse") break;
+    }
+    bill.stat = stat;
+    return [doc, "ok"];
+} 
+
 
 var jtxt = JSON.stringify(jdata, null, "\t");
-var fs = require('fs');
-fs.writeFile("/tmp/yeau_design.json", jtxt);
+require('fs').writeFile("/tmp/yeau_design.json", jtxt);
 
 
 ///
@@ -131,30 +205,75 @@ fs.writeFile("/tmp/yeau_design.json", jtxt);
 ///
 // aim1: query projs of some user: creator/owner/member/viewer/observer
 
-/// accounts: uid, type, name, pass, nick, desc, projs{<pid:[]>}
-var uids = ["user1@gmail.com", "user2@163.com"];
-var pids = ["proj0", "proj1", "proj2"];
-var projs = [
-    //_id<pid>, name, desc, creator<uid>, users[*], bills[*], misc
-    [0, "proj0", "..",      0,              0,      0,          []],  
-    [1, "proj1", "..",      1,              1,      1,          []],  
-    [2, "proj2", "..",      2,              2,      2,          []],  
+var g_uids = ["user1@gmail.com", "user2@163.com"];
+var g_pids = ["proj0", "proj1", "proj2"];
+var g_projs = [
+//_id<pid>, name, desc, creator<uid>, users[*], bills[*], misc
+    [0, "proj0", "..",      0,          [0],      [0],          []],  
+    [1, "proj1", "..",      1,          [1],      [1],          []],  
+    [2, "proj2", "..",      1,          [2],      [2],          []],  
 ];
 
-var uroles = ["owner", "member", "viewer", "observer"];
-var ustats = ["wait", "approve", "refuse", "desperate"];
-var todo = ["null", "no", "yes"];
-var users = [
-    //_id<uid>, role, stat, todo: {uid:xx, uid:xx}
-    [0,         0,      1,  [[uid:null]]                ],
+var g_uroles = ["owner", "member", "viewer", "observer"];
+var g_ustats = ["wait", "approve", "refuse", "desperate"];
+var g_todo = ["ing", "no", "yes"];
+var g_users = [
+//name<uid>, role, stat, todo: {uid:xx, uid:xx}
+    [0,     0,      1,  [[0,0]]                ],
+    [1,     0,      1,  [[0,0]]                ],
+    [1,     0,      1,  [[0,0]]                ],
 ];
 
-var bids = ["bill0", "bill1", "bill2", "bill3", "bill4", "bill5"];
-var bstats = ["draft", "wait", "approve", "refuse", "desperate"]; 
-var todo = ["null", "no", "yes"];
-var bills = [
-    //_id<bid>, name, desc, cash, creator<uid>, stat, todo:{uid:xx, uid:xx}
-    [0,     "bill0", "..",  100,    0,            2,      [[uid:null]]        ],
+var g_bids = ["bill0", "bill1", "bill2", "bill3", "bill4", "bill5"];
+var g_bstats = ["draft", "wait", "approve", "refuse", "desperate"]; 
+var g_todo = ["null", "no", "yes"];
+var g_bills = [
+//_id<bid>, name, desc, cash, creator<uid>, stat, todo:{uid:xx, uid:xx}
+    [0, "bill0", "..",  100,    0,          2,    [[0,0]]        ],
+    [1, "bill1", "..",  100,    0,          2,    [[0,0]]        ],
+    [2, "bill2", "..",  100,    0,          2,    [[0,0]]        ],
 ];
 
+
+for (k in g_projs) {
+    proj = g_projs[k];
+    p_uid = g_uids[proj[3]];
+    p_id = p_uid+":"+g_pids[proj[0]];
+
+    p_users = new Object();
+    for (i in proj[4]) {
+        user = g_users[proj[4][i]];
+        uid = g_uids[user[0]],
+        p_users[uid] = {
+            role: g_uroles[user[1]],
+            stat: g_ustats[user[2]],
+            todo: {uid:"ing"}
+        };
+    }
+
+    p_bills = new Object();
+    for (j in proj[5]) {
+        bill = g_bills[proj[5][j]];
+        creator = g_uids[bill[4]],
+        bid = creator+":"+g_bids[bill[0]];
+        p_bills[bid] = {
+            name: bill[1],
+            desc: bill[2],
+            cash: bill[3],
+            creator: g_uids[bill[4]],
+            stat: g_bstats[bill[5]],
+            todo: {uid:"ing"}
+        };
+    };
+
+    var jdata = new Object();
+    jdata = {
+        _id:p_id, name:proj[1], desc:proj[2], 
+        creator:p_uid,
+        users: p_users,
+        bills: p_bills,
+    };
+    jtxt = JSON.stringify(jdata, null, "\t");
+    require('fs').writeFile("/tmp/yeau_data_"+k+".json", jtxt);
+}
 
