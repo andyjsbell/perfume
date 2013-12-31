@@ -60,10 +60,11 @@ jdata.filters.myprojs = function(doc, req) {
     if (doc._id.indexOf("_design/") == 0) return false;
     var Q = req.query;
     if (!Q || !Q.uid) return false;
-    if (!Q.role) {
+    if (Q.role == undefined) {
         if (Q.uid == doc.creator) return true;
     }else {
         user = doc.users[Q.uid];
+        if (!user) return false;
         if (Q.role == user.role && user.stat == "approve")  return true;
     }
     return false;

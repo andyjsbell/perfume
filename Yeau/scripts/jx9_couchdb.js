@@ -12,7 +12,7 @@ function required($var, $msg="required") {
 function checkint($var) {
     if ($var <= 0) exit("$var <= 0");
 }
-function checkdb($db, $msg="failed") {
+function checkdb($db, $msg="fail") {
     if (!db_exists($db)) {
         if(!db_create($db)) {
             log_error(db_errlog());
@@ -87,23 +87,51 @@ function neon_http($conf) {
     ne_session_destroy({session:$session});
     return $resp;
 }
-function run_rsync($user, $passwd) {
+function update_data($db, $key, $data) {
+    if (!$db || !$key || !$data) return FALSE;
+
+    checkdb($db);
+    while(($rec=db_fetch($db)) != NULL) {
+        if ($key == $rec._id) {
+            print "find rec: $key and remove it";
+            db_drop_record($db, $rec.__id);
+        }
+    }
+    db_store($db, $data);
+    //db_commit();
+    return TRUE;
+}
+function run_rsync($db, $user, $passwd) {
     $http = {hostname:"127.0.0.1",port:5984,method:"GET"};
 
-    // for account's projs
-    $http["path"] = "/db_yeau/_changes?filter=svc/owned&name=$user&type=acco";
-    //$http["path"] = "/db_projs/_changes";
+    // step1: get remote results
+    $http["path"] = "/db_yeau/_changes?filter=svc/myprojs&uid=$user&include_docs=true";
     //$http["authen"] = "Basic $user:$passwd";
     $resp = neon_http($http);
-    print $resp;
-    // get projs from $resp and sync into local
-    if ($resp.klass == 2) {
-        
+    if ($resp.klass == 2 && !is_null($resp.Content.results)) {
+        $rdata = $resp.Content.results;
     }
-    
 
-    // get projs from local and sync into remote
-    // TODO ...
+    // step2: get local results
+    $ldata = db_fetch_all($db);
+
+    if (!$rdata) {
+        $mdata = $ldata;
+        $key = $ldata._id;
+        // TODO: sync local into remote
+    }else if (!$ldata) {
+        // sync remote into local
+        foreach($rdata as $ret) {
+            update_data($db, $ret.id, $ret.doc);
+        }
+    }else {
+        // merge $ldata and $rdata
+        $lcnt = count($ldata);
+        print "ldata:$lcnt\n$ldata";
+        print "rdata:\n$rdata";
+
+        // sync merged data into local and remote
+    }
 }
 function run_getter($db, $key) {
     while(($rec=db_fetch($db))) {
@@ -147,6 +175,7 @@ function main() {
     $tag = "rsync";
     $user = "user1@gmail.com";
     $passwd = "";
+    $db = "db_yeau";
 
     required($tag, "no tag");
     required($user, "no user");
@@ -155,13 +184,13 @@ function main() {
 
     switch($tag) {
     case "rsync":
-        run_rsync($user, $passwd);
+        run_rsync($db, $user, $passwd);
         break;
     case "getter":
-        run_getter();
+        run_getter($db);
         break;
     case "putter":
-        run_putter();
+        run_putter($db);
         break;
     }
 }
