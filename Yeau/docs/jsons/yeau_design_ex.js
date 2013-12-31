@@ -13,30 +13,41 @@ jdata.validate_doc_update = function(newDoc, oldDoc, userCtx, secObj) {
     function required(subDoc, field, msg) {
         msg = msg || "It must have a " + field;
         if (!subDoc[field]) throw({forbidden : msg});
-    }
+    };
 
     require("_id");
     require("name");
-    require("desc");
-    require("creator");
+    //require("desc");
+    // default: project creator is not its owner
+    require("creator"); 
+    if (newDoc._id.indexOf(newDoc.creator+":") == -1) {
+        throw({forbidden : "invalid project id"});
+    }
+
+    if (oldDoc && (oldDoc._id !== newDoc._id || oldDoc.creator !== newDoc.creator)) {
+        throw({forbidden : "invalid project id or creator"});
+    }
+
     if (newDoc.users) {
         for (k in newDoc.users) {
             user = newDoc.users[k];
             required(user, "role");
             required(user, "stat");
+            required(user, "todo");
         }
     }
+
     if (newDoc.bills) {
         for (k in newDoc.bills) {
             bill = newDoc.bills[k];
             required(bill, "name");
+            //required(bill, "desc");
             required(bill, "cash");
             required(bill, "creator");
             required(bill, "stat");
             required(bill, "todo");
         }
     }
-    return;
 }.toString();
 
 jdata.filters = new Object();
@@ -52,7 +63,7 @@ jdata.filters.myprojs = function(doc, req) {
         if (Q.uid == doc.creator) return true;
     }else {
         user = doc.users[uid];
-        if (Q.role == user.role && user.stat == "apporve") 
+        if (Q.role == user.role && user.stat == "approve") 
             return true;
     }
     return false;
@@ -87,32 +98,85 @@ jdata.views.test.reduce = function(keys, values) {
 
 jdata.updates = new Object();
 /**
+ * uri: _design/svc/_update/setuser/{docid} '{uid, nuid, role}'
+ */
+jdata.updates.setuser = function(doc, req) {
+    Q = req.body;
+    if (!Q || !Q.uid || !Q.nuid || !Q.role) return [null, "fail"];
+
+    // Only owner/creator of the project can add new user
+    if (Q.uid != doc.creator) {
+        user = doc.users[Q.uid];
+        if (!user || user.stat != "approve" || user.role != "owner")    return [null, "fail"];
+    }
+    
+    // Check whether this nuid exist or not
+    nuser = doc.users[Q.nuid];
+    if (nuser) {
+        // Only project creator have privilege to update other owners
+        if (nuser.role == "owner") {
+            if (Q.uid == doc.creator) {
+                nuser.stat = "approve";
+                nuser.role = Q.role;
+            }
+        }else {
+            nuser.stat = "approve";
+            nuser.role = Q.role;
+        }
+    }else {
+        doc.users[Q.nuid] = {stat:"approve", role:Q.role};
+    }
+    // TODO: update bills' todo if nuid is owner
+    return [doc, "ok"];
+}
+/**
+ * uri: _design/svc/_update/deluser/{docid} '{uid, ouid}'
+ */
+jdata.updates.deluser = function(doc, req) {
+    Q = req.body;
+    if (!Q || !Q.uid || !Q.ouid) return [null, "fail"];
+
+    ouser = doc.users[Q.ouid];
+    if (!ouser) return [null, "fail"];
+
+    // creator: can del all, owner: can del all except owners, 
+    if (Q.uid != doc.creator) {
+        if (ouser.role == "owner") return [null, "fail"];
+        user = doc.users[Q.uid];
+        if (!user || user.stat != "approve" || user.role != "owner")    return [null, "fail"];
+    }
+
+    // TODO: update bill's todo if ouid is owner
+    if (ouser.role == "owner") {
+        for (k in doc.bills) {
+            bill = doc.bills[k];
+            if (bill.stat == "wait" && bill.todo[ouid]) {
+                delete bill.todo[Q.ouid];
+            }
+        }
+    }
+    delete doc.users[Q.ouid];
+    return [doc, "ok"];
+}
+
+/**
  * uri: _design/svc/_update/addbill/{docid} '{uid, name, cash, desc}'
  */
 jdata.updates.addbill = function(doc, req) {
     Q = req.body;
     if (!Q || !Q.uid || !Q.name || !Q.cash) return [null, "fail"];
     
-    // check priviledge
+    // Only member/owner have authority.
     user = doc.users[Q.uid];
-    if (!user || user.stat != "apporve") return false;
+    if (!user || user.stat != "approve") return false;
     if (user.role != "owner" && user.role != "member") return false;
 
-    // create new bill
+    // To create new bill, default 'draft'
     var bill = new Object();
     bill = {name:Q.name, cash:Q.cash, creator:Q.uid,
             desc:Q.desc, stat:"draft",
             todo:{}
     };
-
-    // need all owners' approve
-    bill.todo[doc.creator] = "ing";
-    for (k in doc.users) {
-        user = doc.users[k];
-        if (user.stat != "apporved" || user.role != "owner") 
-            continue;
-        bill.todo[user.name] = "ing";
-    }
 
     var d = new Date();
     bid = d.getTime().toString();
@@ -128,7 +192,7 @@ jdata.updates.setbill = function(doc, req) {
 
     // check bill stat
     bill = doc.bills[Q.bid];
-    if (!bill || bill.stat == "apporve" || bill.stat == "refuse") 
+    if (!bill || bill.stat == "approve" || bill.stat == "refuse") 
         return [null, "fail"];
 
     // must be bill creator
@@ -141,10 +205,11 @@ jdata.updates.setbill = function(doc, req) {
 
     // clear bill stat
     if (Q.name || Q.cash || Q.desc) {
-        for (k in bill.todo) bill.todo[k] = "ing";
         bill.stat = "draft";
+        bill.todo = {};
+        return [doc, "ok"];
     }
-    return [doc, "ok"];
+    return [null, "fail"];
 }
 /**
  * uri: _design/svc/_update/dobill/{docid} '{uid, bid, action}'
@@ -155,11 +220,12 @@ jdata.updates.dobill = function(doc, req) {
     if (Q.action != "yes" || Q.action != "no" || Q.action != "ing") 
         return [null, "fail"];
 
-    // check bill stat
+    // check bill stat, cannot process ultimate states: 'approve/refuse'
     bill = doc.bills[Q.bid];
     if (!bill) return [null, "fail"];
     if(bill.stat == "approve" || bill.stat == "refuse") return [null, "fail"];
 
+    // for bill's creator, 'desperate' is only valid for creator
     if (Q.uid == bill.creator) {
         if (Q.action == "no") {
             bill.stat = "desperate";
@@ -167,18 +233,29 @@ jdata.updates.dobill = function(doc, req) {
         }else if (bill.stat == "desperate") {
             bill.stat = "draft";
             return [doc, "ok"];
-        }else if (bill.todo[Q.uid]) {
-            bill.todo[Q.uid] = "yes";
+        }else {
+            // It needs all owners' approve(maybe no creator), so init with "ing" state
+            bill.todo = {};
+            for (k in doc.users) {
+                user = doc.users[k];
+                if (user.stat != "approve" || user.role != "owner") 
+                    continue;
+                bill.todo[user.name] = "ing";
+            }
+            // The creator is also the owner of this project
+            if (bill.todo[Q.uid])
+                bill.todo[Q.uid] = "yes";
+            // To update bill stat for other owners' verify
             bill.stat = "wait";
         }
     }
 
-    // must be 'wait' for process by other owners
+    // Bill must be 'wait' for processing by other owners
     if(bill.stat != "wait") return [null, "fail"];
 
-    // check user priviledge: owner
+    // Only owner can verify the bill
     user = doc.users[Q.uid];
-    if (!user || user.stat != "apporve" || user.role != "owner") 
+    if (!user || user.stat != "approve" || user.role != "owner") 
         return [null, "fail"];
 
     bill.todo[Q.uid] = Q.action;
