@@ -57,14 +57,14 @@ jdata.filters = new Object();
  * @return all projs by uid with role[xx]
  */
 jdata.filters.myprojs = function(doc, req) {
+    if (doc._id.indexOf("_design/") == 0) return false;
     var Q = req.query;
     if (!Q || !Q.uid) return false;
     if (!Q.role) {
         if (Q.uid == doc.creator) return true;
     }else {
-        user = doc.users[uid];
-        if (Q.role == user.role && user.stat == "approve") 
-            return true;
+        user = doc.users[Q.uid];
+        if (Q.role == user.role && user.stat == "approve")  return true;
     }
     return false;
 }.toString();
@@ -101,13 +101,14 @@ jdata.updates = new Object();
  * uri: _design/svc/_update/setuser/{docid} '{uid, nuid, role}'
  */
 jdata.updates.setuser = function(doc, req) {
-    Q = req.body;
-    if (!Q || !Q.uid || !Q.nuid || !Q.role) return [null, "fail"];
+    if (doc._id.indexOf("_design/") == 0) return [null, "unsupport _design doc"];
+    eval('Q='+req.body);
+    if (!Q || !Q.uid || !Q.nuid || !Q.role) return [null, "invalid body"];
 
     // Only owner/creator of the project can add new user
     if (Q.uid != doc.creator) {
         user = doc.users[Q.uid];
-        if (!user || user.stat != "approve" || user.role != "owner")    return [null, "fail"];
+        if (!user || user.stat != "approve" || user.role != "owner")    return [null, "no privilege"];
     }
     
     // Check whether this nuid exist or not
@@ -124,16 +125,36 @@ jdata.updates.setuser = function(doc, req) {
             nuser.role = Q.role;
         }
     }else {
-        doc.users[Q.nuid] = {stat:"approve", role:Q.role};
+        nuser = {stat:"approve", role:Q.role, todo:{}};
     }
-    // TODO: update bills' todo if nuid is owner
+
+    function updateowner(uid_, do_) {
+        for (k in doc.bills) {
+            bill_ = doc.bills[k];
+            if (bill_.stat != "wait") continue;
+            if (do_ == "delete" && bill_.todo[uid_])
+                delete bill_.todo[uid_];
+            else if (do_== "new" && !bill_[k].todo[uid_])
+                bill_.todo[uid_] = "ing";
+        }
+    }
+
+    // TODO: update bills' todo
+    doc.users[Q.nuid] = nuser;
+    if (nuser.role == "owner") {
+        updateowner(Q.nuid, "new");
+    }else {
+        updateowner(Q.nuid, "delete");
+    }
+
     return [doc, "ok"];
-}
+}.toString();
 /**
  * uri: _design/svc/_update/deluser/{docid} '{uid, ouid}'
  */
 jdata.updates.deluser = function(doc, req) {
-    Q = req.body;
+    if (doc._id.indexOf("_design/") == 0) return [null, "unsupport _design doc"];
+    eval('Q='+req.body);
     if (!Q || !Q.uid || !Q.ouid) return [null, "fail"];
 
     ouser = doc.users[Q.ouid];
@@ -157,13 +178,14 @@ jdata.updates.deluser = function(doc, req) {
     }
     delete doc.users[Q.ouid];
     return [doc, "ok"];
-}
+}.toString();
 
 /**
  * uri: _design/svc/_update/addbill/{docid} '{uid, name, cash, desc}'
  */
 jdata.updates.addbill = function(doc, req) {
-    Q = req.body;
+    if (doc._id.indexOf("_design/") == 0) return [null, "unsupport _design doc"];
+    eval('Q='+req.body);
     if (!Q || !Q.uid || !Q.name || !Q.cash) return [null, "fail"];
     
     // Only member/owner have authority.
@@ -180,15 +202,16 @@ jdata.updates.addbill = function(doc, req) {
 
     var d = new Date();
     bid = d.getTime().toString();
-    doc.bills[bid] = bill;
+    doc.bills[bid] = bill; // TODO: which format of bid is suitable?
     return [doc, "ok"];
 }.toString();
 /**
  * uri: _design/svc/_update/setbill/{docid} '{uid, bid, name, desc, cash}'
  */
 jdata.updates.setbill = function(doc, req) {
-    Q = req.body;
-    if (!Q || !Q.uid || !Q.bid) return [null, "fail"];
+    if (doc._id.indexOf("_design/") == 0) return [null, "unsupport _design doc"];
+    eval('Q='+req.body);
+    if (!Q || !Q.uid || !Q.bid) return [null, "invalid body"];
 
     // check bill stat
     bill = doc.bills[Q.bid];
@@ -196,7 +219,7 @@ jdata.updates.setbill = function(doc, req) {
         return [null, "fail"];
 
     // must be bill creator
-    if (bill.creator != bill.uid) return [null, "fail"];
+    if (Q.uid != bill.creator) return [null, "only bill creator can modify bill!"];
 
     // update bill data
     if (Q.name) bill.name = Q.name;
@@ -209,21 +232,21 @@ jdata.updates.setbill = function(doc, req) {
         bill.todo = {};
         return [doc, "ok"];
     }
-    return [null, "fail"];
-}
+    return [null, "no update"];
+}.toString();
 /**
  * uri: _design/svc/_update/dobill/{docid} '{uid, bid, action}'
  */
 jdata.updates.dobill = function(doc, req) {
-    Q = req.body;
-    if (!Q || !Q.uid || !Q.bid || !Q.action) return [null, "fail"];
-    if (Q.action != "yes" || Q.action != "no" || Q.action != "ing") 
-        return [null, "fail"];
+    if (doc._id.indexOf("_design/") == 0) return [null, "unsupport _design doc"];
+    eval('Q='+req.body);
+    if (!Q || !Q.uid || !Q.bid || !Q.action) return [null, "invalid body"];
+    if ("ing,no,yes".indexOf(Q.action) == -1) return [null, "invalid action"];
 
     // check bill stat, cannot process ultimate states: 'approve/refuse'
     bill = doc.bills[Q.bid];
-    if (!bill) return [null, "fail"];
-    if(bill.stat == "approve" || bill.stat == "refuse") return [null, "fail"];
+    if (!bill) return [null, "invalid bid"];
+    if(bill.stat == "approve" || bill.stat == "refuse") return [null, "bill done!"];
 
     // for bill's creator, 'desperate' is only valid for creator
     if (Q.uid == bill.creator) {
@@ -233,21 +256,17 @@ jdata.updates.dobill = function(doc, req) {
         }else if (bill.stat == "desperate") {
             bill.stat = "draft";
             return [doc, "ok"];
-        }else {
-            // It needs all owners' approve(maybe no creator), so init with "ing" state
-            bill.todo = {};
-            for (k in doc.users) {
-                user = doc.users[k];
-                if (user.stat != "approve" || user.role != "owner") 
-                    continue;
-                bill.todo[user.name] = "ing";
-            }
-            // The creator is also the owner of this project
-            if (bill.todo[Q.uid])
-                bill.todo[Q.uid] = "yes";
-            // To update bill stat for other owners' verify
-            bill.stat = "wait";
         }
+        // It needs all owners' approve(maybe no creator), so init with "ing" state
+        bill.todo = {};
+        for (k in doc.users) {
+            user = doc.users[k];
+            if (user.stat != "approve" || user.role != "owner") 
+                continue;
+            bill.todo[user.name] = "ing";
+        }
+        if (bill.todo[Q.uid])   bill.todo[Q.uid] = "yes";
+        bill.stat = "wait";
     }
 
     // Bill must be 'wait' for processing by other owners
@@ -270,7 +289,7 @@ jdata.updates.dobill = function(doc, req) {
     }
     bill.stat = stat;
     return [doc, "ok"];
-} 
+}.toString();
 
 
 var jtxt = JSON.stringify(jdata, null, "\t");
@@ -286,9 +305,9 @@ var g_uids = ["user1@gmail.com", "user2@163.com"];
 var g_pids = ["proj0", "proj1", "proj2"];
 var g_projs = [
 //_id<pid>, name, desc, creator<uid>, users[*], bills[*], misc
-    [0, "proj0", "..",      0,          [0],      [0],          []],  
-    [1, "proj1", "..",      1,          [1],      [1],          []],  
-    [2, "proj2", "..",      1,          [2],      [2],          []],  
+    [0, "proj0", "..",      0,          [0,1],      [0],          []],  
+    [1, "proj1", "..",      1,          [2],      [1],          []],  
+    [2, "proj2", "..",      1,          [2,3],      [2],          []],  
 ];
 
 var g_uroles = ["owner", "member", "viewer", "observer"];
@@ -298,7 +317,10 @@ var g_users = [
 //name<uid>, role, stat, todo: {uid:xx, uid:xx}
     [0,     0,      1,  [[0,0]]                ],
     [1,     0,      1,  [[0,0]]                ],
+
     [1,     0,      1,  [[0,0]]                ],
+
+    [0,     0,      1,  [[0,0]]                ],
 ];
 
 var g_bids = ["bill0", "bill1", "bill2", "bill3", "bill4", "bill5"];
@@ -306,8 +328,8 @@ var g_bstats = ["draft", "wait", "approve", "refuse", "desperate"];
 var g_todo = ["null", "no", "yes"];
 var g_bills = [
 //_id<bid>, name, desc, cash, creator<uid>, stat, todo:{uid:xx, uid:xx}
-    [0, "bill0", "..",  100,    0,          2,    [[0,0]]        ],
-    [1, "bill1", "..",  100,    0,          2,    [[0,0]]        ],
+    [0, "bill0", "..",  100,    1,          2,    [[0,0]]        ],
+    [1, "bill1", "..",  100,    1,          2,    [[0,0]]        ],
     [2, "bill2", "..",  100,    0,          2,    [[0,0]]        ],
 ];
 
