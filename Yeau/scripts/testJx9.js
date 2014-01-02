@@ -6,11 +6,30 @@ $tt = [
     },
     {id:56}
 ];
+$tt2 = [
+    {
+    id: 12,
+    key: 56,
+    value: 79,
+    },
+    {id:56}
+];
+print ($tt == $tt2);
+
 $kk = {
     id: 12,
     key: 56,
-    value: 78
+    value: 78,
+    misc: {t1: $tt, t2:0},
     };
+$kk2 = {
+    misc: {t1: $tt2, t2:0},
+    key: 56,
+    value: 78,
+    id: 12,
+    };
+print ":::";
+print ($kk == $kk2);
 
 foreach ($kk as $k, $v) {
     if ("$k" == "id")

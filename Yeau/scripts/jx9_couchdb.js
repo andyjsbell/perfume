@@ -104,105 +104,89 @@ function find_doc($docs, $id) {
         if ($doc._id == $id) return $doc;
     return NULL;
 }
-function merge_doc($ldoc, $rdoc, $get_rdoc_cb) {
+function merge_doc($ldoc, $rdoc) { // return doc only have validate updates, or return NULL.
     if ($ldoc._id != $rdoc._id) return NULL;
-    if (!$ldoc._rev || !$rdoc._rev) return NULL;
+    if ($ldoc._rev == $rdoc._rev) return NULL;
+
     $lrev = (int)$ldoc._rev;
     $rrev = (int)$rdoc._rev;
-    if ($lrev > $rrev) return NULL; // local doc is invalid
+    if ($lrev > $rrev) return $rdoc; // local doc is invalid
 
-    $doc = {};
-    $rdoc2 = $get_rdoc_cb($lrev);
-    if ($ldoc._rev != $rdoc2._rev) { // have update or conflict
-        if ($rdoc._rev == $rdoc2._rev) { // have update
-            foreach($ldoc as $k, $v) 
-                if ($k != "__id" && $k != "_rev") $doc[$k] = $v;
-        }else { // have conflict
-            $doc = {_id:$rdoc._id, name:$rdoc.name, desc:$rdoc.desc, creator:$rdoc.creator};
-            if ($rdoc2.name == $rdoc.name) $doc[name] = $ldoc.name;
-            if ($rdoc2.desc == $rdoc.desc) $doc[desc] = $ldoc.desc;
-            
-            // update users
-            $doc[users] = {};
-            foreach ($rdoc2.users as $uid, $uinfo) {
-                $rinfo = $rdoc.users[$uid];
-                $linfo = $ldoc.users[$uid];
-                if (!$rinfo || !$linfo) { continue; }
-
-                if ($rinfo.role == $uinfo.role) $info.role = $linfo.role;
-                if ($rinfo.stat == $uinfo.stat) 
-                    $info.stat = $linfo.stat;
-
-                foreach($uinfo.todo as $tid, $tinfo) {
-                    if ($rinfo.todo[$tid] == $uinfo.todo[$tid]) {
-                        if ($linfo.todo[$tid])
-                            $info.todo[$tid] = $linfo.todo[$tid];
-                    }
-                }
-            }
-        }
-    }else {
-        return NULL; // no update between local and remote;
+    $rdoc2 = $get_rdoc_cb($lrev); // get the basic revision of ldoc from remote
+    if ($ldoc._rev == $rdoc2._rev) return $rdoc;
+    return $ldoc;
+}
+function get_conflicts($ldoc, $rdoc) {
+    // local have conflict with remote
+    // init with remote latest: when conflicts happen, use remote latest with priority
+    $doc = {name:FALSE, desc:FALSE, users: FALSE, bills: FALSE};
+    foreach ($doc as $key, $val) {
+        if ($ldoc[$key] != $rdoc[$key])  $doc[$key] = TRUE; // have conflict
     }
     return $doc;
 }
-function run_rsync($db, $host, $port, $user, $passwd) {
-    // step1
-    $http = {hostname:$host,port:$port,method:"GET"};
+function run_rsync($http, $db) {
+    $rdocs = [];
+    $http["method"] = "GET"};
     $http["path"] = "/db_yeau/_changes?filter=svc/myprojs&uid=$user&include_docs=true";
-    //$http["authen"] = "Basic $user:$passwd";
+    $http["body"] = NULL;
     $resp = neon_http($http);
     if ($resp.klass == 2) {
-        $rdocs = [];
         foreach ($resp.Content.results as $ret) {
             if ($ret.doc)   array_push($rdocs, $ret.doc);
         }
-    }else { return; }
-
-    // step2: get local docs, 
-    $ldocs = db_fetch_all($db);
-
-    // push them into remote server
-    $sync2remote = function($doc) {
-        uplink $http;
-        $http.method = "POST";
-        $http["path"] = "/db_yeau/$doc._id";
-        $http["body"] = "$doc";
-        $resp = neon_http($http);
-        print $resp;
-    };
-    $getrevdoc = function($did, int $rev_seq) {
-        uplink $http;
-        $http.method = "GET";
-        $http["path"] = "/db_yeau/$did?revs_info=true";
-        $resp = $neon_http($http);
-        $revs = $resp.Content._revs_info;
-        for ($revs as $item) {
-            $seq = (int) $item.rev;
-            if ($seq == $rev_seq) {$rev = $item.rev; break;}
-        }
-        $resp = NULL;
-        if ($rev) {
-            $http.method = "GET";
-            $http["path"] = "/db_yeau/$did?rev=$rev";
-            $resp = $neon_http($http);
-        }
-        return $resp.Content;
+        foreach ($rdocs as $doc) update_local_doc($db, $doc);
     }
+    return $rdocs;
+}
+function run_post_doc($http, $doc) {
+    $http["method"] = "POST";
+    $http["path"] = "/db_yeau/$doc._id";
+    $http["body"] = "$doc";
+    return neon_http($http);
+}
+function run_get_doc($http, $did, int $rev_seq) {
+    $http["method"] = "GET";
+    $http["path"] = "/db_yeau/$did?revs_info=true";
+    $http["body"] = NULL;
+    $resp = $neon_http($http);
+    $revs = $resp.Content._revs_info;
+    for ($revs as $item) {
+        $seq = (int) $item.rev;
+        if ($seq == $rev_seq) {$rev = $item.rev; break;}
+    }
+    if ($rev) {
+        $http.method = "GET";
+        $http["path"] = "/db_yeau/$did?rev=$rev";
+        $http["body"] = NULL;
+        $resp = $neon_http($http);
+    }else {
+        $resp = NULL;
+    }
+    return $resp.Content;
+}
+function run_local_update($http, $db) {
+    $ldocs = [];
+    while(($rec=db_fetch($db)) != NULL) {
+        $doc = {};
+        foreach($rec as $k, $v) 
+            if ($k != "__id") $doc[$k] = $v;
+        if (!$doc._rev) run_post_doc($http, $doc);
+        array_push($ldocs, $doc);
+    }
+    return $ldocs;
+}
+function run_db_sync($dbl, $dbr) {
+    $ldocs = db_fetch_all($dbl);
+    $rdocs = db_fetch_all($dbr);
+    if ($ldocs == $rdocs) return;
 
-    if($rdocs && $ldocs) { // merge $ldata and $rdata
-        $odocs = [];
-        foreach($ldocs as $doc) {
-            if (!$doc._rev) { $sync2remote($doc);}
-            else {array_push($odocs, $doc)};
-        }
-        $ldocs = $odocs;
-
-        // compared to remote, if update, sync into remote.
-        foreach($ldocs as $doc) {
-            if(($rdoc=find_doc($rdocs, $doc._id)) == NULL) continue;
-            if(($ndoc=merge_doc($doc, $rdoc, $getrevdoc)) == NULL) continue;
-            $sync2remote($ndoc);
+    foreach($ldocs as $ldoc) {
+        $rdoc = find_doc($rdocs, $ldoc._id);
+        if ($rdoc) {
+            $ndoc = merge_doc($ldoc, $rdoc);
+            if ($ndoc != $ldoc)
+                update_local_doc($dbl, $ndoc);
         }
     }
 }
@@ -242,13 +226,21 @@ function run_putter($db, $key, $val, $scm=NULL) {
 }
 
 function main() {
+    $dbr = "db_yeau_rsync";
+    $dbl = "db_yeau_local";
+
     $tag = $eau_jx9_arg.tag;
     $user = $eau_jx9_arg.user;
     $passwd = $eau_jx9_arg.passwd;
+    $host = $eau_jx9_arg.host;
+    $port = (int)$eau_jx9_arg.port;
+
     $tag = "rsync";
     $user = "user1@gmail.com";
     $passwd = "";
-    $db = "db_yeau";
+    $host = "127.0.0.1";
+    $port = 5984;
+    $http = {hostname:$host,port:$port};
 
     required($tag, "no tag");
     required($user, "no user");
@@ -256,9 +248,12 @@ function main() {
     authenx($user, $passwd);
 
     switch($tag) {
-    case "rsync":
-        run_rsync($db, $user, $passwd);
+    case "rsync":{ 
+        $rdocs = run_rsync($http, $dbr);
+        $ldocs = run_local($dbl);
+        $updocs = run_conflicts($ldocs, $rdocs);
         break;
+    }
     case "getter":
         run_getter($db);
         break;
