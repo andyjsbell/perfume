@@ -77,3 +77,117 @@ __error:
     return iret;
 }
 
+bool set_jx9_variable(void* jx9_vm, const char *jx9_name, const void *jx9_value)
+{
+    returnb_assert(jx9_vm);
+    returnb_assert(jx9_name);
+    returnb_assert(jx9_value);
+    bool bret = (unqlite_vm_config((unqlite_vm *)jx9_vm, UNQLITE_VM_CONFIG_CREATE_VAR, jx9_name, (unqlite_value *)jx9_value) == UNQLITE_OK);
+    return bret;
+}
+
+//=======================================
+
+bool new_jx9_json_value(void* jx9_vm, const string &value, void* &jx9_value)
+{
+    returnb_assert(jx9_vm);
+
+    unqlite_value* pvalue = jx9_value;
+    if (pvalue == NULL) {
+        returnb_assert((pvalue=unqlite_vm_new_scalar(jx9_vm)));
+    }
+
+    bool bret = (unqlite_value_string(pvalue, value.c_str(), value.size()) == UNQLITE_OK);
+    if(bret) {
+        jx9_value = pvalue;
+    }else if (jx9_value == NULL && pvalue != NULL) {
+        unqlite_vm_release_value(jx9_vm, pvalue);
+    }
+    return bret;
+}
+
+// json format: {k:v}, {..., k:v}
+bool add_jx9_json_object(void* jx9_vm, const pair_ptr_t &key, void* &jx9_json)
+{
+    returnb_assert(jx9_vm);
+
+    unqlite_value* pjson = jx9_json;
+    if (pjson == NULL) {
+        returnb_assert((pjson=unqlite_vm_new_array(jx9_vm)));
+    }
+
+    unqlite_value* pvalue = (unqlite_value*) key.second;
+    bool bret = (unqlite_array_add_strkey_elem(pjson, key.first.c_str(), pvalue) == UNQLITE_OK);
+    if (bret) {
+        jx9_json = pjson;
+    }else if (jx9_json == NULL && pjson != NULL) {
+        unqlite_vm_release_value(jx9_vm, pjson);
+    }
+    return bret;
+}
+
+// json format: {k:v}, {..., k:v}
+bool add_jx9_json_object(void* jx9_vm, const pair_t &key, void* &jx9_json)
+{
+    returnb_assert(jx9_vm);
+
+    bool bret = false;
+    unqlite_value* pvalue = NULL;
+    do {
+        break_assert(new_jx9_json_value(jx9_vm, key.second, pvalue));
+        pair_ptr_t key_ptr(key.first, pvalue);
+        bret = add_jx9_json_object(jx9_vm, key_ptr, jx9_json);
+    }while(false);
+    unqlite_vm_release_value(jx9_vm, pvalue);
+    return bret;
+}
+
+// json format:  {k1:v1, k2:v2, ...}
+bool add_jx9_json_object(void* jx9_vm, const json1_t &keys, void* &jx9_json)
+{
+    returnb_assert(jx9_vm);
+
+    bool bret = false;
+    unqlite_value* json1 = NULL;
+    json1_t::const_iterator iter;
+    for (iter=keys.begin(); iter != keys.end(); iter++) {
+        break_assert((bret=add_jx9_json_object(jx9_vm, *iter, json1)));
+    }
+
+    if (bret) {
+        jx9_json = json1;
+    }else {
+        unqlite_vm_release_value(jx9_vm, json1);
+    }
+    return bret;
+}
+
+// json format:  {k1:{k11:v11,k12:v12}, k2:{..}, ...}
+bool add_jx9_json_object(void* jx9_vm, const json2_t &keys, void* &jx9_json)
+{
+    returnb_assert(jx9_vm);
+
+    bool bret = false;
+    unqlite_value* json1 = NULL;
+    unqlite_value* json2 = NULL;
+
+    json2_t::const_iterator iter1;
+    for (iter1=keys.begin(); iter1 != keys.end(); iter1++) {
+        break_assert((bret=add_jx9_json_object(jx9_vm, iter1->second, json1)));
+
+        pair_ptr_t kv_pair(iter1->first, json1);
+        break_assert((bret=add_jx9_json_object(jx9_vm, kv_pair, json2)));
+
+        unqlite_vm_release_value(jx9_vm, json1);
+        json1 = NULL;
+    }
+    unqlite_vm_release_value(jx9_vm, json1);
+
+    if (bret) {
+        jx9_json = json2;
+    }else {
+        unqlite_vm_release_value(jx9_vm, json2);
+    }
+    return bret;
+}
+
