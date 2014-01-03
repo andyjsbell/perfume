@@ -18,8 +18,8 @@ class IEauApi{
 public:
     virtual void SetSink(IEauSink *pSink) = 0;
 
-    virtual bool SignOut() = 0;
     virtual bool SignIn(const char *name, const char *pass) = 0;
+    virtual bool SignOut() = 0;
     virtual bool Register(const char *name, const char *pass) = 0;
     
     virtual bool GetProjects() = 0;
@@ -30,7 +30,12 @@ public:
     virtual bool CreateProject() = 0;
     virtual bool AddProjectBill() = 0;
     virtual bool AddProjectUser() = 0;
+
+pritected:
+    virtual ~IEauApi() {}
 };
 
+extern "C" void CreateIEauApi(IEauApi ** pp);
+extern "C" void DesctroyIEauApi(IEauApi ** pp);
 
 #endif // _IEAU_API_H_
