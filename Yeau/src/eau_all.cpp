@@ -1,5 +1,7 @@
 #include "eau_all.h"
 
+using namespace eau;
+
 CEauApi::CEauAPI()
 {
     m_pSink = NULL;

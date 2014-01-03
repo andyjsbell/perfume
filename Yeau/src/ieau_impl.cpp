@@ -1,14 +1,16 @@
 #include "ieau_api.h"
+#include "eau_all.h"
 
-void CreateIEauApi(IEauApi ** pp)
+void CreateIEauApi(eau::IEauApi ** pp)
 {
-    (*pp) = new CEauAPI();
+    (*pp) = new eau::CEauAPI();
 }
 
-void DestroyIEauApi(IEauApi ** pp)
+void DestroyIEauApi(eau::IEauApi ** pp)
 {
     if (*pp) {
         delete (*pp);
         (*pp) = NULL;
     }
 }
+

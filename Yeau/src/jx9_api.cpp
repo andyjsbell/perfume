@@ -1,8 +1,12 @@
 #include <string.h>
+#include "jx9_api.h"
+
 extern "C" {
 #include "unqlite/unqlite.h"
 #include "jx9net.h"
 }
+
+using namespace eau;
 
 static int jx9_stdout_callback(const void* msg, unsigned int len, void* data)
 {
