@@ -17,8 +17,8 @@ namespace eau
         bill_t(binfo_t &info) : binfo_t(info) {}
     };
     struct proj_t : public pinfo_t {
-        map<string, user_t> users; // <uid, ->
-        map<string, bill_t> bills; // <bid, ->
+        map<string, user_t> users; // <uid, ..>
+        map<string, bill_t> bills; // <bid, ..>
         proj_t(){}
         proj_t(pinfo_t &info) : pinfo_t(info) {}
     };
@@ -44,7 +44,9 @@ namespace eau
 
         virtual bool AddProject(pinfo_t &pinfo);
         virtual bool AddProjectBill(const string &pid, binfo_t &binfo);
-        virtual bool AddProjectUser();
+        virtual bool SetProjectBill(const string &pid, const string &bid, string todo_val);
+        virtual bool AddProjectUser(const string &pid, uinfo_t &uinfo);
+        virtual bool DelProjectUser(const string &pid, const string &uid);
 
     private:
         IEauSink*       m_pSink;

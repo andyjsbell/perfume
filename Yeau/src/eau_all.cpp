@@ -156,36 +156,164 @@ bool CEauApi::AddProjectBill(const string &pid, binfo_t &binfo)
     if (iter == m_vProjs.end())
         return false;
     
+    // only project owner and member can add new bill
     proj_t &proj = iter->second;
     map<string, user_t>::iterator uiter = proj.users.find(m_szName);
     if (uiter == proj.users.end())
         return false;
-
     user_t &user = uiter->second;
     if (user.role != "owner" && user.role != "member")
         return false; 
 
+    // gen bill id(bid)
     binfo.bid = uuid_generate_string();
     binfo.creator = m_szName;
 
+    // set bill stat
     bill_t bill(binfo);
+    bill.stat = "wait";
     // new bill need all owners' permission
     for(uiter=proj.users.begin(); uiter != proj.users.end(); uiter++) {
-        if (uiter->second.role == "owner") {
+        if (uiter->second.role == "owner")
             bill.todo[uiter->first] = "ing";
-            if (uiter->first == m_szName)
-                bill.todo[uiter->first] = "yes";
-        }
+    }
+
+    // if only one owner and also he/she is bill creator
+    if (bill.todo.find(m_szName) != bill.todo.end()) {
+        bill.todo[m_szName] = "yes";
+        if (bill.todo.size() == 1)
+            bill.stat = "approve";
     }
     proj.bills[binfo.bid] = bill;
     return true;
 }
 
-bool CEauApi::AddProjectUser()
+bool CEauApi::SetProjectBill(const string &pid, const string &bid, string todo_val)
 {
     returnb_assert(m_bSigned);
 
-    return false;
+    map<string, proj_t>::iterator iter = m_vProjs.find(pid);
+    if (iter == m_vProjs.end())
+        return false;
+
+    proj_t &proj = iter->second;
+    map<string, bill_t>::iterator biter = proj.bills.find(bid);
+    if (biter == proj.bills.end())
+        return false;
+
+    bill_t &bill = biter->second;
+    if (bill.stat == "approve" || bill.stat == "refuse") // final stat
+        return false;
+
+    // bill creator can set bill stat
+    if (bill.creator == m_szName) { // nop for bill creator
+        if (todo_val == "no")
+            bill.stat = "desperate";
+        return true;
+    }
+
+    if (bill.stat == "desperate") // final stat
+        return false;
+
+    // project owner can set bill stat
+    map<string, user_t>::iterator uiter = proj.users.find(m_szName);
+    if (uiter == proj.users.end())
+        return false;
+    user_t &user = uiter->second;
+    if (user.role != "owner")
+        return false; 
+
+    map<string, string>::iterator titer = user.todo.find(m_szName);
+    if (titer == user.todo.end())
+        return false;
+    user.todo[m_szName] = todo_val;
+
+    // check bill stat
+    string bstat = "approve";
+    for(titer=bill.todo.begin(); titer != bill.todo.end(); titer++) {
+        if (titer->second == "no") {
+            bstat = "refuse"; // final stat
+            break;
+        }else if (titer->second == "yes") {
+            // continue;
+        }else { // "ing"
+            bstat = "wait";
+        }
+    }
+    bill.stat = bstat;
+    return true;
 }
 
+bool CEauApi::AddProjectUser(const string &pid, uinfo_t &uinfo)
+{
+    returnb_assert(m_bSigned);
+
+    map<string, proj_t>::iterator iter = m_vProjs.find(pid);
+    if (iter == m_vProjs.end())
+        return false;
+
+    proj_t &proj = iter->second;
+    map<string, user_t>::iterator uiter = proj.users.find(m_szName);
+    if (uiter == proj.users.end())
+        return false;
+    user_t &user = uiter->second;
+    if (user.role != "owner") // only project owner have permission
+        return false; 
+
+    uiter = proj.users.find(uinfo.uid);
+    if (uiter != proj.users.end()) 
+        return false; // user exist
+    
+    user_t new_user(uinfo);
+    new_user.stat = "approve";
+    if (uinfo.role == "owner") {
+        // new owner need all owners' permission
+        new_user.stat = "wait";
+        for(uiter=proj.users.begin(); uiter != proj.users.end(); uiter++) {
+            if (uiter->second.role == "owner")
+                new_user.todo[uiter->first] = "ing";
+        }
+
+        // self owner approve automatically
+        if (new_user.todo.find(m_szName) != new_user.todo.end()) {
+            new_user.todo[m_szName] = "yes";
+            if (new_user.todo.size() == 1)
+                new_user.stat = "approve";
+        }
+    }
+    proj.users[new_user.uid] = new_user;
+    return true;
+}
+
+bool CEauApi::DelProjectUser(const string &pid, const string &uid)
+{
+    returnb_assert(m_bSigned);
+
+    map<string, proj_t>::iterator iter = m_vProjs.find(pid);
+    if (iter == m_vProjs.end())
+        return false;
+
+    proj_t &proj = iter->second;
+    map<string, user_t>::iterator uiter = proj.users.find(m_szName);
+    if (uiter == proj.users.end())
+        return false;
+    user_t &user = uiter->second;
+    if (user.role != "owner") // only project owner have permission
+        return false; 
+
+    if (uid == proj.creator)
+        return false; // cannot del user who also is project owner
+
+    uiter = proj.users.find(uid);
+    if (uiter == proj.users.end()) 
+        return false; // user not exist
+
+    if (uiter->second.role == "owner") {
+        // owner can only be deleted by creator
+        if (proj.creator != m_szName)
+            return false;
+    }
+    proj.users.erase(uid);
+    return true;
+}
 
