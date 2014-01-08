@@ -326,7 +326,7 @@ var g_users = [
 
 var g_bids = ["bill0", "bill1", "bill2", "bill3", "bill4", "bill5"];
 var g_bstats = ["draft", "wait", "approve", "refuse", "desperate"]; 
-var g_todo = ["null", "no", "yes"];
+var g_todo = ["ing", "no", "yes"];
 var g_bills = [
 //_id<bid>, name, desc, cash, creator<uid>, stat, todo:{uid:xx, uid:xx}
     [0, "bill0", "..",  100,    1,          2,    [[0,0]]        ],

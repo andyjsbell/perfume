@@ -7,14 +7,20 @@
 namespace eau
 {
     struct user_t : public uinfo_t {
-        map<string, string> todo;
+        map<string, string> todo; // <uid, "ing,no,yes">
+        user_t(){}
+        user_t(uinfo_t &info) : uinfo_t(info) {}
     };
     struct bill_t : public binfo_t {
-        map<string, string> todo;
+        map<string, string> todo; // <uid, "ing,no,yes">
+        bill_t(){}
+        bill_t(binfo_t &info) : binfo_t(info) {}
     };
     struct proj_t : public pinfo_t {
-        map<string, user_t> users;
-        map<string, bill_t> bills;
+        map<string, user_t> users; // <uid, ->
+        map<string, bill_t> bills; // <bid, ->
+        proj_t(){}
+        proj_t(pinfo_t &info) : pinfo_t(info) {}
     };
 
     class CEauApi : public IEauApi
@@ -36,8 +42,8 @@ namespace eau
         virtual bool GetProjectBills(const string &pid, vector<string> &bids);
         virtual bool GetProjectBillInfo(const string &pid, const string &bid, binfo_t &binfo);
 
-        virtual bool CreateProject();
-        virtual bool AddProjectBill();
+        virtual bool AddProject(pinfo_t &pinfo);
+        virtual bool AddProjectBill(const string &pid, binfo_t &binfo);
         virtual bool AddProjectUser();
 
     private:

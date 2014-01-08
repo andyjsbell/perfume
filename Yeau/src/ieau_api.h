@@ -10,8 +10,8 @@ namespace eau
     // user info
     struct uinfo_t {
         string uid;
-        string role;
-        string stat;
+        string role; // ["owner", "member", "viewer", "observer"]
+        string stat; // ["wait", "approve", "refuse", "desperate"]
     };
 
     // bill info
@@ -21,7 +21,7 @@ namespace eau
         string desc;
         long   cash;
         string creator;
-        string stat;
+        string stat; // ["draft", "wait", "approve", "refuse", "desperate"]
     };
 
     // proj info
@@ -29,6 +29,7 @@ namespace eau
         string pid;
         string name;
         string desc;
+        string creator;
     };
 
     class IEauSink {

@@ -1,4 +1,6 @@
 #include "eau_all.h"
+#include "error.h"
+#include "umisc.h"
 
 using namespace eau;
 
@@ -25,6 +27,7 @@ bool CEauApi::Register(const char *name, const char *pass)
 
 bool CEauApi::SignIn(const char *name, const char *pass)
 {
+    returnb_assert(!m_bSigned);
     m_szName = string(name);
     m_szPass = string(pass);
     m_bSigned = true;
@@ -33,12 +36,15 @@ bool CEauApi::SignIn(const char *name, const char *pass)
 
 bool CEauApi::SignOut()
 {
+    returnb_assert(m_bSigned);
     m_bSigned = false;
     return true;
 }
 
 bool CEauApi::GetProjects(vector<string> &pids)
 {
+    returnb_assert(m_bSigned);
+
     map<string, proj_t>::iterator iter = m_vProjs.begin();
     for(iter=m_vProjs.begin(); iter != m_vProjs.end(); iter++) {
         pids.push_back(iter->first);
@@ -48,6 +54,8 @@ bool CEauApi::GetProjects(vector<string> &pids)
 
 bool CEauApi::GetProjectInfo(const string &pid, pinfo_t &pinfo)
 {
+    returnb_assert(m_bSigned);
+
     map<string, proj_t>::iterator iter = m_vProjs.find(pid);
     if (iter != m_vProjs.end()) {
         pinfo = iter->second;
@@ -58,6 +66,8 @@ bool CEauApi::GetProjectInfo(const string &pid, pinfo_t &pinfo)
 
 bool CEauApi::GetProjectUsers(const string &pid, vector<string> &uids)
 {
+    returnb_assert(m_bSigned);
+
     map<string, proj_t>::iterator iter = m_vProjs.find(pid);
     if (iter != m_vProjs.end()) {
         map<string, user_t> &users = iter->second.users;
@@ -73,6 +83,8 @@ bool CEauApi::GetProjectUsers(const string &pid, vector<string> &uids)
 
 bool CEauApi::GetProjectUserInfo(const string &pid, const string &uid, uinfo_t &uinfo)
 {
+    returnb_assert(m_bSigned);
+
     map<string, proj_t>::iterator iter = m_vProjs.find(pid);
     if (iter != m_vProjs.end()) {
         map<string, user_t> &users = iter->second.users;
@@ -87,6 +99,8 @@ bool CEauApi::GetProjectUserInfo(const string &pid, const string &uid, uinfo_t &
 
 bool CEauApi::GetProjectBills(const string &pid, vector<string> &bids)
 {
+    returnb_assert(m_bSigned);
+
     map<string, proj_t>::iterator iter = m_vProjs.find(pid);
     if (iter != m_vProjs.end()) {
         map<string, bill_t> &bills = iter->second.bills;
@@ -101,6 +115,8 @@ bool CEauApi::GetProjectBills(const string &pid, vector<string> &bids)
 
 bool CEauApi::GetProjectBillInfo(const string &pid, const string &bid, binfo_t &binfo)
 {
+    returnb_assert(m_bSigned);
+
     map<string, proj_t>::iterator iter = m_vProjs.find(pid);
     if (iter != m_vProjs.end()) {
         map<string, bill_t> &bills = iter->second.bills;
@@ -113,18 +129,62 @@ bool CEauApi::GetProjectBillInfo(const string &pid, const string &bid, binfo_t &
     return false;
 }
 
-bool CEauApi::CreateProject()
+bool CEauApi::AddProject(pinfo_t &pinfo)
 {
-    return false;
+    returnb_assert(m_bSigned);
+
+    pinfo.pid = uuid_generate_string();
+    pinfo.creator = m_szName;
+    proj_t proj(pinfo);
+
+    // default project creator is also owner
+    user_t user;
+    user.uid = m_szName;
+    user.role = "owner";
+    user.stat = "approve";
+    proj.users[user.uid] = user;
+
+    m_vProjs[pinfo.pid] = proj;
+    return true;
 }
 
-bool CEauApi::AddProjectBill()
+bool CEauApi::AddProjectBill(const string &pid, binfo_t &binfo)
 {
-    return false;
+    returnb_assert(m_bSigned);
+
+    map<string, proj_t>::iterator iter = m_vProjs.find(pid);
+    if (iter == m_vProjs.end())
+        return false;
+    
+    proj_t &proj = iter->second;
+    map<string, user_t>::iterator uiter = proj.users.find(m_szName);
+    if (uiter == proj.users.end())
+        return false;
+
+    user_t &user = uiter->second;
+    if (user.role != "owner" && user.role != "member")
+        return false; 
+
+    binfo.bid = uuid_generate_string();
+    binfo.creator = m_szName;
+
+    bill_t bill(binfo);
+    // new bill need all owners' permission
+    for(uiter=proj.users.begin(); uiter != proj.users.end(); uiter++) {
+        if (uiter->second.role == "owner") {
+            bill.todo[uiter->first] = "ing";
+            if (uiter->first == m_szName)
+                bill.todo[uiter->first] = "yes";
+        }
+    }
+    proj.bills[binfo.bid] = bill;
+    return true;
 }
 
 bool CEauApi::AddProjectUser()
 {
+    returnb_assert(m_bSigned);
+
     return false;
 }
 
