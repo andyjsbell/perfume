@@ -6,6 +6,7 @@ using namespace std;
 #include "umisc.h"
 #include "store.h"
 #include "zeroptr.h"
+#include "ieau_api.h"
 
 #define FUNCTAG "["<<__FUNCTION__<<"]"
 
@@ -52,6 +53,7 @@ int test_uuid()
     return 0;
 }
 
+#if 0
 int test_account()
 {
     PRINT_BEGIN;
@@ -103,13 +105,23 @@ int test_db()
     
     return 0;
 }
+#endif
+
+void test_src()
+{
+    eau::IEauApi *pAPI = NULL;
+    CreateIEauApi(&pAPI);
+    pAPI->SignOut();
+    DestroyIEauApi(&pAPI);
+}
 
 int main(int argc, char* argv[])
 {
     //test_log();
-    test_uuid();
+    //test_uuid();
     //test_account();
-    test_db();
+    //test_db();
+    test_src();
     return 0;
 }
 

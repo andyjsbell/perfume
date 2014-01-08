@@ -5,6 +5,7 @@ include_directories(
     ${PROJECT_SOURCE_DIR}/ubase
     ${PROJECT_SOURCE_DIR}/misc/
     ${PROJECT_SOURCE_DIR}/misc/jx9eau
+    ${PROJECT_SOURCE_DIR}/misc/libneon/src
 )
 
 # For Yeau
@@ -16,12 +17,13 @@ set(Yeau_LIB_SRCS
     eau_all.cpp  
     ieau_impl.cpp  
     jx9_api.cpp
+    ../misc/jx9eau/jx9net.c
 )
 
 link_directories(
     ${PROJECT_BINARY_DIR}/lib
 )
-link_libraries(Yeau unqlite uuid pthread)
+link_libraries(Yeau unqlite uuid neon pthread)
 
 
 set(so_NAME Yeau)

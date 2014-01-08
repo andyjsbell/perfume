@@ -18,4 +18,5 @@ add_subdirectory(misc/libuuid)
 add_subdirectory(misc/unqlite)
 add_subdirectory(misc/jx9eau)
 add_subdirectory(src)
+add_subdirectory(testing)
 

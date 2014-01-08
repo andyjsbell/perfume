@@ -5,6 +5,7 @@ set(testYeau_EXEC_SRCS
 include_directories(
     ${PROJECT_SOURCE_DIR}/compte
     ${PROJECT_SOURCE_DIR}/ubase
+    ${PROJECT_SOURCE_DIR}/src
 )
 
 link_directories(

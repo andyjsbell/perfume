@@ -49,29 +49,25 @@ namespace eau
     public:
         virtual void SetSink(IEauSink *pSink) = 0;
 
-#if 0
+#if 1
+        virtual bool Register(const char *name, const char *pass) = 0;
         virtual bool SignIn(const char *name, const char *pass) = 0;
         virtual bool SignOut() = 0;
-        virtual bool Register(const char *name, const char *pass) = 0;
 
         virtual bool GetProjects(vector<string> &pids) = 0;
-
-        virtual string GetProjectName(const string &pid) = 0;
-        virtual string GetProjectDesc(const string &pid) = 0;
-        virtual string GetProjectCreator(const string &pid) = 0;
-
+        virtual bool GetProjectInfo(const string &pid, pinfo_t &pinfo) = 0;
         virtual bool GetProjectUsers(const string &pid, vector<string> &uids) = 0;
+        virtual bool GetProjectUserInfo(const string &pid, const string &uid, uinfo_t &uinfo) = 0;
+        virtual bool GetProjectBills(const string &pid, vector<string> &bids) = 0;
+        virtual bool GetProjectBillInfo(const string &pid, const string &bid, binfo_t &binfo) = 0;
 
-        virtual bool GetProjectInfo(const string &pid, proj_t &proj) = 0;
-        virtual bool UpdateProject(proj_t &proj) = 0;
-
-        virtual bool GetProjectUsers() = 0;
-        virtual bool GetProjectBills() = 0;
-
-        virtual bool CreateProject(proj_t &proj) = 0;
-        virtual bool AddProjectBill() = 0;
-        virtual bool AddProjectUser() = 0;
+        virtual bool AddProject(pinfo_t &pinfo) = 0;
+        virtual bool AddProjectBill(const string &pid, binfo_t &binfo) = 0;
+        virtual bool SetProjectBill(const string &pid, const string &bid, string todo_val) = 0;
+        virtual bool AddProjectUser(const string &pid, uinfo_t &uinfo) = 0;
+        virtual bool DelProjectUser(const string &pid, const string &uid) = 0;
 #endif
+
     protected:
         virtual ~IEauApi() {}
     };
@@ -79,6 +75,6 @@ namespace eau
 } // namespace eau
 
 extern "C" void CreateIEauApi(eau::IEauApi ** pp);
-extern "C" void DesctroyIEauApi(eau::IEauApi ** pp);
+extern "C" void DestroyIEauApi(eau::IEauApi ** pp);
 
 #endif // _IEAU_API_H_
