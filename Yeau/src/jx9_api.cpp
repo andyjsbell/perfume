@@ -199,4 +199,4 @@ bool add_jx9_json_object(vmptr_t jx9_vm, const json2_t &keys, valptr_t &jx9_json
     return bret;
 }
 
-}
+} // namespace eau

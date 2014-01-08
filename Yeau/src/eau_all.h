@@ -6,15 +6,15 @@
 
 namespace eau
 {
-    struct uinfo_t : public user_t {
+    struct user_t : public uinfo_t {
         map<string, string> todo;
     };
-    struct binfo_t : public bill_t {
+    struct bill_t : public binfo_t {
         map<string, string> todo;
     };
-    struct pinfo_t : public proj_t {
-        map<string, uinfo_t> users;
-        map<string, binfo_t> bills;
+    struct proj_t : public pinfo_t {
+        map<string, user_t> users;
+        map<string, bill_t> bills;
     };
 
     class CEauApi : public IEauApi
@@ -30,9 +30,11 @@ namespace eau
         virtual bool SignOut();
 
         virtual bool GetProjects(vector<string> &pids);
-        virtual bool GetProjectInfo();
-        virtual bool GetProjectUsers();
-        virtual bool GetProjectBills();
+        virtual bool GetProjectInfo(const string &pid, pinfo_t &pinfo);
+        virtual bool GetProjectUsers(const string &pid, vector<string> &uids);
+        virtual bool GetProjectUserInfo(const string &pid, const string &uid, uinfo_t &uinfo);
+        virtual bool GetProjectBills(const string &pid, vector<string> &bids);
+        virtual bool GetProjectBillInfo(const string &pid, const string &bid, binfo_t &binfo);
 
         virtual bool CreateProject();
         virtual bool AddProjectBill();
@@ -44,7 +46,7 @@ namespace eau
         bool            m_bSigned;
         string          m_szName;
         string          m_szPass;
-        map<string, pinfo_t>  m_vProjs;
+        map<string, proj_t>  m_vProjs;
     };
 
 } // namespace eau

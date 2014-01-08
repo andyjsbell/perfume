@@ -7,12 +7,15 @@ using namespace std;
 
 namespace eau
 {
-    struct user_t {
+    // user info
+    struct uinfo_t {
         string uid;
         string role;
         string stat;
     };
-    struct bill_t {
+
+    // bill info
+    struct binfo_t {
         string bid;
         string name;
         string desc;
@@ -20,7 +23,9 @@ namespace eau
         string creator;
         string stat;
     };
-    struct proj_t {
+
+    // proj info
+    struct pinfo_t {
         string pid;
         string name;
         string desc;
