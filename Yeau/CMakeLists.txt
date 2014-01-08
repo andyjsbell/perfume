@@ -17,7 +17,5 @@ add_subdirectory(misc/libneon)
 add_subdirectory(misc/libuuid)
 add_subdirectory(misc/unqlite)
 add_subdirectory(misc/jx9eau)
-
-add_subdirectory(compte)
-add_subdirectory(testing)
+add_subdirectory(src)
 

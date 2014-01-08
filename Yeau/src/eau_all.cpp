@@ -2,12 +2,12 @@
 
 using namespace eau;
 
-CEauApi::CEauAPI()
+CEauApi::CEauApi()
 {
     m_pSink = NULL;
 }
 
-CEauApi::~CEauAPI()
+CEauApi::~CEauApi()
 {}
 
 
@@ -16,14 +16,14 @@ void CEauApi::SetSink(IEauSink *pSink)
     m_pSink = pSink;
 }
 
-bool CEauApi::Register(const char *name, const *pass)
+bool CEauApi::Register(const char *name, const char *pass)
 {
     m_szName = string(name);
     m_szPass = string(pass);
     return true;
 }
 
-bool CEauApi::SignIn(const char *name, const *pass)
+bool CEauApi::SignIn(const char *name, const char *pass)
 {
     m_szName = string(name);
     m_szPass = string(pass);
@@ -33,11 +33,16 @@ bool CEauApi::SignIn(const char *name, const *pass)
 
 bool CEauApi::SignOut()
 {
-    m_bbSigned = false;
+    m_bSigned = false;
 }
 
-bool CEauApi::GetProjects()
+bool CEauApi::GetProjects(vector<string> &pids)
 {
+    map<string, pinfo_t>::iterator iter = m_vProjs.begin();
+    for(iter=m_vProjs.begin(); iter != m_vProjs.end(); iter++) {
+        pids.push_back(iter->first);
+    }
+    return true;
 }
 
 bool CEauApi::GetProjectInfo()

@@ -3,7 +3,7 @@
 
 void CreateIEauApi(eau::IEauApi ** pp)
 {
-    (*pp) = new eau::CEauAPI();
+    (*pp) = new eau::CEauApi();
 }
 
 void DestroyIEauApi(eau::IEauApi ** pp)

@@ -1,17 +1,21 @@
 #include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include "jx9_api.h"
+#include "error.h"
 
 extern "C" {
 #include "unqlite/unqlite.h"
 #include "jx9net.h"
 }
 
-using namespace eau;
+namespace eau
+{
 
 static int jx9_stdout_callback(const void* msg, unsigned int len, void* data)
 {
     if (msg && len > 0) {
-        char *pmsg = malloc(len+1);
+        char *pmsg = (char *)malloc(len+1);
         memset(pmsg, 0, len+1);
         memcpy(pmsg, msg, len);
         printf("%s\n", pmsg);
@@ -29,12 +33,12 @@ int run_jx9_exec(const char *script, const char *fname,
     unqlite *pDB = NULL;
     unqlite_vm *pVM = NULL;
 
-    char *pProg = script;
-    char *pName = fname;
+    const char *pProg = script;
+    const char *pName = fname;
 
     jx9_in_cb_t pfInCallback = pf_in;
     jx9_out_cb_t pfOutCallback = pf_out;
-    jx9_out_cb_t pfLogCallback = pf_log;
+    jx9_log_cb_t pfLogCallback = pf_log;
 
     if (!pProg || !pName) {
         printf("usage: %s jx9_script db_fname\n", __FUNCTION__);
@@ -64,13 +68,13 @@ int run_jx9_exec(const char *script, const char *fname,
 
     // input users' variables
     if (pfInCallback)
-        pfInCallback((void *)pVM, NULL);
+        pfInCallback(pVM, NULL);
 
     if(unqlite_vm_exec(pVM) != UNQLITE_OK)
         goto __error;
 
     if (pfOutCallback) 
-        pfOutCallback((void *)pVM, NULL);
+        pfOutCallback(pVM, NULL);
 
     iret = 0;
 __error:
@@ -81,18 +85,18 @@ __error:
     return iret;
 }
 
-bool set_jx9_variable(void* jx9_vm, const char *jx9_name, const void *jx9_value)
+bool set_jx9_variable(vmptr_t jx9_vm, const char *jx9_name, const valptr_t jx9_value)
 {
     returnb_assert(jx9_vm);
     returnb_assert(jx9_name);
     returnb_assert(jx9_value);
-    bool bret = (unqlite_vm_config((unqlite_vm *)jx9_vm, UNQLITE_VM_CONFIG_CREATE_VAR, jx9_name, (unqlite_value *)jx9_value) == UNQLITE_OK);
+    bool bret = (unqlite_vm_config(jx9_vm, UNQLITE_VM_CONFIG_CREATE_VAR, jx9_name, jx9_value) == UNQLITE_OK);
     return bret;
 }
 
 //=======================================
 
-bool new_jx9_json_value(void* jx9_vm, const string &value, void* &jx9_value)
+bool new_jx9_json_value(vmptr_t jx9_vm, const string &value, valptr_t &jx9_value)
 {
     returnb_assert(jx9_vm);
 
@@ -111,7 +115,7 @@ bool new_jx9_json_value(void* jx9_vm, const string &value, void* &jx9_value)
 }
 
 // json format: {k:v}, {..., k:v}
-bool add_jx9_json_object(void* jx9_vm, const pair_ptr_t &key, void* &jx9_json)
+bool add_jx9_json_object(vmptr_t jx9_vm, const pair_ptr_t &key, valptr_t &jx9_json)
 {
     returnb_assert(jx9_vm);
 
@@ -131,15 +135,15 @@ bool add_jx9_json_object(void* jx9_vm, const pair_ptr_t &key, void* &jx9_json)
 }
 
 // json format: {k:v}, {..., k:v}
-bool add_jx9_json_object(void* jx9_vm, const pair_t &key, void* &jx9_json)
+bool add_jx9_json_object(vmptr_t jx9_vm, const pair_t &key, valptr_t &jx9_json)
 {
     returnb_assert(jx9_vm);
 
     bool bret = false;
-    unqlite_value* pvalue = NULL;
+    valptr_t pvalue = NULL;
     do {
         break_assert(new_jx9_json_value(jx9_vm, key.second, pvalue));
-        pair_ptr_t key_ptr(key.first, pvalue);
+        const pair_ptr_t key_ptr(key.first, pvalue);
         bret = add_jx9_json_object(jx9_vm, key_ptr, jx9_json);
     }while(false);
     unqlite_vm_release_value(jx9_vm, pvalue);
@@ -147,7 +151,7 @@ bool add_jx9_json_object(void* jx9_vm, const pair_t &key, void* &jx9_json)
 }
 
 // json format:  {k1:v1, k2:v2, ...}
-bool add_jx9_json_object(void* jx9_vm, const json1_t &keys, void* &jx9_json)
+bool add_jx9_json_object(vmptr_t jx9_vm, const json1_t &keys, valptr_t &jx9_json)
 {
     returnb_assert(jx9_vm);
 
@@ -167,7 +171,7 @@ bool add_jx9_json_object(void* jx9_vm, const json1_t &keys, void* &jx9_json)
 }
 
 // json format:  {k1:{k11:v11,k12:v12}, k2:{..}, ...}
-bool add_jx9_json_object(void* jx9_vm, const json2_t &keys, void* &jx9_json)
+bool add_jx9_json_object(vmptr_t jx9_vm, const json2_t &keys, valptr_t &jx9_json)
 {
     returnb_assert(jx9_vm);
 
@@ -195,3 +199,4 @@ bool add_jx9_json_object(void* jx9_vm, const json2_t &keys, void* &jx9_json)
     return bret;
 }
 
+}

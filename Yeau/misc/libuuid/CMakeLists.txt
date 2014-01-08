@@ -29,8 +29,8 @@ set(uuid_LIB_SRCS
 include(cmake_check.cmake)
 
 set(so_NAME uuid)
-add_library(${so_NAME} SHARED ${uuid_LIB_SRCS})
-set_target_properties(${so_NAME} PROPERTIES CLEAN_DIRECT_OUTPUT 1) 
+#add_library(${so_NAME} SHARED ${uuid_LIB_SRCS})
+#set_target_properties(${so_NAME} PROPERTIES CLEAN_DIRECT_OUTPUT 1) 
 #set_target_properties(${so_NAME} PROPERTIES VERSION 1.0 SOVERSION 1)
 
 set(a_NAME uuid_static)
@@ -40,6 +40,6 @@ set_target_properties(${a_NAME} PROPERTIES CLEAN_DIRECT_OUTPUT 1)
 
 set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib/) 
 
-install(TARGETS ${so_NAME} LIBRARY DESTINATION lib)
+#install(TARGETS ${so_NAME} LIBRARY DESTINATION lib)
 install(TARGETS ${a_NAME}  ARCHIVE DESTINATION lib)
 
