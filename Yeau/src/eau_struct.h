@@ -78,7 +78,7 @@ namespace eau
         return "none";
     }
 
-    struct atom_t;
+#if 0
     static const atom_t kKeyAtom(int idx, const string val="")
     {
         return atom_t(kKeyName(idx), val);
@@ -91,6 +91,7 @@ namespace eau
                 return k;
         return K_Unknown;
     }
+#endif
 
 } // namespace eau
 

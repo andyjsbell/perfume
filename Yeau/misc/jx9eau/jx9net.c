@@ -68,7 +68,6 @@ int jx9_testnet_func(unqlite_context* pCtx, int argc, unqlite_value** argv)
 {
     int iret = -1;
     const char* idstr = NULL;
-    int idlen = 0;
 
     if (argc != 1 || !unqlite_value_is_json_object(argv[0])) { 
         unqlite_context_throw_error(pCtx, UNQLITE_CTX_WARNING, "wrong argc or argv[0]");

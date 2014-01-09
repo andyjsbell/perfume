@@ -68,7 +68,7 @@ namespace eau
         virtual bool DelProjectUser(const string &pid, const string &uid) = 0;
 #endif
 
-    protected:
+    public:
         virtual ~IEauApi() {}
     };
 

@@ -365,7 +365,6 @@ int jx9_close_func(unqlite_context* pCtx, int argc, unqlite_value** argv)
 {
     int iret = -1;
     int sock = 0;
-    int how = 0;
 
     CHECK_ARGV_RETURN(pCtx, argc, argv[0]);
 

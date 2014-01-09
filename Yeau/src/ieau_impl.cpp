@@ -8,8 +8,9 @@ void CreateIEauApi(eau::IEauApi ** pp)
 
 void DestroyIEauApi(eau::IEauApi ** pp)
 {
-    if (*pp) {
-        delete (*pp);
+    eau::IEauApi *p = (eau::IEauApi *)(*pp);
+    if (p) {
+        delete p;
         (*pp) = NULL;
     }
 }
