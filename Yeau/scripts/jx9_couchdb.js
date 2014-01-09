@@ -1,44 +1,32 @@
 /**
- * jx9 rsync script
+ * jx9 couchdb script
  * uskee.org
  */
 
-
-import 'scripts/jx9_misc.jx9';
-
+function log($msg, $level="info") {
+    print "$msg";
+}
 function required($var, $msg="required") {
-    if (is_null($var)) exit($msg);
+    if (is_null($var)) {log($msg, "error"); return FALSE;}
+    return TRUE;
 }
-function checkint($var) {
-    if ($var <= 0) exit("$var <= 0");
-}
-function checkdb($db, $msg="fail") {
-    if (!db_exists($db)) {
-        if(!db_create($db)) {
-            log_error(db_errlog());
-            exit($msg);
-        }
+function checkdb($db) {
+    if (!db_exists($db) && !db_create($db)) {
+        log(db_errlog());
+        return FALSE;
     }
-}
-function authenx($name, $passwd) {
-    if(!db_exists("user")) return;
-    $authcb = function($rec) {
-        return (($rec.name == $name) && ($rec.passwd == $passwd));
-    };
-    if(!db_fetch_all("users", $authcb)) {
-        exit("fail to authenx user/passwd");
-    }
+    return TRUE;
 }
 function neon_http($conf) {
     // get config
     $proto = {scheme:"http", hostname:$conf.hostname, port:$conf.port};
     $session = ne_session_create($proto);
-    if($session <= 0) return "no session";
+    if($session <= 0) {log("no session"); return NULL;}
 
     $head = {session:$session, method:$conf.method, path:$conf.path};
     //ne_set_useragent({session:$session, product:"Jx9Agent/1.0"});
     $request = ne_request_create($head);
-    if($request <= 0) return;
+    if($request <= 0) {log("fail to ne_request_create"); return NULL;}
 
     // add header
     $req_head = {"Host": "$conf.hostname:$conf.port",
@@ -68,7 +56,7 @@ function neon_http($conf) {
         $resp["Content-Length"] = $resp_body["Content-Length"];
         //print $resp["Content"];
     }else {
-        log_error("ne_request_dispatch: $ret"); 
+        log("ne_request_dispatch: $ret"); 
     }
 
     // get status
@@ -79,7 +67,7 @@ function neon_http($conf) {
         $resp["klass"] = $resp_status.klass;
         $resp["reason"] = $resp_status.reason;
     }else {
-        log_error("ne_get_status: $ret, $resp_status");
+        log("ne_get_status: $ret, $resp_status");
     }
 
     ne_request_destroy({request:$request});
@@ -87,12 +75,12 @@ function neon_http($conf) {
     ne_session_destroy({session:$session});
     return $resp;
 }
-function update_local_doc($db, $doc) {
+function update_doc($db, $doc) {
     if (!$db || !$doc) return FALSE;
     checkdb($db);
     while(($rec=db_fetch($db)) != NULL) {
         if ($doc._id == $rec._id) {
-            print "find rec: $key and remove it";
+            log("find rec: $key and remove it", "debug");
             db_drop_record($db, $rec.__id);
         }
     }
@@ -124,20 +112,6 @@ function get_conflicts($ldoc, $rdoc) {
         if ($ldoc[$key] != $rdoc[$key])  $doc[$key] = TRUE; // have conflict
     }
     return $doc;
-}
-function run_rsync($http, $db) {
-    $rdocs = [];
-    $http["method"] = "GET"};
-    $http["path"] = "/db_yeau/_changes?filter=svc/myprojs&uid=$user&include_docs=true";
-    $http["body"] = NULL;
-    $resp = neon_http($http);
-    if ($resp.klass == 2) {
-        foreach ($resp.Content.results as $ret) {
-            if ($ret.doc)   array_push($rdocs, $ret.doc);
-        }
-        foreach ($rdocs as $doc) update_local_doc($db, $doc);
-    }
-    return $rdocs;
 }
 function run_post_doc($http, $doc) {
     $http["method"] = "POST";
@@ -186,81 +160,129 @@ function run_db_sync($dbl, $dbr) {
         if ($rdoc) {
             $ndoc = merge_doc($ldoc, $rdoc);
             if ($ndoc != $ldoc)
-                update_local_doc($dbl, $ndoc);
+                update_doc($dbl, $ndoc);
         }
     }
 }
-function run_getter($db, $key) {
-    while(($rec=db_fetch($db))) {
-        if (rec_contain($key, $rec)) {
-            rec_getter($val, $rec);
-            break;
-        }
+function register($db, $name, $pass) {
+    if (!$db || !$name || !$pass) return FALSE;
+    if(!checkdb($db)) return FALSE;
+    $authcb = function($rec) {return ($rec.name == $name);};
+    if(db_fetch_all($db, $authcb)) {
+        log("user: $name has been existed", "error");
+        return FALSE;
     }
-    return $val;
+    $rec = {name:$name, pass:$pass};
+    return db_store($db, $rec);
 }
-function run_putter($db, $key, $val, $scm=NULL) {
-    //drop old record searched at first, not recursively.
-    while(($rec=db_fetch($db))) {
-        if (rec_contain($key, $rec)) {
-            db_drop_record($db, $rec.__id);
-            $new_rec = rec_putter($val, $rec, $scm);
-            break;
-        }
+function authenx($db, $name, $pass) {
+    if (!$db || !$name || !$pass) return FALSE;
+    if(!db_exists($db)) return FALSE;
+    $authcb = function($rec) {return (($rec.name == $name) && ($rec.pass == $pass));};
+    if(!db_fetch_all($db, $authcb)) {
+        log("fail to authenx user/passwd", "error");
+        return FALSE;
     }
+    return TRUE;
+}
+function signin($db, $name, $pass) {
+    return authenx($db, $name, $pass)
+}
+function run_msync($db, $out) {
+    if (!$db) return FALSE;
+    if(!db_exists($db)) return FALSE;
+    $rall = db_fetch_all($db);
+    if (!$rall) {
+        log("no available projects", "error");
+        return FALSE;
+    }
+    $out = $rall;
+    return TRUE;
+}
+function run_lsync($db, $projs) {
+    if (!$db || !$projs) return FALSE;
+    db_drop_collection($db);
+    checkdb($db);
+    foreach($projs as $proj) {
+        db_store($db, $proj);
+    }
+    db_commit($db);
+    return TRUE;
+}
+function run_rsync($db, $http, $user) {
+    $rdocs = [];
+    $http["method"] = "GET";
+    $http["path"] = "/db_yeau/_changes?filter=svc/myprojs&uid=$user&include_docs=true";
+    $http["body"] = NULL;
+    $resp = neon_http($http);
+    if ($resp.klass != 2)
+        return FALSE;
 
-    if (!$new_rec) {
-        $new_rec = rec_putter($key, $scm);
-        $new_rec = rec_putter($val, $rec);
+    foreach ($resp.Content.results as $ret) {
+        if ($ret.doc)   array_push($rdocs, $ret.doc);
     }
-    if (is_null($new_rec.id))
-        return $jx9_err.e_fail;
-
-    // store new record
-    if(!db_store($db, $new_rec)) {
-        db_rollback();
-        return $jx9_err.e_db_store;
-    }
-    db_commit();
-    return $jx9_err.s_ok;
+    foreach ($rdocs as $doc) update_doc($db, $doc);
+    return TRUE;
+}
+function run_merge($dbl, $dbr, $http, $user) {
+    return TRUE;
 }
 
-function main() {
-    $dbr = "db_yeau_rsync";
+function main($jx9_arg, $jx9_out) {
+    $dbu = "db_users";
     $dbl = "db_yeau_local";
+    $dbr = "db_yeau_remote";
 
-    $tag = $eau_jx9_arg.tag;
-    $user = $eau_jx9_arg.user;
-    $passwd = $eau_jx9_arg.passwd;
-    $host = $eau_jx9_arg.host;
-    $port = (int)$eau_jx9_arg.port;
+    $func = $jx9_arg.func;
+    $user = $jx9_arg.user;
+    $pass = $jx9_arg.pass;
+    $host = $jx9_arg.host;
+    $port = (int)$jx9_arg.port;
 
-    $tag = "rsync";
+    $func = "rsync";
+    if(!required($func, "no func")) return -1;
+
+    // for testing
     $user = "user1@gmail.com";
-    $passwd = "";
+    $pass = "";
     $host = "127.0.0.1";
     $port = 5984;
-    $http = {hostname:$host,port:$port};
 
-    required($tag, "no tag");
-    required($user, "no user");
-    //required($passwd, "no passwd");
-    authenx($user, $passwd);
-
-    switch($tag) {
-    case "rsync":{ 
-        $rdocs = run_rsync($http, $dbr);
-        $ldocs = run_local($dbl);
-        $updocs = run_conflicts($ldocs, $rdocs);
+    $bret = FALSE;
+    switch($func) {
+    case "register":
+        $bret = register($dbu, $user, $pass);
+        break;
+    case "signin":
+        $bret = signin($dbu, $user, $pass);
+        break;
+    case "msync": // local -> memory
+        $bret = run_msync($dbl, $jx9_out);
+        break;
+    case "lsync": // memory -> local
+        $bret = run_lsync($dbl, $jx9_arg.projs);
+        break;
+    case "rsync": // (1) local _rev or latest _rev, (2) server -> remote(_rev) -> local, (3) remote -> local
+        if(!required($host, "no host")) return -1;
+        if(!required($port, "no port")) return -1;
+        $http = {hostname:$host,port:$port};
+        $bret = run_rsync($dbr, $http, $user);
+        break;
+    case "merge": // (1) (local+remote+server) -> server, (2) drop local/remote
+        if(!required($host, "no host")) return -1;
+        if(!required($port, "no port")) return -1;
+        $http = {hostname:$host,port:$port};
+        $bret = run_merge($dbl, $dbr, $http, $user);
         break;
     }
-    case "getter":
-        run_getter($db);
-        break;
-    case "putter":
-        run_putter($db);
-        break;
-    }
+
+    if ($bret)
+        return 0;
+    return -1;
 }
 
-main();
+
+if (!$eau_jx9_arg) return -1;
+$eau_jx9_out = {};
+return main($eau_jx9_arg, $eau_jx9_out);
+
