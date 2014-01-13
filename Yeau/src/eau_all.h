@@ -61,9 +61,11 @@ namespace eau
     private:
         IEauSink*       m_pSink;
         string          m_szPath;
+        string          m_szHost;
+        unsigned short  m_uiPort;
 
         bool            m_bSigned;
-        string          m_szName;
+        string          m_szUser;
         string          m_szPass;
         map<string, proj_t>  m_vProjs;
     };

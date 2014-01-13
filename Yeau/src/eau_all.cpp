@@ -27,7 +27,7 @@ void CEauApi::SetPath(const char *path)
 
 bool CEauApi::Register(const char *name, const char *pass)
 {
-    m_szName = string(name);
+    m_szUser = string(name);
     m_szPass = string(pass);
     return true;
 }
@@ -35,7 +35,7 @@ bool CEauApi::Register(const char *name, const char *pass)
 bool CEauApi::SignIn(const char *name, const char *pass)
 {
     returnb_assert(!m_bSigned);
-    m_szName = string(name);
+    m_szUser = string(name);
     m_szPass = string(pass);
     m_bSigned = true;
     return true;
@@ -141,14 +141,14 @@ bool CEauApi::AddProject(pinfo_t &pinfo)
     returnb_assert(m_bSigned);
 
     pinfo.pid = uuid_generate_string();
-    pinfo.creator = m_szName;
+    pinfo.creator = m_szUser;
     pinfo.cdate = now_to_string();
     pinfo.mdate = pinfo.cdate;
     proj_t proj(pinfo);
 
     // default project creator is also owner
     user_t user;
-    user.uid = m_szName;
+    user.uid = m_szUser;
     user.role = "owner";
     user.stat = "approve";
     proj.users[user.uid] = user;
@@ -167,7 +167,7 @@ bool CEauApi::AddProjectBill(const string &pid, binfo_t &binfo)
     
     // only project owner and member can add new bill
     proj_t &proj = iter->second;
-    map<string, user_t>::iterator uiter = proj.users.find(m_szName);
+    map<string, user_t>::iterator uiter = proj.users.find(m_szUser);
     if (uiter == proj.users.end())
         return false;
     user_t &user = uiter->second;
@@ -176,7 +176,7 @@ bool CEauApi::AddProjectBill(const string &pid, binfo_t &binfo)
 
     // gen bill id(bid)
     binfo.bid = uuid_generate_string();
-    binfo.creator = m_szName;
+    binfo.creator = m_szUser;
     binfo.cdate = now_to_string();
     binfo.mdate = binfo.cdate;
 
@@ -190,8 +190,8 @@ bool CEauApi::AddProjectBill(const string &pid, binfo_t &binfo)
     }
 
     // if only one owner and also he/she is bill creator
-    if (bill.todo.find(m_szName) != bill.todo.end()) {
-        bill.todo[m_szName] = "yes";
+    if (bill.todo.find(m_szUser) != bill.todo.end()) {
+        bill.todo[m_szUser] = "yes";
         if (bill.todo.size() == 1)
             bill.stat = "approve";
     }
@@ -217,7 +217,7 @@ bool CEauApi::SetProjectBill(const string &pid, const string &bid, string todo_v
         return false;
 
     // bill creator can set bill stat
-    if (bill.creator == m_szName) { // nop for bill creator
+    if (bill.creator == m_szUser) { // nop for bill creator
         if (todo_val == "no")
             bill.stat = "desperate";
         return true;
@@ -227,17 +227,17 @@ bool CEauApi::SetProjectBill(const string &pid, const string &bid, string todo_v
         return false;
 
     // project owner can set bill stat
-    map<string, user_t>::iterator uiter = proj.users.find(m_szName);
+    map<string, user_t>::iterator uiter = proj.users.find(m_szUser);
     if (uiter == proj.users.end())
         return false;
     user_t &user = uiter->second;
     if (user.role != "owner")
         return false; 
 
-    map<string, string>::iterator titer = user.todo.find(m_szName);
+    map<string, string>::iterator titer = user.todo.find(m_szUser);
     if (titer == user.todo.end())
         return false;
-    user.todo[m_szName] = todo_val;
+    user.todo[m_szUser] = todo_val;
 
     // check bill stat
     string bstat = "approve";
@@ -264,7 +264,7 @@ bool CEauApi::AddProjectUser(const string &pid, uinfo_t &uinfo)
         return false;
 
     proj_t &proj = iter->second;
-    map<string, user_t>::iterator uiter = proj.users.find(m_szName);
+    map<string, user_t>::iterator uiter = proj.users.find(m_szUser);
     if (uiter == proj.users.end())
         return false;
     user_t &user = uiter->second;
@@ -286,8 +286,8 @@ bool CEauApi::AddProjectUser(const string &pid, uinfo_t &uinfo)
         }
 
         // self owner approve automatically
-        if (new_user.todo.find(m_szName) != new_user.todo.end()) {
-            new_user.todo[m_szName] = "yes";
+        if (new_user.todo.find(m_szUser) != new_user.todo.end()) {
+            new_user.todo[m_szUser] = "yes";
             if (new_user.todo.size() == 1)
                 new_user.stat = "approve";
         }
@@ -305,7 +305,7 @@ bool CEauApi::DelProjectUser(const string &pid, const string &uid)
         return false;
 
     proj_t &proj = iter->second;
-    map<string, user_t>::iterator uiter = proj.users.find(m_szName);
+    map<string, user_t>::iterator uiter = proj.users.find(m_szUser);
     if (uiter == proj.users.end())
         return false;
     user_t &user = uiter->second;
@@ -321,7 +321,7 @@ bool CEauApi::DelProjectUser(const string &pid, const string &uid)
 
     if (uiter->second.role == "owner") {
         // owner can only be deleted by creator
-        if (proj.creator != m_szName)
+        if (proj.creator != m_szUser)
             return false;
     }
     proj.users.erase(uid);
@@ -330,7 +330,30 @@ bool CEauApi::DelProjectUser(const string &pid, const string &uid)
 
 int CEauApi::OnInput(vmptr_t jx9_vm, void* data)
 {
+    // set eau_jx9_arg.func/user/pass/
+    json1_t json;
+    json.push_back(pair_t<string, string>("user", m_szUser));
+    json.push_back(pair_t<string, string>("pass", m_szPass));
+
     int idata = (int)data;
+    switch (idata) {
+    case 0:
+        json.push_back(pair_t<string, string>("func", "msync"));
+        break;
+    case 1:
+        json.push_back(pair_t<string, string>("func", "lsync"));
+        break;
+    default:
+        return -1;
+    }
+
+    string jx9_name = "eau_jx9_arg";
+    valptr_t jx9_var = NULL;
+    if(add_jx9_json_object(jx9_vm, json, jx9_var)) {
+        if(set_jx9_variable(jx9_vm, jx9_name, jx9_var))
+            return 0;
+    }
+
     return -1;
 }
 
