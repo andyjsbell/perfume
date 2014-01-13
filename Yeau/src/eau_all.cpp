@@ -1,8 +1,10 @@
 #include "eau_all.h"
 #include "error.h"
 #include "umisc.h"
+#include "jx9_api.h"
 
-using namespace eau;
+namespace eau
+{
 
 CEauApi::CEauApi()
 {
@@ -16,6 +18,11 @@ CEauApi::~CEauApi()
 void CEauApi::SetSink(IEauSink *pSink)
 {
     m_pSink = pSink;
+}
+
+void CEauApi::SetPath(const char *path)
+{
+    m_szPath = string(path);
 }
 
 bool CEauApi::Register(const char *name, const char *pass)
@@ -135,6 +142,8 @@ bool CEauApi::AddProject(pinfo_t &pinfo)
 
     pinfo.pid = uuid_generate_string();
     pinfo.creator = m_szName;
+    pinfo.cdate = now_to_string();
+    pinfo.mdate = pinfo.cdate;
     proj_t proj(pinfo);
 
     // default project creator is also owner
@@ -168,6 +177,8 @@ bool CEauApi::AddProjectBill(const string &pid, binfo_t &binfo)
     // gen bill id(bid)
     binfo.bid = uuid_generate_string();
     binfo.creator = m_szName;
+    binfo.cdate = now_to_string();
+    binfo.mdate = binfo.cdate;
 
     // set bill stat
     bill_t bill(binfo);
@@ -317,3 +328,34 @@ bool CEauApi::DelProjectUser(const string &pid, const string &uid)
     return true;
 }
 
+int CEauApi::OnInput(vmptr_t jx9_vm, void* data)
+{
+    int idata = (int)data;
+    return -1;
+}
+
+int CEauApi::OnOutput(vmptr_t jx9_vm, void* data)
+{
+    int idata = (int)data;
+    return -1;
+}
+
+bool CEauApi::SyncFromLocal()
+{
+    string script = "jx9_couchdb.js";
+    string fname = m_szPath + "/.jx9_db.db";
+    int idata = 0;
+    int iret = run_jx9_exec(script.c_str(), fname.c_str(), this, (void*)idata);
+    return false;
+}
+
+bool CEauApi::SyncIntoLocal()
+{
+    string script = "jx9_couchdb.js";
+    string fname = m_szPath + "/.jx9_db.db";
+    int idata = 1;
+    int iret = run_jx9_exec(script.c_str(), fname.c_str(), this, (void*)idata);
+    return false;
+}
+
+} // namespace eau

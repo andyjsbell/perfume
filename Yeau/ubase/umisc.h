@@ -6,6 +6,7 @@
 namespace eau
 {
     std::string uuid_generate_string();
+    std::string now_to_string();
 }
 
 #endif

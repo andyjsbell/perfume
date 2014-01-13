@@ -21,7 +21,9 @@ namespace eau
         string desc;
         long   cash;
         string creator;
-        string stat; // ["draft", "wait", "approve", "refuse", "desperate"]
+        string cdate;   // creation time, [yyyy-mm-dd hh:mm:ss]
+        string mdate;   // modification time, [yyyy-mm-dd hh:mm:ss]
+        string stat;    // ["draft", "wait", "approve", "refuse", "desperate"]
     };
 
     // proj info
@@ -30,6 +32,8 @@ namespace eau
         string name;
         string desc;
         string creator;
+        string cdate;   // creation time, [yyyy-mm-dd hh:mm:ss]
+        string mdate;   // modification time, [yyyy-mm-dd hh:mm:ss]
     };
 
     class IEauSink {

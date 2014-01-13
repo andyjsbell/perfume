@@ -3,6 +3,7 @@
 
 #include "ieau_api.h"
 #include "eau_struct.h"
+#include "jx9_api.h"
 
 namespace eau
 {
@@ -23,13 +24,14 @@ namespace eau
         proj_t(pinfo_t &info) : pinfo_t(info) {}
     };
 
-    class CEauApi : public IEauApi
+    class CEauApi : public IEauApi, public IJx9Sink
     {
     public:
         explicit CEauApi();
         virtual ~CEauApi();
 
         virtual void SetSink(IEauSink *pSink);
+        virtual void SetPath(const char *path);
 
         virtual bool Register(const char *name, const char *pass);
         virtual bool SignIn(const char *name, const char *pass);
@@ -49,7 +51,16 @@ namespace eau
         virtual bool DelProjectUser(const string &pid, const string &uid);
 
     private:
+        bool SyncFromLocal();
+        bool SyncIntoLocal();
+
+        // for IJx9Sink
+        virtual int OnInput(vmptr_t jx9_vm, void* data);
+        virtual int OnOutput(vmptr_t jx9_vm, void* data);
+
+    private:
         IEauSink*       m_pSink;
+        string          m_szPath;
 
         bool            m_bSigned;
         string          m_szName;

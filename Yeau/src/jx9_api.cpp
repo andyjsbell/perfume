@@ -24,10 +24,7 @@ static int jx9_stdout_callback(const void* msg, unsigned int len, void* data)
     return 0;
 }
 
-int run_jx9_exec(const char *script, const char *fname, 
-        jx9_in_cb_t pf_in,
-        jx9_out_cb_t pf_out,
-        jx9_log_cb_t pf_log)
+int run_jx9_exec(const char *script, const char *fname, IJx9Sink *sink, void *data, jx9_log_t pflog)
 {
     int iret = -1;
     unqlite *pDB = NULL;
@@ -35,20 +32,13 @@ int run_jx9_exec(const char *script, const char *fname,
 
     const char *pProg = script;
     const char *pName = fname;
-
-    jx9_in_cb_t pfInCallback = pf_in;
-    jx9_out_cb_t pfOutCallback = pf_out;
-    jx9_log_cb_t pfLogCallback = pf_log;
+    jx9_log_t jx9_log = jx9_stdout_callback;
 
     if (!pProg || !pName) {
         printf("usage: %s jx9_script db_fname\n", __FUNCTION__);
         return -1;
     }
 
-    if (!pfLogCallback) {
-        pfLogCallback = jx9_stdout_callback;
-    }
-    
     if(unqlite_open(&pDB, pName, UNQLITE_OPEN_CREATE) != UNQLITE_OK)
         goto __error;
 
@@ -63,18 +53,21 @@ int run_jx9_exec(const char *script, const char *fname,
 
     register_jx9net_funcs(pVM);
 
-    if(unqlite_vm_config(pVM, UNQLITE_VM_CONFIG_OUTPUT, pfLogCallback, NULL) != UNQLITE_OK)
+    if (pflog)
+        jx9_log = pflog;
+
+    if(unqlite_vm_config(pVM, UNQLITE_VM_CONFIG_OUTPUT, jx9_log, NULL) != UNQLITE_OK)
         goto __error;
 
     // input users' variables
-    if (pfInCallback)
-        pfInCallback(pVM, NULL);
+    if (sink)
+        sink->OnInput(pVM, data);
 
     if(unqlite_vm_exec(pVM) != UNQLITE_OK)
         goto __error;
 
-    if (pfOutCallback) 
-        pfOutCallback(pVM, NULL);
+    if (sink) 
+        sink->OnOutput(pVM, data);
 
     iret = 0;
 __error:
