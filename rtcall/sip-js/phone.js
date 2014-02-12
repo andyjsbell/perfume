@@ -104,6 +104,9 @@ function Phone() {
     // HTML5
     this.RTCPeerConnection = null;
     this.getUserMedia = null;
+    this.attachMediaStream = null;
+    this.reattachMediaStream = null;
+
     this.has_html5_websocket = false;
     this.has_html5_video = false;
     this.has_html5_webrtc = false;
@@ -150,12 +153,68 @@ Phone.prototype.detectHTML5 = function() {
     if (navigator.mozGetUserMedia) {
         this.RTCPeerConnection = mozRTCPeerConnection;
         this.getUserMedia = navigator.mozGetUserMedia.bind(navigator);
+
+        // Attach a media stream to an element.
+        this.attachMediaStream = function(element, stream) {
+            log("Attaching media stream");
+            element.mozSrcObject = stream;
+            element.play();
+        };
+
+        this.reattachMediaStream = function(to, from) {
+            log("Reattaching media stream");
+            to.mozSrcObject = from.mozSrcObject;
+            to.play();
+        };
+
+        // Fake get{Video,Audio}Tracks
+        MediaStream.prototype.getVideoTracks = function() {
+            return [];
+        };
+
+        MediaStream.prototype.getAudioTracks = function() {
+            return [];
+        };
     }
     else if (navigator.webkitGetUserMedia) {
         this.RTCPeerConnection = webkitRTCPeerConnection;
         this.getUserMedia = navigator.webkitGetUserMedia.bind(navigator);
+
+        this.attachMediaStream = function(element, stream) {
+            if (typeof element.srcObject !== 'undefined') {
+                element.srcObject = stream;
+            } else if (typeof element.mozSrcObject !== 'undefined') {
+                element.mozSrcObject = stream;
+            } else if (typeof element.src !== 'undefined') {
+                element.src = URL.createObjectURL(stream);
+            } else {
+                log('Error attaching stream to element.');
+            }
+        };
+
+        this.reattachMediaStream = function(to, from) {
+            to.src = from.src;
+        };
+
+        if (!webkitMediaStream.prototype.getVideoTracks) {
+            webkitMediaStream.prototype.getVideoTracks = function() {
+                return this.videoTracks;
+            };
+            webkitMediaStream.prototype.getAudioTracks = function() {
+                return this.audioTracks;
+            };
+        }
+
+        if (!webkitRTCPeerConnection.prototype.getLocalStreams) {
+            webkitRTCPeerConnection.prototype.getLocalStreams = function() {
+                return this.localStreams;
+            };
+            webkitRTCPeerConnection.prototype.getRemoteStreams = function() {
+                return this.remoteStreams;
+            };
+        }
     }
-    
+
     if (this.has_html5_websocket) {
         // SIP over websocket works
         this.setProperty("network_status", "available");
@@ -963,7 +1022,7 @@ Phone.prototype.createdWebRtcLocalStream = function() {
     this._webrtc_peer_connection.onaddstream = function(event) { phone.onWebRtcAddStream(event.stream); };
     this._webrtc_peer_connection.onremovestream = function(event) { phone.onWebRtcRemoveStream(); };
     //we use timeout instead of onicecandidate event handler
-    //this._webrtc_peer_connection.onicecandidate = function(event) { console.log(event.candidate);};
+    //this._webrtc_peer_connection.onicecandidate = function(event) { log(event.candidate);};
     if (this.call_state == "accepting" && this._call != null && this._call.request != null) {
         var result = this.getSDP(this._call.request);
         if (result) {
@@ -978,14 +1037,14 @@ Phone.prototype.createdWebRtcLocalStream = function() {
         this._webrtc_peer_connection.createOffer(
                 this.setLocalAndSendMessage,
                 function() { 
-                    console.log('error in PC createOffer'); 
+                    log('error in PC createOffer'); 
                 });
     }
     else if (this.call_state == "accepting") {
         this._webrtc_peer_connection.createAnswer(
                 this.setLocalAndSendMessage,
                 function() { 
-                    console.log('error in PC createAnswer'); 
+                    log('error in PC createAnswer'); 
                 });
     }
 };
