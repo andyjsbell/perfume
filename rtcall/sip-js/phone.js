@@ -3,6 +3,90 @@
 // This software is licensed under LGPL.
 // See README and http://code.google.com/p/sip-js for details.
 
+var gPhone_ = null;
+var RTCPeerConnection = null;
+var getUserMedia = null;
+var attachMediaStream = null;
+var reattachMediaStream = null;
+var webrtcDetectedBrowser = null;
+var webrtcDetectedVersion = null;
+
+if (navigator.mozGetUserMedia) {
+    webrtcDetectedBrowser = "firefox";
+    webrtcDetectedVersion = parseInt(navigator.userAgent.match(/Firefox\/([0-9]+)\./)[1]);
+
+    RTCPeerConnection = mozRTCPeerConnection;
+    RTCSessionDescription = mozRTCSessionDescription;
+    RTCIceCandidate = mozRTCIceCandidate;
+    getUserMedia = navigator.mozGetUserMedia.bind(navigator);
+
+    // Attach a media stream to an element.
+    attachMediaStream = function(element, stream) {
+        log("Attaching media stream");
+        element.mozSrcObject = stream;
+        element.play();
+    };
+
+    reattachMediaStream = function(to, from) {
+        log("Reattaching media stream");
+        to.mozSrcObject = from.mozSrcObject;
+        to.play();
+    };
+
+    // Fake get{Video,Audio}Tracks
+    MediaStream.prototype.getVideoTracks = function() {
+        return [];
+    };
+
+    MediaStream.prototype.getAudioTracks = function() {
+        return [];
+    };
+}
+else if (navigator.webkitGetUserMedia) {
+    webrtcDetectedBrowser = "chrome";
+    webrtcDetectedVersion = parseInt(navigator.userAgent.match(/Chrom(e|ium)\/([0-9]+)\./)[2]);
+
+    RTCPeerConnection = webkitRTCPeerConnection;
+    getUserMedia = navigator.webkitGetUserMedia.bind(navigator);
+
+    attachMediaStream = function(element, stream) {
+        if (typeof element.srcObject !== 'undefined') {
+            element.srcObject = stream;
+        } else if (typeof element.mozSrcObject !== 'undefined') {
+            element.mozSrcObject = stream;
+        } else if (typeof element.src !== 'undefined') {
+            element.src = URL.createObjectURL(stream);
+        } else {
+            log('Error attaching stream to element.');
+        }
+    };
+
+    reattachMediaStream = function(to, from) {
+        to.src = from.src;
+    };
+
+    if (!webkitMediaStream.prototype.getVideoTracks) {
+        webkitMediaStream.prototype.getVideoTracks = function() {
+            return this.videoTracks;
+        };
+        webkitMediaStream.prototype.getAudioTracks = function() {
+            return this.audioTracks;
+        };
+    }
+
+    if (!webkitRTCPeerConnection.prototype.getLocalStreams) {
+        webkitRTCPeerConnection.prototype.getLocalStreams = function() {
+            return this.localStreams;
+        };
+        webkitRTCPeerConnection.prototype.getRemoteStreams = function() {
+            return this.remoteStreams;
+        };
+    }
+}
+else {
+    log("Browser does not appear to be WebRTC-capable");
+}
+
 function getFlashMovie(name) {
     var isIE = navigator.appName.indexOf("Microsoft") != -1;
     return (isIE) ? window[name] : document[name];
@@ -23,21 +107,24 @@ function cleanHTML(value) {
 
 function Phone() {
     // properties in config
-    //this.displayname = 'First Last';
+    this.displayname = 'First Last';
+    this.username = 'myname';
+    this.domain = 'localhost';
+    this.authname =  'myname';
+    this.password = '';
+    this.transport = 'udp';
+
+    // self-defined
     this.displayname = '567';
-    //this.username = 'myname';
     this.username = '567';
-    //this.domain = 'localhost';
     this.domain = '10.224.255.234:10060';
-    //this.authname =  'myname';
     this.authname =  '';
     this.password = '';
-    //this.transport = 'udp';
     this.transport = 'ws';
-    
+
     // properties in register
     this.outbound = 'proxy';
-    //this.outbound_proxy_address ='127.0.0.1:5060';
+    this.outbound_proxy_address ='127.0.0.1:5060';
     this.outbound_proxy_address ='10.224.255.228:10060';
     this.register_interval = 180;
     this.rport = true;
@@ -65,7 +152,7 @@ function Phone() {
     //     closed - call is closed by remote party
 
     this.target_scheme = "sip";
-    //this.target_value = "yourname@localhost";
+    this.target_value = "yourname@localhost";
     this.target_value = "123@10.224.255.234:5060";
     this.target_aor = this.target_scheme + ":" + this.target_value;
     this.has_audio = true;
@@ -83,8 +170,7 @@ function Phone() {
     
     // private attributes
     this._handlers = {};
-    //this.network_type = "Flash";
-    this.network_type = "WebRTC";
+    this.network_type = "WebRTC"; // Flash or WebRTC
     this.listen_ip = null;
     this._listen_port = null;
     this._stack = null;
@@ -102,11 +188,6 @@ function Phone() {
     this._gw = null;
     
     // HTML5
-    this.RTCPeerConnection = null;
-    this.getUserMedia = null;
-    this.attachMediaStream = null;
-    this.reattachMediaStream = null;
-
     this.has_html5_websocket = false;
     this.has_html5_video = false;
     this.has_html5_webrtc = false;
@@ -115,11 +196,15 @@ function Phone() {
     this._webrtc_peer_connection = null;
     this.enable_sound_alert = false;
     this.webrtc_servers = "stun://stun.l.google.com:19302"; // comma separated list, each item is either "url" or "url|credential"
-    this._sdp_timeout = 5000; // 0.5s after calling createOffer or createAnswer, use the SDP
+    this.stun_server = 'stun.l.google.com:19302';
+    this._sdp_timeout = 500; // 0.5s after calling createOffer or createAnswer, use the SDP
+    this._sdp_timeout = 1000;
     
     // SIP requirements for websocket
     this._instance_id = "";
     this._gruu = "";
+
+    gPhone_ = this;
 };
 
 Phone.prototype.populate = function() {
@@ -144,75 +229,10 @@ Phone.prototype.populate = function() {
 Phone.prototype.detectHTML5 = function() {
     this.setProperty("has_html5_websocket", typeof WebSocket != "undefined");
     this.setProperty("has_html5_video", !!document.createElement('video').canPlayType);
-    this.setProperty("has_html5_webrtc", typeof navigator.webkitGetUserMedia != "undefined" && typeof webkitRTCPeerConnection != "undefined");
+    this.setProperty("has_html5_webrtc", typeof getUserMedia != "undefined" && typeof RTCPeerConnection != "undefined");
     log("detecting HTML support websocket=" + this.has_html5_websocket + " video=" + this.has_html5_video + " webrtc=" + this.has_html5_webrtc);
     if (!this.has_html5_websocket || !this.has_html5_video || !this.has_html5_webrtc) {
         $("webrtc-network").innerHTML += '<font color="red">Some HTML5 features are missing in your browser</font>';
-    }
-
-    if (navigator.mozGetUserMedia) {
-        this.RTCPeerConnection = mozRTCPeerConnection;
-        this.getUserMedia = navigator.mozGetUserMedia.bind(navigator);
-
-        // Attach a media stream to an element.
-        this.attachMediaStream = function(element, stream) {
-            log("Attaching media stream");
-            element.mozSrcObject = stream;
-            element.play();
-        };
-
-        this.reattachMediaStream = function(to, from) {
-            log("Reattaching media stream");
-            to.mozSrcObject = from.mozSrcObject;
-            to.play();
-        };
-
-        // Fake get{Video,Audio}Tracks
-        MediaStream.prototype.getVideoTracks = function() {
-            return [];
-        };
-
-        MediaStream.prototype.getAudioTracks = function() {
-            return [];
-        };
-    }
-    else if (navigator.webkitGetUserMedia) {
-        this.RTCPeerConnection = webkitRTCPeerConnection;
-        this.getUserMedia = navigator.webkitGetUserMedia.bind(navigator);
-
-        this.attachMediaStream = function(element, stream) {
-            if (typeof element.srcObject !== 'undefined') {
-                element.srcObject = stream;
-            } else if (typeof element.mozSrcObject !== 'undefined') {
-                element.mozSrcObject = stream;
-            } else if (typeof element.src !== 'undefined') {
-                element.src = URL.createObjectURL(stream);
-            } else {
-                log('Error attaching stream to element.');
-            }
-        };
-
-        this.reattachMediaStream = function(to, from) {
-            to.src = from.src;
-        };
-
-        if (!webkitMediaStream.prototype.getVideoTracks) {
-            webkitMediaStream.prototype.getVideoTracks = function() {
-                return this.videoTracks;
-            };
-            webkitMediaStream.prototype.getAudioTracks = function() {
-                return this.audioTracks;
-            };
-        }
-
-        if (!webkitRTCPeerConnection.prototype.getLocalStreams) {
-            webkitRTCPeerConnection.prototype.getLocalStreams = function() {
-                return this.localStreams;
-            };
-            webkitRTCPeerConnection.prototype.getRemoteStreams = function() {
-                return this.remoteStreams;
-            };
-        }
     }
 
     if (this.has_html5_websocket) {
@@ -719,13 +739,13 @@ Phone.prototype.setVideoProperty = function(videoname, attr, value) {
                     if (this._webrtc_local_stream == null) {
                         var phone = this;
                         try {
-                            this.getUserMedia({"video": true, "audio": true},
+                            getUserMedia({"video": this.has_video, "audio": this.has_audio},
                                 function(stream) { phone.onUserMediaSuccess(stream); },
                                 function(error) { phone.onUserMediaError(error); });
                         }
                         catch (e) {
                             // try older style
-                            this.getUserMedia("video,audio",
+                            getUserMedia("video,audio",
                                 function(stream) { phone.onUserMediaSuccess(stream); },
                                 function(error) { phone.onUserMediaError(error); });
                         }
@@ -1016,7 +1036,15 @@ Phone.prototype.getSDP = function(message) {
 
 Phone.prototype.createdWebRtcLocalStream = function() {
     var phone = this;
-    this._webrtc_peer_connection = new this.RTCPeerConnection({iceServers: this.getIceServers()}, null);
+    servers = {iceServers: [{url: 'stun:' + this.stun_server}]};
+    try {
+        var constraints = { optional: [{ RtpDataChannels: false }]};
+        this._webrtc_peer_connection = new RTCPeerConnection(servers, constraints);
+    } catch (exception) {
+        log('Failed to create peer connection: ' + exception);
+        return;
+    }
+
     this._webrtc_peer_connection.onconnecting = function(message) { phone.onWebRtcConnecting(message); };
     this._webrtc_peer_connection.onopen = function(message) { phone.onWebRtcOpen(message) };
     this._webrtc_peer_connection.onaddstream = function(event) { phone.onWebRtcAddStream(event.stream); };
@@ -1026,7 +1054,8 @@ Phone.prototype.createdWebRtcLocalStream = function() {
     if (this.call_state == "accepting" && this._call != null && this._call.request != null) {
         var result = this.getSDP(this._call.request);
         if (result) {
-            this._webrtc_peer_connection.setRemoteDescription(new RTCSessionDescription({type: "offer", sdp: result}));
+            var session_description = new RTCSessionDescription({type: "offer", sdp: result});
+            this.setRemoteOffer(session_description);
         }
     }
     if (this._webrtc_local_stream != null) {
@@ -1034,27 +1063,37 @@ Phone.prototype.createdWebRtcLocalStream = function() {
     }
     
     if (this.call_state == "inviting") {
+        var offerConstraints = {};
         this._webrtc_peer_connection.createOffer(
                 this.setLocalAndSendMessage,
-                function() { 
-                    log('error in PC createOffer'); 
-                });
+                function() {log('error in PC createOffer');},
+                offerConstraints);
     }
     else if (this.call_state == "accepting") {
+        var answerConstraints = {};
         this._webrtc_peer_connection.createAnswer(
                 this.setLocalAndSendMessage,
-                function() { 
-                    log('error in PC createAnswer'); 
-                });
+                function() {log('error in PC createAnswer');},
+                answerConstraints);
     }
 };
 
 Phone.prototype.setLocalAndSendMessage = function(offer) {
-    var phone = this;
-    this._webrtc_peer_connection.setLocalDescription(offer);
+    var phone = gPhone_;
+    phone._webrtc_peer_connection.setLocalDescription(
+            offer,
+            function() { log('setLocalDescription ok'); },
+            function() { log('setLocalDescription fail'); });
     setTimeout(function() {
         phone.onWebRtcSendMessage();
-    }, this._sdp_timeout);
+    }, phone._sdp_timeout);
+};
+
+Phone.prototype.setRemoteOffer = function(offer) {
+    this._webrtc_peer_connection.setRemoteDescription(
+            offer,
+            function() { log('setRemoteDescription ok'); },
+            function() { log('setRemoteDescription fail'); });
 };
 
 Phone.prototype.onWebRtcSendMessage = function() {
@@ -1204,7 +1243,8 @@ Phone.prototype.receivedInviteResponse = function(ua, response) {
                         
                         var result = this.getSDP(response);
                         if (result) {
-                            this._webrtc_peer_connection.setRemoteDescription(new RTCSessionDescription({type: "answer", sdp: result}));
+                            var session_description = new RTCSessionDescription({type: "answer", sdp: result});
+                            this.setRemoteOffer(session_description);
                         }
                     }
                 }
@@ -1327,7 +1367,8 @@ Phone.prototype.receivedInvite = function(ua, request) {
         if (this._webrtc_peer_connection) {
             var result = this.getSDP(request);
             if (result) {
-                this._webrtc_peer_connection.setRemoteDescription(new RTCSessionDescription({type: "offer", sdp: result}));
+                var session_description = new RTCSessionDescription({type: "offer", sdp: result});
+                this.setRemoteOffer(session_description);
             }
         }
     }
@@ -1569,7 +1610,12 @@ Phone.prototype.resolve = function(host, type, callback, stack) {
 
 Phone.prototype.send = function(data, addr, stack) {
     log("=> " + addr[0] + ":" + addr[1] + "\n" + data);
-    this._sock.send(data, addr[0], addr[1]);
+    if (this.transport == "ws" || this.transport == "tcp") {
+        this._sock.send(data);
+    }
+    else if(this.transport == "udp") {
+        this._sock.send(data, addr[0], addr[1]);
+    }
 };
 
 Phone.prototype.sendDigit = function(digit) {
