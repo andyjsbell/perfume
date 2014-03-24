@@ -1,0 +1,40 @@
+/**
+ * development tools
+ */
+1. git scm
+2. scons/maven/cmake build
+
+/**
+ * webrtc source building
+ */
+1. Audio
+    a. To define audio stream interfaces
+    b. To add audio device enumulation for iOS & Android.
+    c. To add audio codec(parameters) enumulation: ilbc/opus/...
+
+2. Video
+    a. To define video stream interfaces
+    b. To add video device enumulation for iOS & Android.
+    c. To add render implemention for iOS & Android.
+    d. To add video codec(parameters) enumulation: vp8.
+
+3. Interaces
+    a. To provide native clang interfaces for iOS.
+    b. To provide jni interfaces for Android.
+
+
+/**
+ * sip stack
+ */
+TODO: aim to build the same interfaces for iOS & Android.
+
+1. oSIP(clang): http://www.gnu.org/software/osip/
+2. Android sip(java): android.net.sip.
+
+/**
+ * sip server
+ */
+TODO: aim to build one SIP server
+
+1. kamailio: http://www.kamailio.org/
+
