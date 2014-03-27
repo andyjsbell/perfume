@@ -1,8 +1,10 @@
+=====================
+
 /**
  * Targets
  */
-1. To support sip direct
-2. To support sip proxy
+1. sip direct
+2. sip proxy
  
 
 /**
@@ -33,16 +35,17 @@
 /**
  * sip stack
  */
-TODO: aim to build the same interfaces for iOS & Android.
+TODO: provide client interfaces for iOS & Android.
 
-1. repro DUM: http://www.resiprocate.org/
+1. pjsip: http://www.pjsip.org/
 2. oSIP(clang): http://www.gnu.org/software/osip/
-3. Android sip(java): android.net.sip.
+3. repro DUM: http://www.resiprocate.org/
+4. Android sip(java): android.net.sip.
 
 /**
  * sip server
  */
-TODO: aim to build one scalable SIP server
+TODO: aim to build SIP server
 
 1. reTurn/repro proxy: http://www.resiprocate.org/
 2. asterisk: http://www.asterisk.org/
