@@ -14,7 +14,7 @@
 2. scons/maven/cmake build
 
 /**
- * webrtc source building
+ * webrtc library
  */
 1. Audio
     a. To define audio stream interfaces
@@ -27,7 +27,7 @@
     c. To add render implemention for iOS & Android.
     d. To add video codec(parameters) enumulation: vp8.
 
-3. Interaces
+3. Interfaces
     a. To provide native clang interfaces for iOS.
     b. To provide jni interfaces for Android.
 
@@ -40,7 +40,7 @@ TODO: provide client interfaces for iOS & Android.
 1. pjsip: http://www.pjsip.org/
 2. oSIP(clang): http://www.gnu.org/software/osip/
 3. repro DUM: http://www.resiprocate.org/
-4. Android sip(java): android.net.sip.
+4. Android sip(java): android.net.sip package.
 
 /**
  * sip server
@@ -60,3 +60,4 @@ TODO: aim to build SIP server
  */
 1. http://www.opentelecoms.org/
 2. http://www.rtcquickstart.org/
+
