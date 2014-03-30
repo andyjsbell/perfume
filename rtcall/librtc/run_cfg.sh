@@ -7,7 +7,7 @@ ROOT=`pwd`
 PLATFORM=`uname`
 BUILDTYPE=Release
 WEBRTC_URL=http://webrtc.googlecode.com/svn/trunk
-WEBRTC_REV=5805
+WEBRTC_REV=5301
 AR=ar
 CC=gcc
 
@@ -40,14 +40,14 @@ detect_env() {
     which gclient >/dev/null
     check_err "'gclient' is required and was not found in the path!"
 
-    which cmake >/dev/null
-    check_err "'cmake' is required and was not found."
+    which ninja >/dev/null
+    check_err "'ninja' is required and was not found in the path!"
 }
 
 
 config_webrtc() {
     obj_path=$ROOT/third_party/webrtc
-    echoy "Getting webrtc from its repo into $obj_path ..."
+    echog "[+] Getting webrtc from its repo into $obj_path ..."
     mkdir -p $obj_path
     if [ ! -e $obj_path/trunk ]; then
         cd $obj_path
@@ -58,57 +58,30 @@ config_webrtc() {
 }
 
 
-build_jingle() {
+build_webrtc() {
     obj_path=$ROOT/third_party/webrtc
-
-    echoy "Do gyp_chromium on libjingle_all.gyp from $obj_path ..."
-    cd $obj_path
-    python trunk/webrtc/build/gyp_chromium --depth=trunk trunk/talk/libjingle.gyp
-    check_err "fail to gyp_chromium for libjingle_all.gyp"
-
-    # for jingle
-    targets="libjingle libjingle_p2p libjingle_media libjingle_peerconnection libjingle_sound libjingle_xmpphelp peerconnection_server "
-
-    # for webrtc misc
-    targets=$targets"bitrate_controller remote_bitrate_estimator rtp_rtcp udp_transport webrtc_utility system_wrappers "
-    targets=$targets"libjpeg libsrtp protobuf_full_do_not_use protobuf_lite protoc libyuv "
-
-    # for webrtc audio
-    targets=$targets"resampler signal_processing vad CNG "
-    targets=$targets"G711 G722 NetEq NetEq4 PCM16B iLBC iSAC iSACFix opus "
-    targets=$targets"audio_coding_module audio_conference_mixer audio_device audio_processing "
-    targets=$targets"voice_engine_core media_file paced_sender audio_processing_sse2 webrtc_opus "
-
-    # for webrtc video
-    targets=$targets"common_video video_capture_module webrtc_vp8 video_coding_utility video_processing video_processing_sse2 "
-    targets=$targets"webrtc_video_coding video_engine_core video_render_module webrtc_i420 "
-    targets=$targets"gen_asm_offsets_vp8 gen_asm_offsets_vp9 gen_asm_offsets_vpx_scale "
-    targets=$targets"libvpx libvpx_asm_offsets libvpx_asm_offsets_vp9 libvpx_asm_offsets_vpx_scale "
-
-    cd $obj_path/trunk
-    for target in $targets; do
-        if [ $PLATFORM = "Darwin" ]; then
-            xcodebuild -arch i386 -sdk macosx10.7 -configuration $BUILDTYPE -project talk/libjingle_all.xcodeproj -target=$target GCC_ENABLE_CPP_RTTI=YES
-        else
-            make BUILDTYPE=$BUILDTYPE $target 2>>/tmp/jingle_build.log 1>&2
-        fi
-        check_err "fail to build [$target]"
-    done
+    echog "[+] Building webrtc in $obj_path/trunk ..."
+    if [ -e $obj_path/trunk ]; then
+        cd $obj_path/trunk
+        ninja -C out/$BUILDTYPE
+        ninja -C out/$BUILDTYPE -j 1 # build again to avoid failed before
+        check_err "fail to build webrtc!"
+    fi
 }
 
 
 make_archive () {
     target=$1
+    echog "[+] Generating archive lib$target.a ..."
     if [ $PLATFORM = "Linux" ]; then
         rm -rf tmpobj; mkdir tmpobj; cd tmpobj
+        $AR x ../libyuv.a
         for lib in $thelibs; do
             lib=../$lib
             if [ ! -e $lib ]; then
                 echor "Can not find $lib!"; continue
             fi
-            #echo "Processing $k ..."
-            #ar t $k | xargs ar qc lib$target.a
-            $AR x $lib
+            #echo "Processing $lib ..."
             $AR t $lib | xargs $AR qc lib$target.a
         done
         echo "Adding symbol table to archive."
@@ -124,8 +97,8 @@ make_archive () {
 
 make_so () {
     target=$1
+    echog "[+] Generate shared lib$target.so ..."
     if [ $PLATFORM = "Linux" ]; then
-        echo "Generate lib$target.so ..."
         $CC -shared -o lib$target.so -Wl,-whole-archive $thelibs -Wl,-no-whole-archive $ldflags
         #$CC -DTEST_PRIV_API -o /tmp/test_$target -L. -l$target $ldflags 
     else
@@ -134,31 +107,44 @@ make_so () {
 }
 
 
-build_webrtc() {
-    if [ $PLATFORM = "Darwin" ]; then
-        local_root=$ROOT/third_party/libjingle/trunk/xcodebuild/
-    else
-        local_root=$ROOT/third_party/libjingle/trunk/out/
-    fi
+pack_webrtc() {
+    # for jingle
+    targets="libjingle libjingle_p2p libjingle_media libjingle_peerconnection libjingle_sound libjingle_xmpphelp peerconnection_server "
+    # for webrtc misc
+    targets=$targets"bitrate_controller remote_bitrate_estimator rtp_rtcp udp_transport webrtc_utility system_wrappers "
+    targets=$targets"libjpeg libsrtp protobuf_full_do_not_use protobuf_lite protoc libyuv "
+    # for webrtc audio
+    targets=$targets"resampler signal_processing vad CNG G711 G722 NetEq NetEq4 PCM16B iLBC iSAC iSACFix opus "
+    targets=$targets"audio_coding_module audio_conference_mixer audio_device audio_processing "
+    targets=$targets"voice_engine_core media_file paced_sender audio_processing_sse2 webrtc_opus "
+    # for webrtc video
+    targets=$targets"common_video video_capture_module webrtc_vp8 video_coding_utility video_processing video_processing_sse2 "
+    targets=$targets"webrtc_video_coding video_engine_core video_render_module webrtc_i420 "
+    targets=$targets"gen_asm_offsets_vp8 gen_asm_offsets_vp9 gen_asm_offsets_vpx_scale "
+    targets=$targets"libvpx libvpx_asm_offsets libvpx_asm_offsets_vp9 libvpx_asm_offsets_vpx_scale "
 
+    local_root=$ROOT/third_party/webrtc/trunk/out/
     local_root=$local_root/$BUILDTYPE
-    mkdir -p $local_root
-    cd $local_root
-    target=webrtc_$BUILDTYPE
-    rm -f lib$target.a
-    if [ $PLATFORM = "Darwin" ]; then
-        thelibs=`find . -name "lib*.a" -print`
+    if [ -e $local_root ]; then
+        cd $local_root
+        target=webrtc_$BUILDTYPE
+        rm -f lib$target.a
+        excludes="testing\|unittest\|test\|Test\|protobuf_full_do_not_use"
+        thelibs=`find . -name "lib*.a" -print | grep -v "$excludes"`
+        make_archive $target
+        check_err "fail to gen archive .a"
+        make_so $target
+        check_err "fail to gen shared .so"
     else
-        thelibs=`find obj.target/ -name lib*.a`
+        echor "fail to pack webrtc"
     fi
-    make_archive $target
 }
 
 
 
 detect_env
 config_webrtc
-#build_jingle
-#build_webrtc
+build_webrtc
+pack_webrtc
 
 exit 0
