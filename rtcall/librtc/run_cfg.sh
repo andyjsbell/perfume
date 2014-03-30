@@ -4,12 +4,11 @@
 
 ## build config
 ROOT=`pwd`
-PLATFORM=`uname`
-BUILDTYPE=Release
+HOST_OS=`uname`
+TARGET_OS=Linux # Linux, Android, MacOSX, IOS
 WEBRTC_URL=http://webrtc.googlecode.com/svn/trunk
 WEBRTC_REV=5301
-AR=ar
-CC=gcc
+BUILD_TYPE=Release
 
 
 echox() {
@@ -30,10 +29,6 @@ check_err() {
 
 
 detect_env() {
-    if [ $PLATFORM != "Linux" ] && [ $PLATFORM != "Darwin" ] ; then
-        exit 1
-    fi
-
     which git >/dev/null
     check_err "git is required and was not found in the path!"
 
@@ -42,6 +37,34 @@ detect_env() {
 
     which ninja >/dev/null
     check_err "'ninja' is required and was not found in the path!"
+
+    if [ ! -n $JAVA_HOME ]; then
+        echor "[Err] no JAVA_HOME env set!"
+        exit 1
+    fi
+
+    if [ $HOST_OS != "Linux" ] && [ $HOST_OS != "Darwin" ] ; then
+        echor "[Err] Only support host Linux and MacOSX"
+        exit 1
+    fi
+
+    if [ $TARGET_OS = "Linux" ]; then
+        AR=ar
+        CC=gcc
+    elif [$TARGET_OS = "Android" ]; then
+        if [ ! -n $ANDROID_NDK_HOME ]; then
+            echor "[Err] no ANDROID_NDK_HOME env set!"
+            exit 1
+        fi
+        SYSROOT=$ANDROID_NDK_HOME/toolchains/arm-linux-androideabi-4.6/prebuilt/
+        AR=`$ANDROID_NDK_HOME/ndk-which ar`
+        CC=`$ANDROID_NDK_HOME/ndk-which gcc` --sysroot=$SYSROOT
+    elif [$TARGET_OS = "MacOSX" ] || [$TARGET_OS = "IOS" ]; then
+        :
+    else
+        echor "[Err] only support target: Linux, MacOSX, Android and IOS"
+        exit 1
+    fi
 }
 
 
@@ -62,9 +85,18 @@ build_webrtc() {
     obj_path=$ROOT/third_party/webrtc
     echog "[+] Building webrtc in $obj_path/trunk ..."
     if [ -e $obj_path/trunk ]; then
+        cd $obj_path
+        if [ $TARGET_OS = "Android" ]; then
+            echo "target_os = ['android', 'unix']" >> .gclient
+            gclient sync -r $WEBRTC_REV --nohooks >/tmp/svn_webrtc.log 2>&1
+        fi
+
         cd $obj_path/trunk
-        ninja -C out/$BUILDTYPE
-        ninja -C out/$BUILDTYPE -j 1 # build again to avoid failed before
+        if [ $TARGET_OS = "Android" ]; then
+            source ./build/android/envsetup.sh
+        fi
+        ninja -C out/$BUILD_TYPE
+        ninja -C out/$BUILD_TYPE -j 1 # build again to avoid failed before
         check_err "fail to build webrtc!"
     fi
 }
@@ -73,7 +105,7 @@ build_webrtc() {
 make_archive () {
     target=$1
     echog "[+] Generating archive lib$target.a ..."
-    if [ $PLATFORM = "Linux" ]; then
+    if [ $HOST_OS = "Linux" ]; then
         rm -rf tmpobj; mkdir tmpobj; cd tmpobj
         $AR x ../libyuv.a
         for lib in $thelibs; do
@@ -98,7 +130,7 @@ make_archive () {
 make_so () {
     target=$1
     echog "[+] Generate shared lib$target.so ..."
-    if [ $PLATFORM = "Linux" ]; then
+    if [ $HOST_OS = "Linux" ]; then
         $CC -shared -o lib$target.so -Wl,-whole-archive $thelibs -Wl,-no-whole-archive $ldflags
         #$CC -DTEST_PRIV_API -o /tmp/test_$target -L. -l$target $ldflags 
     else
@@ -124,10 +156,10 @@ pack_webrtc() {
     targets=$targets"libvpx libvpx_asm_offsets libvpx_asm_offsets_vp9 libvpx_asm_offsets_vpx_scale "
 
     local_root=$ROOT/third_party/webrtc/trunk/out/
-    local_root=$local_root/$BUILDTYPE
+    local_root=$local_root/$BUILD_TYPE
     if [ -e $local_root ]; then
         cd $local_root
-        target=webrtc_$BUILDTYPE
+        target=webrtc_$BUILD_TYPE
         rm -f lib$target.a
         excludes="testing\|unittest\|test\|Test\|protobuf_full_do_not_use"
         thelibs=`find . -name "lib*.a" -print | grep -v "$excludes"`
