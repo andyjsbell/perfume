@@ -5,10 +5,8 @@
 ## build config
 ROOT=`pwd`
 HOST_OS=`uname`
-TARGET_OS=Linux # Linux, Android, MacOSX, IOS
 WEBRTC_URL=http://webrtc.googlecode.com/svn/trunk
 WEBRTC_REV=5301
-BUILD_TYPE=Release
 
 
 echox() {
@@ -38,7 +36,7 @@ detect_env() {
     which ninja >/dev/null
     check_err "'ninja' is required and was not found in the path!"
 
-    if [ ! -n $JAVA_HOME ]; then
+    if [ "#"$JAVA_HOME = "#" ]; then
         echor "[Err] no JAVA_HOME env set!"
         exit 1
     fi
@@ -48,21 +46,35 @@ detect_env() {
         exit 1
     fi
 
+    if [ "#"$TARGET_OS = "#" ]; then
+        TARGET_OS=Linux
+    fi
+
+    # Linux, Android, MacOSX, IOS
     if [ $TARGET_OS = "Linux" ]; then
         AR=ar
         CC=gcc
-    elif [$TARGET_OS = "Android" ]; then
-        if [ ! -n $ANDROID_NDK_HOME ]; then
+    elif [ $TARGET_OS = "Android" ]; then
+        if [ "#"$ANDROID_NDK_HOME = "#" ]; then
             echor "[Err] no ANDROID_NDK_HOME env set!"
             exit 1
         fi
         SYSROOT=$ANDROID_NDK_HOME/toolchains/arm-linux-androideabi-4.6/prebuilt/
         AR=`$ANDROID_NDK_HOME/ndk-which ar`
         CC=`$ANDROID_NDK_HOME/ndk-which gcc` --sysroot=$SYSROOT
-    elif [$TARGET_OS = "MacOSX" ] || [$TARGET_OS = "IOS" ]; then
+    elif [ $TARGET_OS = "MacOSX" ] || [ $TARGET_OS = "IOS" ]; then
         :
     else
-        echor "[Err] only support target: Linux, MacOSX, Android and IOS"
+        echor "[Err] only support targets: Linux, MacOSX, Android and IOS"
+        exit 1
+    fi
+
+    if [ "#"$BUILD_TYPE = "#" ]; then
+        BUILD_TYPE=Release
+    fi
+
+    if [ $BUILD_TYPE != "Release" ] && [ $BUILD_TYPE = "Debug" ]; then
+        echor "[Err] only support build types: Release, Debug"
         exit 1
     fi
 }
