@@ -66,7 +66,14 @@ class EventTarget {};
 
 #define readonly_attribute(t, n)        public: t Get_##n() { return m_##n; }; protected: t m_##n;
 #define readwrite_attribute(t, n)       public: void Put_##n(t value) { m_##n = value; }; readonly_attribute(t, n);
-#define eventhandler_attribute(c, n)    public: void Put_EventHandler(c##EventHandler *handler) { m_p##n = handler; }; protected: c##EventHandler *m_p##n;
+#define eventhandler_attribute(c)       public: void Put_EventHandler(c##EventHandler *handler) { m_pEventHandler = handler; }; protected: c##EventHandler *m_pEventHandler;
+#define event_process0(f)               event_t revent = EVENT_OK; if(m_pEventHandler) { revent = m_pEventHandler->f(); }
+#define event_process1(f, a)            event_t revent = EVENT_OK; if(m_pEventHandler) { revent = m_pEventHandler->f((a)); }
+#define event_process2(f, a, b)         event_t revent = EVENT_OK; if(m_pEventHandler) { revent = m_pEventHandler->f((a), (b)); }
+enum event_t {
+    EVENT_OK = 0,
+    EVENT_DECLINE = 1,
+};
 
 
 
@@ -138,11 +145,11 @@ struct AllAudioCapabilities : public AllMediaCapabilities {
 
 class MediaStreamTrackEventHandler {
 public:
-    virtual void onmute()       {};
-    virtual void onunmute()     {};
-    virtual void onstarted()    {};
-    virtual void onended()      {};
-    virtual void onoverconstrained()    {};
+    virtual event_t onmute()       {return EVENT_OK;}
+    virtual event_t onunmute()     {return EVENT_OK;}
+    virtual event_t onstarted()    {return EVENT_OK;}
+    virtual event_t onended()      {return EVENT_OK;}
+    virtual event_t onoverconstrained()    {return EVENT_OK;}
 };
 
 class MediaStreamTrack : public EventTarget {
@@ -155,7 +162,7 @@ class MediaStreamTrack : public EventTarget {
     readonly_attribute (boolean,               remote);
     readonly_attribute (MediaStreamTrackState, readyState);
 
-    eventhandler_attribute (MediaStreamTrack, EventHandler);
+    eventhandler_attribute (MediaStreamTrack);
 
 public:
     explicit MediaStreamTrack() {reset();}
@@ -188,16 +195,16 @@ typedef sequence<MediaStreamTrack> MediaStreamTrackSequence;
 /// ==============================
 class MediaStreamEventHandler {
 public:
-    virtual void onended()          {};
-    virtual void onaddtrack()       {};
-    virtual void onremovetrack()    {};
+    virtual event_t onended()          {return EVENT_OK;}
+    virtual event_t onaddtrack()       {return EVENT_OK;}
+    virtual event_t onremovetrack()    {return EVENT_OK;}
 };
 
 class MediaStream : public EventTarget {
     readonly_attribute (DOMString,    id);
     readonly_attribute (boolean,      ended);
 
-    eventhandler_attribute (MediaStream, EventHandler);
+    eventhandler_attribute (MediaStream);
 
 public:
     explicit MediaStream () {reset();}
@@ -237,14 +244,14 @@ public:
 
 ///
 /// ==============================
-enum RTCSdpType {
-    SDP_OFFER,      //"offer",
-    SDP_PRANSWER,   //"pranswer",
-    SDP_ANSWER,     //"answer"
+const DOMString kRTCSdpType[] = {
+    "offer",
+    "pranswer",
+    "answer",
 };
 
 struct RTCSessionDescription {
-    RTCSdpType type;
+    DOMString type; // kRTCSdpType
     DOMString sdp;
 };
 
@@ -271,6 +278,8 @@ struct RTCSdpError : public DOMError {
 
 ///
 /// ==============================
+const DOMString kDefaultIceServer = "stun:stun.l.google.com:19302";
+
 enum RTCSignalingState {
     SIGNALING_STABLE,       //"stable",
     HAVE_LOCAL_OFFER,       //"have-local-offer",
@@ -298,24 +307,16 @@ enum RTCIceConnectionState {
 
 class RTCPeerConnectionEventHandler {
 public:
-    virtual void onnegotiationneeded()      {}
-    virtual void onicecandidate()           {}
-    virtual void onsignalingstatechange()   {}
-    virtual void onaddstream()              {}
-    virtual void onremovestream()           {}
-    virtual void oniceconnectionstatechange()   {}
-};
+    virtual event_t onnegotiationneeded()                  {return EVENT_OK;}
+    virtual event_t onicecandidate()                       {return EVENT_OK;}
+    virtual event_t onsignalingstatechange(int state)      {return EVENT_OK;}
+    virtual event_t onaddstream()                          {return EVENT_OK;}
+    virtual event_t onremovestream()                       {return EVENT_OK;}
+    virtual event_t oniceconnectionstatechange(int state)  {return EVENT_OK;}
 
-class RTCSdpCallback {
-public:
-    virtual void SuccessCallback (RTCSessionDescription &sdp) {}
-    virtual void FailureCallback (DOMError &error) {}
-};
-
-class RTCVoidCallback {
-public:
-    virtual void SuccessCallback () {}
-    virtual void FailureCallback (DOMError &error) {}
+    virtual event_t onsuccess(RTCSessionDescription &desc) {return EVENT_OK;}
+    virtual event_t onfailure(const DOMString &error)      {return EVENT_OK;}
+    virtual event_t onerror()                              {return EVENT_OK;}
 };
 
 class RTCPeerConnection : public EventTarget  {
@@ -325,7 +326,7 @@ class RTCPeerConnection : public EventTarget  {
     readonly_attribute (RTCIceGatheringState,   iceGatheringState);
     readonly_attribute (RTCIceConnectionState,  iceConnectionState);
 
-    eventhandler_attribute (RTCPeerConnection, EventHandler);
+    eventhandler_attribute (RTCPeerConnection);
 
 public:
     explicit RTCPeerConnection () {reset();}
@@ -339,25 +340,21 @@ public:
         m_pEventHandler = NULL;
     }
 
-    virtual void                  setParams (RTCConfiguration &configuration, MediaConstraints &constraints);
-    virtual void                  createOffer (RTCSdpCallback &callback);
-    virtual void                  createOffer (RTCSdpCallback &callback, MediaConstraints &constraints);
-    virtual void                  createAnswer (RTCSdpCallback &callback);
-    virtual void                  createAnswer (RTCSdpCallback &callback, MediaConstraints &constraints);
+    virtual void                  setParams (RTCConfiguration *configuration, MediaConstraints *constraints);   ///@future
 
-    virtual void                  setLocalDescription (RTCSessionDescription &description, RTCVoidCallback &callback);
-    virtual void                  setRemoteDescription (RTCSessionDescription &description, RTCVoidCallback &callback);
+    virtual void                  createOffer (MediaConstraints *constraints);
+    virtual void                  createAnswer (RTCSessionDescription &offer, MediaConstraints *constraints);
+    virtual void                  setLocalDescription (RTCSessionDescription &description);
+    virtual void                  setRemoteDescription (RTCSessionDescription &description);
 
-    virtual void                  updateIce (RTCConfiguration &configuration);
-    virtual void                  updateIce (RTCConfiguration &configuration, MediaConstraints &constraints);
-    virtual void                  addIceCandidate (RTCIceCandidate &candidate, RTCVoidCallback &callback);
+    virtual void                  updateIce (RTCConfiguration *configuration, MediaConstraints *constraints);   ///@future
+    virtual void                  addIceCandidate (RTCIceCandidate &candidate); ///@future
 
     virtual sequence<MediaStream> & getLocalStreams ();
     virtual sequence<MediaStream> & getRemoteStreams ();
     virtual MediaStream           & getStreamById (DOMString streamId);
-    virtual void                  addStream (MediaStream &stream);
-    virtual void                  addStream (MediaStream &stream, MediaConstraints &constraints);
-    virtual void                  removeStream (MediaStream &stream);
+    virtual void                  addStream (MediaStream &stream, MediaConstraints *constraints);   ///@future
+    virtual void                  removeStream (MediaStream &stream);   ///@future
     virtual void                  close ();
 };
 

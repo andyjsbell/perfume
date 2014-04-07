@@ -27,47 +27,88 @@
 
 namespace xrtc {
 
-class CRTCPeerConnection : public RTCPeerConnection {
+class DummySetSessionDescriptionObserver : public webrtc::SetSessionDescriptionObserver {
+public:
+    static DummySetSessionDescriptionObserver* Create() {
+        return new talk_base::RefCountedObject<DummySetSessionDescriptionObserver>();
+    }
+    virtual void OnSuccess() {
+    }
+    virtual void OnFailure(const std::string& error) {
+    }
+
+protected:
+    DummySetSessionDescriptionObserver() {}
+    ~DummySetSessionDescriptionObserver() {}
+};
+
+class CRTCPeerConnection : public RTCPeerConnection, 
+    public webrtc::PeerConnectionObserver,
+    public webrtc::CreateSessionDescriptionObserver {
+private:
+    talk_base::scoped_refptr<webrtc::PeerConnectionInterface> m_conn;
+
 public:
 bool Init(talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory)
 {
+    webrtc::PeerConnectionInterface::IceServers servers;
+    webrtc::PeerConnectionInterface::IceServer server;
+    server.uri = kDefaultIceServer;
+    servers.push_back(server);
+
+    m_conn = pc_factory->CreatePeerConnection(servers, NULL, NULL, this);
+    if (m_conn == NULL) {
+        return false;
+    }
+    return true;
 }
  
 explicit CRTCPeerConnection ()
-{}
+{
+    m_conn = NULL;
+}
 
 virtual ~CRTCPeerConnection ()
+{
+    m_conn = NULL;
+}
+
+void setParams (RTCConfiguration *configuration, MediaConstraints *constraints)
 {}
 
-void setParams (RTCConfiguration &configuration, MediaConstraints &constraints)
-{}
+void createOffer (MediaConstraints *constraints)
+{
+    m_conn->CreateOffer(this, NULL);
+}
 
-void createOffer (RTCSdpCallback &callback)
-{}
+void createAnswer (RTCSessionDescription &offer, MediaConstraints *constraints)
+{
+    m_conn->CreateAnswer(this, NULL);
+}
 
-void createOffer (RTCSdpCallback &callback, MediaConstraints &constraints)
-{}
+void setLocalDescription (RTCSessionDescription &description)
+{
+    webrtc::SessionDescriptionInterface* desp(webrtc::CreateSessionDescription(description.type, description.sdp));
+    if (desp) {
+        m_conn->SetLocalDescription(DummySetSessionDescriptionObserver::Create(), desp);
+    }
+}
 
-void createAnswer (RTCSdpCallback &callback)
-{}
+void setRemoteDescription (RTCSessionDescription &description)
+{
+    webrtc::SessionDescriptionInterface* desp(webrtc::CreateSessionDescription(description.type, description.sdp));
+    if (desp) {
+        m_conn->SetRemoteDescription(DummySetSessionDescriptionObserver::Create(), desp);
+    }
+}
 
-void createAnswer (RTCSdpCallback &callback, MediaConstraints &constraints)
-{}
+void updateIce (RTCConfiguration *configuration, MediaConstraints *constraints)
+{
+}
 
-void setLocalDescription (RTCSessionDescription &description, RTCVoidCallback &callback)
-{}
-
-void setRemoteDescription (RTCSessionDescription &description, RTCVoidCallback &callback)
-{}
-
-void updateIce (RTCConfiguration &configuration)
-{}
-
-void updateIce (RTCConfiguration &configuration, MediaConstraints &constraints)
-{}
-
-void addIceCandidate (RTCIceCandidate &candidate, RTCVoidCallback &callback)
-{}
+void addIceCandidate (RTCIceCandidate &candidate)
+{
+}
 
 sequence<MediaStream> & getLocalStreams ()
 {
@@ -87,10 +128,7 @@ MediaStream & getStreamById (DOMString streamId)
     return ms;
 }
 
-void addStream (MediaStream &stream)
-{}
-
-void addStream (MediaStream &stream, MediaConstraints &constraints)
+void addStream (MediaStream &stream, MediaConstraints *constraints)
 {}
 
 void removeStream (MediaStream &stream)
@@ -99,15 +137,124 @@ void removeStream (MediaStream &stream)
 void close ()
 {}
 
-};
+
+///
+/// for webrtc::PeerConnectionObserver
+virtual void OnError() {
+    event_process0(onerror);
+}
+
+// Triggered when the SignalingState changed.
+virtual void OnSignalingChange(
+        webrtc::PeerConnectionInterface::SignalingState new_state) {
+    int state = (int)new_state;
+    event_process1(onsignalingstatechange, state);
+    m_signalingState = (RTCSignalingState)state;
+}
+
+// Triggered when SignalingState or IceState have changed.
+// TODO(bemasc): Remove once callers transition to OnSignalingChange.
+virtual void OnStateChange(webrtc::PeerConnectionObserver::StateType state_changed) {
+}
+
+// Triggered when media is received on a new stream from remote peer.
+virtual void OnAddStream(webrtc::MediaStreamInterface* stream) {
+    if (!stream)    return;
+    event_process0(onaddstream);
+    if (revent == EVENT_OK) {
+        webrtc::MediaConstraintsInterface* constraints = NULL;
+        m_conn->AddStream(stream, constraints);
+    }
+}
+
+// Triggered when a remote peer close a stream.
+virtual void OnRemoveStream(webrtc::MediaStreamInterface* stream) {
+    if (!stream)    return;
+    event_process0(onremovestream);
+    if (revent == EVENT_OK)
+        m_conn->RemoveStream(stream);
+}
+
+// Triggered when a remote peer open a data channel.
+// TODO(perkj): Make pure virtual.
+virtual void OnDataChannel(webrtc::DataChannelInterface* data_channel) {}
+
+// Triggered when renegotation is needed, for example the ICE has restarted.
+virtual void OnRenegotiationNeeded() {
+    event_process0(onnegotiationneeded);
+}
+
+// Called any time the IceConnectionState changes
+virtual void OnIceConnectionChange(
+        webrtc::PeerConnectionInterface::IceConnectionState new_state) {
+    int state = (int)new_state;
+    m_iceConnectionState = (RTCIceConnectionState)state;
+    event_process1(oniceconnectionstatechange, state);
+}
+
+// Called any time the IceGatheringState changes
+virtual void OnIceGatheringChange(
+        webrtc::PeerConnectionInterface::IceGatheringState new_state) {
+    int state = (int)new_state;
+    m_iceGatheringState = (RTCIceGatheringState)state;
+}
+
+// New Ice candidate have been found.
+virtual void OnIceCandidate(const webrtc::IceCandidateInterface* candidate) {
+    if (!candidate)   return;
+    event_process0(onicecandidate);
+    if (revent == EVENT_OK)
+        m_conn->AddIceCandidate(candidate);
+}
+
+// TODO(bemasc): Remove this once callers transition to OnIceGatheringChange.
+// All Ice candidates have been found.
+virtual void OnIceComplete() {}
+
+
+///
+/// for webrtc::CreateSessionDescriptionObserver
+virtual void OnSuccess(webrtc::SessionDescriptionInterface* desc) {
+    if (!desc)  return;
+    RTCSessionDescription rtcDesc;
+    rtcDesc.type = desc->type();
+
+    std::string sdp;
+    desc->ToString(&sdp);
+    rtcDesc.sdp = sdp;
+
+    const webrtc::SessionDescriptionInterface* ldesc = m_conn->local_description();
+    if (ldesc) {
+        ldesc->ToString(&sdp);
+        m_localDescription.sdp = sdp;
+        m_localDescription.type = ldesc->type();
+    }
+
+    const webrtc::SessionDescriptionInterface* rdesc = m_conn->local_description();
+    if (rdesc) {
+        rdesc->ToString(&sdp);
+        m_remoteDescription.sdp = sdp;
+        m_remoteDescription.type = rdesc->type();
+    }
+
+    event_process1(onsuccess, rtcDesc);
+}
+
+virtual void OnFailure(const std::string& error)
+{
+    event_process1(onfailure, error);
+}
+
+}; // class CRTCPeerConnection
 
 RTCPeerConnection *CreatePeerConnection(talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory) {
-    CRTCPeerConnection * pc = new CRTCPeerConnection();
-    if (!pc || !pc->Init(pc_factory)) {
-        delete pc;
+    talk_base::scoped_refptr<CRTCPeerConnection> pc = new talk_base::RefCountedObject<CRTCPeerConnection>();
+    if (!pc.get() || !pc->Init(pc_factory)) {
         pc = NULL;
+    }else {
+        pc->AddRef();
     }
-    return pc;
+    return pc.get();
 }
 
 

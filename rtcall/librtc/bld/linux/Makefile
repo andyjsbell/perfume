@@ -1,5 +1,5 @@
 # The pre-processor and compiler options.  
-MY_CFLAGS = -DPOSIX -DWEBRTC_LINUX -I../../third_party/webrtc/trunk
+MY_CFLAGS = -DPOSIX -DWEBRTC_LINUX -I../../third_party/webrtc/trunk -Wunused-but-set-variable
  
 # The linker options.  
 MY_LIBS   =  
