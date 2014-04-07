@@ -58,12 +58,6 @@ struct MediaStreamConstraints {
     MediaTrackConstraints audioConstraints;
 };
 
-enum MediaStreamTrackState {
-    NEW,            //"new",
-    LIVE,           //"live",
-    ENDED,          //"ended"
-};
-
 struct DOMError {
     int errno;
 };
@@ -78,17 +72,23 @@ class EventTarget {};
 
 ///
 /// ==============================
+enum MediaStreamTrackState {
+    TRACK_NEW,            //"new",
+    TRACK_LIVE,           //"live",
+    TRACK_ENDED,          //"ended"
+};
+
 enum VideoFacingModeEnum {
-    USER,           //"user",
-    ENVIRONMENT,    //"environment",
-    LEFT,           //"left",
-    RIGHT,          //"right"
+    FACING_USER,           //"user",
+    FACING_ENVIRONMENT,    //"environment",
+    FACING_LEFT,           //"left",
+    FACING_RIGHT,          //"right"
 };
 
 enum SourceTypeEnum {
-    NONE,           //"none",
-    CAMERA,         //"camera",
-    MICROPHONE,     //"microphone"
+    SOURCE_NONE,           //"none",
+    SOURCE_CAMERA,         //"camera",
+    SOURCE_MICROPHONE,     //"microphone"
 };
 
 struct SourceInfo {
@@ -158,9 +158,9 @@ public:
 
     MediaTrackConstraints   constraints ();
     MediaSourceStates       states ();
-    AllMediaCapabilities &  capabilities ();
-    void                    applyConstraints (MediaTrackConstraints constraints);
-    MediaStreamTrack        clone ();
+    AllMediaCapabilities    capabilities ();
+    void                    applyConstraints (MediaTrackConstraints &constraints);
+    //MediaStreamTrack        clone ();
     void                    stop ();
 };
 typedef sequence<MediaStreamTrack> MediaStreamTrackSequence;
@@ -170,7 +170,7 @@ typedef sequence<MediaStreamTrack> MediaStreamTrackSequence;
 /// ==============================
 class MediaStreamEventHandler {
 public:
-    virtual void onended()         {};
+    virtual void onended()          {};
     virtual void onaddtrack()       {};
     virtual void onremovetrack()    {};
 };
@@ -188,10 +188,10 @@ public:
 
     sequence<MediaStreamTrack> & getAudioTracks ();
     sequence<MediaStreamTrack> & getVideoTracks ();
-    MediaStreamTrack         & getTrackById (DOMString &trackId);
+    MediaStreamTrack         & getTrackById (DOMString trackId);
     void                     addTrack (MediaStreamTrack &track);
     void                     removeTrack (MediaStreamTrack &track);
-    MediaStream              clone ();
+    //MediaStream              clone ();
 };
 
 
@@ -204,21 +204,21 @@ struct NavigatorUserMediaError : public DOMError {
 class NavigatorUserMediaCallback {
 public:
     virtual void SuccessCallback(MediaStream &stream)           {};
-    virtual void ErrorCallback(NavigatorUserMediaError error)   {};
+    virtual void ErrorCallback(NavigatorUserMediaError &error)  {};
 };
 
 class NavigatorUserMedia {
 public:
-    void getUserMedia (MediaStreamConstraints &constraints, NavigatorUserMediaCallback &callback);
+    static void getUserMedia (MediaStreamConstraints &constraints, NavigatorUserMediaCallback &callback);
 };
 
 
 ///
 /// ==============================
 enum RTCSdpType {
-    OFFER,      //"offer",
-    PRANSWER,   //"pranswer",
-    ANSWER,     //"answer"
+    SDP_OFFER,      //"offer",
+    SDP_PRANSWER,   //"pranswer",
+    SDP_ANSWER,     //"answer"
 };
 
 struct RTCSessionDescriptionInit {
@@ -232,10 +232,10 @@ class RTCSessionDescription {
 
 public:
     RTCSessionDescription();
-    RTCSessionDescription(RTCSessionDescriptionInit descriptionInitDict);
+    RTCSessionDescription(RTCSessionDescriptionInit &descriptionInitDict);
 };
 
-class RTCIceCandidateInit {
+struct RTCIceCandidateInit {
     DOMString      candidate;
     DOMString      sdpMid;
     unsigned short sdpMLineIndex;
@@ -248,10 +248,10 @@ class RTCIceCandidate {
 
 public:
     RTCIceCandidate();
-    RTCIceCandidate(RTCIceCandidateInit candidateInitDict);
+    RTCIceCandidate(RTCIceCandidateInit &candidateInitDict);
 };
 
-class RTCIceServer {
+struct RTCIceServer {
     sequence<DOMString>     urls;
     DOMString               username;
     DOMString               credential;
@@ -269,50 +269,50 @@ struct RTCSdpError : public DOMError {
 ///
 /// ==============================
 enum RTCSignalingState {
-    STABLE,                 //"stable",
+    SIGNALING_STABLE,       //"stable",
     HAVE_LOCAL_OFFER,       //"have-local-offer",
     HAVE_REMOTE_OFFER,      //"have-remote-offer",
     HAVE_LOCAL_PRANSWER,    //"have-local-pranswer",
     HAVE_REMOTE_PRANSWER,   //"have-remote-pranswer",
-    SS_CLOSED,              //"closed"
+    SIGNALING_CLOSED,       //"closed"
 };
 
 enum RTCIceGatheringState {
-    IGS_ICE,        //"new",
-    GATHERING,      //"gathering",
-    COMPLETE,       //"complete"
+    ICE_NEW,            //"new",
+    ICE_GATHERING,      //"gathering",
+    ICE_COMPLETE,       //"complete"
 };
 
 enum RTCIceConnectionState {
-    ICS_NEW,        //"new",
+    CONN_NEW,       //"new",
     CHECKING,       //"checking",
     CONNECTED,      //"connected",
     COMPLETED,      //"completed",
     FAILED,         //"failed",
     DISCONNECTED,   //"disconnected",
-    ICS_CLOSED,     //"closed"
+    CONN_CLOSED,    //"closed"
 };
 
 class RTCPeerConnectionEventHandler {
 public:
-    virtual void onnegotiationneeded();
-    virtual void onicecandidate();
-    virtual void onsignalingstatechange();
-    virtual void onaddstream();
-    virtual void onremovestream();
-    virtual void oniceconnectionstatechange();
+    virtual void onnegotiationneeded()      {}
+    virtual void onicecandidate()           {}
+    virtual void onsignalingstatechange()   {}
+    virtual void onaddstream()              {}
+    virtual void onremovestream()           {}
+    virtual void oniceconnectionstatechange()   {}
 };
 
 class RTCSdpCallback {
 public:
-    virtual void SuccessCallback (RTCSessionDescription sdp) {}
-    virtual void FailureCallback (DOMError error) {}
+    virtual void SuccessCallback (RTCSessionDescription &sdp) {}
+    virtual void FailureCallback (DOMError &error) {}
 };
 
 class RTCVoidCallback {
 public:
     virtual void SuccessCallback () {}
-    virtual void FailureCallback (DOMError error) {}
+    virtual void FailureCallback (DOMError &error) {}
 };
 
 class RTCPeerConnection : public EventTarget  {
@@ -325,27 +325,27 @@ class RTCPeerConnection : public EventTarget  {
     eventhandler_attribute (RTCPeerConnection, EventHandler);
 
 public:
-    RTCPeerConnection (RTCConfiguration configuration);
-    RTCPeerConnection (RTCConfiguration configuration, MediaConstraints constraints);
+    RTCPeerConnection (RTCConfiguration &configuration);
+    RTCPeerConnection (RTCConfiguration &configuration, MediaConstraints &constraints);
 
     void                  createOffer (RTCSdpCallback &callback);
-    void                  createOffer (RTCSdpCallback &callback, MediaConstraints constraints);
+    void                  createOffer (RTCSdpCallback &callback, MediaConstraints &constraints);
     void                  createAnswer (RTCSdpCallback &callback);
-    void                  createAnswer (RTCSdpCallback &callback, MediaConstraints constraints);
+    void                  createAnswer (RTCSdpCallback &callback, MediaConstraints &constraints);
 
-    void                  setLocalDescription (RTCSessionDescription description, RTCVoidCallback &callback);
-    void                  setRemoteDescription (RTCSessionDescription description, RTCVoidCallback &callback);
+    void                  setLocalDescription (RTCSessionDescription &description, RTCVoidCallback &callback);
+    void                  setRemoteDescription (RTCSessionDescription &description, RTCVoidCallback &callback);
 
-    void                  updateIce (RTCConfiguration configuration);
-    void                  updateIce (RTCConfiguration configuration, MediaConstraints constraints);
-    void                  addIceCandidate (RTCIceCandidate candidate, RTCVoidCallback &callback);
+    void                  updateIce (RTCConfiguration &configuration);
+    void                  updateIce (RTCConfiguration &configuration, MediaConstraints &constraints);
+    void                  addIceCandidate (RTCIceCandidate &candidate, RTCVoidCallback &callback);
 
-    sequence<MediaStream> getLocalStreams ();
-    sequence<MediaStream> getRemoteStreams ();
-    MediaStream           getStreamById (DOMString streamId);
-    void                  addStream (MediaStream stream);
-    void                  addStream (MediaStream stream, MediaConstraints constraints);
-    void                  removeStream (MediaStream stream);
+    sequence<MediaStream> & getLocalStreams ();
+    sequence<MediaStream> & getRemoteStreams ();
+    MediaStream           & getStreamById (DOMString streamId);
+    void                  addStream (MediaStream &stream);
+    void                  addStream (MediaStream &stream, MediaConstraints &constraints);
+    void                  removeStream (MediaStream &stream);
     void                  close ();
 };
 
