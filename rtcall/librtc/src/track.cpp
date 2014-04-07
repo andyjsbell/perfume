@@ -23,41 +23,172 @@
  */
 
 #include "xrtc_std.h"
+#include "webrtc.h"
 
 namespace xrtc {
 
-sequence<SourceInfo> & MediaStreamTrack::getSourceInfos()
+class CMediaStreamTrack : public MediaStreamTrack {
+private:
+    talk_base::scoped_refptr<webrtc::MediaStreamTrackInterface> m_track;
+    talk_base::scoped_refptr<webrtc::MediaSourceInterface> m_source;
+
+public:
+bool Init(talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory, DOMString vid)
+{
+    if (!pc_factory)    return false;
+    if (m_kind == kAudioKind) {
+        if (!m_source)
+            m_source = pc_factory->CreateAudioSource(NULL);
+        m_track = pc_factory->CreateAudioTrack(m_label, (webrtc::AudioSourceInterface *)(m_source.get()));
+    }else if (m_kind == kVideoKind) {
+        if (!m_source) {
+            cricket::VideoCapturer* capturer = OpenVideoCaptureDevice(vid);
+            if (capturer)
+                m_source = pc_factory->CreateVideoSource(capturer, NULL);
+        }
+        if (m_source)
+            m_track = pc_factory->CreateVideoTrack(m_label, (webrtc::VideoSourceInterface *)(m_source.get()));
+    }
+    return m_track != NULL;
+}
+
+explicit CMediaStreamTrack() 
+{}
+
+virtual ~CMediaStreamTrack()
+{
+    reset();
+    m_source.release();
+    m_track.release();
+}
+
+sequence<SourceInfo> & getSourceInfos()
 {
     sequence<SourceInfo> ssi;
     return ssi;
 }
 
-MediaTrackConstraints MediaStreamTrack::constraints()
+MediaTrackConstraints constraints()
 {
     MediaTrackConstraints cons;
     return cons;
 }
 
-MediaSourceStates MediaStreamTrack::states()
+MediaSourceStates states()
 {
     MediaSourceStates stats;
     return stats;    
 }
 
-AllMediaCapabilities MediaStreamTrack::capabilities()
+AllMediaCapabilities capabilities()
 {
     AllMediaCapabilities caps;
     return caps;
 }
 
-void MediaStreamTrack::applyConstraints(MediaTrackConstraints &constraints)
+void applyConstraints(MediaTrackConstraints &constraints)
 {}
 
-//MediaStreamTrack MediaStreamTrack::clone()
+//MediaStreamTrack clone()
 //{}
 
-void MediaStreamTrack::stop()
+void stop()
 {}
+
+static cricket::VideoCapturer* OpenVideoCaptureDevice(DOMString dev_id) 
+{
+    talk_base::scoped_ptr<cricket::DeviceManagerInterface> dev_manager(
+            cricket::DeviceManagerFactory::Create());
+    if (!dev_manager->Init()) {
+        return NULL;
+    }
+
+    std::vector<cricket::Device> devs;
+    if (!dev_manager->GetVideoCaptureDevices(&devs)) {
+        return NULL;
+    }
+
+    cricket::VideoCapturer* capturer = NULL;
+    std::vector<cricket::Device>::iterator dev_it = devs.begin();
+    for (; dev_it != devs.end(); ++dev_it) {
+        std::string key = (*dev_it).id;
+        if (!dev_id.empty() && dev_id != key) {
+            continue;
+        }
+        capturer = dev_manager->CreateVideoCapturer(*dev_it);
+        if (capturer != NULL)
+            break;
+    }
+
+    // TODO: choose the best format
+
+    return capturer;
+}
+
+static std::map<std::string, std::string> GetVideoDevices()
+{
+    std::string key;
+    std::string val;
+    std::map<std::string, std::string> devices;
+
+    talk_base::scoped_ptr<cricket::DeviceManagerInterface> dev_manager(
+            cricket::DeviceManagerFactory::Create());
+    if (!dev_manager->Init()) {
+        return devices;
+    }
+
+    std::vector<cricket::Device> devs;
+    if (!dev_manager->GetVideoCaptureDevices(&devs)) {
+        return devices;
+    }
+
+    std::vector<cricket::Device>::iterator dev_it = devs.begin();
+    for (; dev_it != devs.end(); ++dev_it) {
+        key = (*dev_it).id;
+        val = (*dev_it).name;
+        devices[key] = val;
+
+#if 0
+        std::string msg("Capture device [id = ");
+        msg += key;
+        msg += ", name = ";
+        msg += (val + "]");
+        printf("video devices: %s\n", msg.c_str());
+#endif
+    }
+
+    return devices;
+}
+
+static std::vector<std::string> GetAudioDevices(bool bInput)
+{
+    std::vector<std::string> devices;
+    std::vector<cricket::Device> devicelist;
+
+    static bool initTried = false;
+    static talk_base::scoped_ptr<cricket::DeviceManagerInterface> devmgr(cricket::DeviceManagerFactory::Create());
+
+    if(false == initTried) {
+        if(false == devmgr->Init()) {
+            return devices;
+        }
+        initTried = true;
+    }
+
+    if(bInput)
+        devmgr->GetAudioInputDevices(&devicelist);
+    else
+        devmgr->GetAudioOutputDevices(&devicelist);
+
+    for(size_t i=0; i<devicelist.size(); i++) {
+        devices.push_back(devicelist[i].name);
+    }
+    devicelist.clear();
+
+    return devices;
+}
+
+};
 
 } // namespace xrtc
 

@@ -1,8 +1,11 @@
 # The pre-processor and compiler options.  
-MY_CFLAGS = 
+MY_CFLAGS = -DPOSIX -DWEBRTC_LINUX -I../../third_party/webrtc/trunk
  
 # The linker options.  
 MY_LIBS   =  
+
+# default no depend
+NODEP = no
 
 # The pre-processor options used by the cpp (man cpp for more).  
 CPPFLAGS  = -Wall
@@ -143,11 +146,11 @@ endif
 endif  
 
 clean:  
-	$(RM) $(OBJS) 
+	@$(RM) $(OBJS) 
 	@$(RM) $(PROGRAM) lib$(PROGRAM).so lib$(PROGRAM).a
 
 distclean: clean  
-	$(RM) $(DEPS)
+	@$(RM) $(DEPS)
 
 # Show help.  
 help:  

@@ -25,6 +25,18 @@
 #ifndef _XRTC_API_H_
 #define _XRTC_API_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef void * pc_ptr_t;
+
+bool xrtc_init();
+void xrtc_uninit();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // _XRTC_API_H_
 

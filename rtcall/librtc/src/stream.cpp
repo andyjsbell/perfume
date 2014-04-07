@@ -23,44 +23,52 @@
  */
 
 #include "xrtc_std.h"
+#include "webrtc.h"
 
 namespace xrtc {
 
-MediaStream::MediaStream ()
+class CMediaStream : public MediaStream {
+private:
+    talk_base::scoped_refptr<webrtc::MediaStreamInterface> m_stream;
+
+public:
+explicit CMediaStream ()
 {}
 
-MediaStream::MediaStream (MediaStream &stream)
+explicit CMediaStream (CMediaStream &stream)
 {}
 
-MediaStream::MediaStream (MediaStreamTrackSequence &tracks)
+explicit CMediaStream (MediaStreamTrackSequence &tracks)
 {}
 
-sequence<MediaStreamTrack> & MediaStream::getAudioTracks ()
+sequence<MediaStreamTrack> & getAudioTracks ()
 {
     sequence<MediaStreamTrack> smt;
     return smt;
 }
 
-sequence<MediaStreamTrack> & MediaStream::getVideoTracks ()
+sequence<MediaStreamTrack> & getVideoTracks ()
 {
     sequence<MediaStreamTrack> smt;
     return smt;
 }
 
-MediaStreamTrack & MediaStream::getTrackById (DOMString trackId)
+MediaStreamTrack & getTrackById (DOMString trackId)
 {
     MediaStreamTrack st;
     return st;
 }
 
-void MediaStream::addTrack (MediaStreamTrack &track)
+void addTrack (MediaStreamTrack &track)
 {}
 
-void MediaStream::removeTrack (MediaStreamTrack &track)
+void removeTrack (MediaStreamTrack &track)
 {}
 
-//MediaStream              MediaStream::clone ()
+//MediaStream              clone ()
 //{}
+
+};
 
 } // namespace xrtc
 

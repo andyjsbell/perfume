@@ -23,71 +23,92 @@
  */
 
 #include "xrtc_std.h"
+#include "webrtc.h"
 
 namespace xrtc {
 
-RTCPeerConnection::RTCPeerConnection (RTCConfiguration &configuration)
+class CRTCPeerConnection : public RTCPeerConnection {
+public:
+bool Init(talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory)
+{
+}
+ 
+explicit CRTCPeerConnection ()
 {}
 
-RTCPeerConnection::RTCPeerConnection (RTCConfiguration &configuration, MediaConstraints &constraints)
+virtual ~CRTCPeerConnection ()
 {}
 
-void RTCPeerConnection::createOffer (RTCSdpCallback &callback)
+void setParams (RTCConfiguration &configuration, MediaConstraints &constraints)
 {}
 
-void RTCPeerConnection::createOffer (RTCSdpCallback &callback, MediaConstraints &constraints)
+void createOffer (RTCSdpCallback &callback)
 {}
 
-void RTCPeerConnection::createAnswer (RTCSdpCallback &callback)
+void createOffer (RTCSdpCallback &callback, MediaConstraints &constraints)
 {}
 
-void RTCPeerConnection::createAnswer (RTCSdpCallback &callback, MediaConstraints &constraints)
+void createAnswer (RTCSdpCallback &callback)
 {}
 
-void RTCPeerConnection::setLocalDescription (RTCSessionDescription &description, RTCVoidCallback &callback)
+void createAnswer (RTCSdpCallback &callback, MediaConstraints &constraints)
 {}
 
-void RTCPeerConnection::setRemoteDescription (RTCSessionDescription &description, RTCVoidCallback &callback)
+void setLocalDescription (RTCSessionDescription &description, RTCVoidCallback &callback)
 {}
 
-void RTCPeerConnection::updateIce (RTCConfiguration &configuration)
+void setRemoteDescription (RTCSessionDescription &description, RTCVoidCallback &callback)
 {}
 
-void RTCPeerConnection::updateIce (RTCConfiguration &configuration, MediaConstraints &constraints)
+void updateIce (RTCConfiguration &configuration)
 {}
 
-void RTCPeerConnection::addIceCandidate (RTCIceCandidate &candidate, RTCVoidCallback &callback)
+void updateIce (RTCConfiguration &configuration, MediaConstraints &constraints)
 {}
 
-sequence<MediaStream> & RTCPeerConnection::getLocalStreams ()
+void addIceCandidate (RTCIceCandidate &candidate, RTCVoidCallback &callback)
+{}
+
+sequence<MediaStream> & getLocalStreams ()
 {
     sequence<MediaStream> sms;
     return sms;
 }
 
-sequence<MediaStream> & RTCPeerConnection::getRemoteStreams ()
+sequence<MediaStream> & getRemoteStreams ()
 {
     sequence<MediaStream> sms;
     return sms;
 }
 
-MediaStream & RTCPeerConnection::getStreamById (DOMString streamId)
+MediaStream & getStreamById (DOMString streamId)
 {
     MediaStream ms;
     return ms;
 }
 
-void RTCPeerConnection::addStream (MediaStream &stream)
+void addStream (MediaStream &stream)
 {}
 
-void RTCPeerConnection::addStream (MediaStream &stream, MediaConstraints &constraints)
+void addStream (MediaStream &stream, MediaConstraints &constraints)
 {}
 
-void RTCPeerConnection::removeStream (MediaStream &stream)
+void removeStream (MediaStream &stream)
 {}
 
-void RTCPeerConnection::close ()
+void close ()
 {}
+
+};
+
+RTCPeerConnection *CreatePeerConnection(talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory) {
+    CRTCPeerConnection * pc = new CRTCPeerConnection();
+    if (!pc || !pc->Init(pc_factory)) {
+        delete pc;
+        pc = NULL;
+    }
+    return pc;
+}
+
 
 } //namespace xrtc
-
