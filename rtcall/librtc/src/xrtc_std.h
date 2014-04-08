@@ -62,7 +62,11 @@ struct DOMError {
     int errno;
 };
 
-class EventTarget {};
+class EventTarget {
+public:
+    virtual ~EventTarget() {}
+    virtual void * getptr()         {return NULL;}
+};
 
 #define readonly_attribute(t, n)        public: t Get_##n() { return m_##n; }; protected: t m_##n;
 #define readwrite_attribute(t, n)       public: void Put_##n(t value) { m_##n = value; }; readonly_attribute(t, n);
@@ -79,7 +83,9 @@ enum event_t {
 
 ///
 /// ==============================
-const DOMString kMediaKind = "none";
+const DOMString kStreamLabel = "stream";
+
+const DOMString kNullKind = "null";
 const DOMString kAudioKind = "audio";
 const DOMString kVideoKind = "video";
 
@@ -168,9 +174,9 @@ public:
     explicit MediaStreamTrack() {reset();}
     virtual ~MediaStreamTrack();
     void reset() {
-        m_kind = kMediaKind;
+        m_kind = kNullKind;
         m_id = "";
-        m_label = "";
+        m_label = "Unknown Track";
         m_enabled = false;
         m_muted = false;
         m_readonly = false;
@@ -179,16 +185,24 @@ public:
         m_pEventHandler = NULL;
     }
 
-    static sequence<SourceInfo> & getSourceInfos();
-
     virtual MediaTrackConstraints   constraints ();
     virtual MediaSourceStates       states ();
-    virtual AllMediaCapabilities    capabilities ();
+    virtual AllMediaCapabilities *  capabilities ();
     virtual void                    applyConstraints (MediaTrackConstraints &constraints);
     //virtual MediaStreamTrack        clone ();
     virtual void                    stop ();
 };
 typedef sequence<MediaStreamTrack> MediaStreamTrackSequence;
+
+class VideoStreamTrack : public MediaStreamTrack {
+public:
+    static sequence<SourceInfo> & getSourceInfos();
+};
+
+class AudioStreamTrack : public MediaStreamTrack {
+public:
+    static sequence<SourceInfo> & getSourceInfos();
+};
 
 
 ///

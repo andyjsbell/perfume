@@ -27,13 +27,20 @@
 
 namespace xrtc {
 
+static sequence<SourceInfo> _audio_sources;
+static sequence<SourceInfo> _video_sources;
+
 class CMediaStreamTrack : public MediaStreamTrack {
 private:
     talk_base::scoped_refptr<webrtc::MediaStreamTrackInterface> m_track;
     talk_base::scoped_refptr<webrtc::MediaSourceInterface> m_source;
 
+    MediaTrackConstraints m_constraints;
+    MediaSourceStates m_source_states;
+    AllMediaCapabilities *m_capabilities;
+
 public:
-bool Init(talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory, DOMString vid)
+bool Init(talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory)
 {
     if (!pc_factory)    return false;
     if (m_kind == kAudioKind) {
@@ -42,18 +49,43 @@ bool Init(talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_fa
         m_track = pc_factory->CreateAudioTrack(m_label, (webrtc::AudioSourceInterface *)(m_source.get()));
     }else if (m_kind == kVideoKind) {
         if (!m_source) {
-            cricket::VideoCapturer* capturer = OpenVideoCaptureDevice(vid);
+            std::string vname = "";
+            sequence<MediaTrackConstraint>::iterator iter;
+            for (iter=m_constraints.optional.begin(); iter != m_constraints.optional.end(); iter++) {
+                if (iter->first == "sourceId") {
+                    sequence<SourceInfo>::iterator iter2;
+                    for (iter2=_video_sources.begin(); iter2 != _video_sources.end(); iter2++) {
+                        if (iter2->sourceId == iter->second) {
+                            vname = iter2->label;
+                            break;
+                        }
+                    }
+                    break;
+                }
+            }
+
+            // if vname empty, select default device
+            cricket::VideoCapturer* capturer = OpenVideoCaptureDevice(vname);
             if (capturer)
                 m_source = pc_factory->CreateVideoSource(capturer, NULL);
         }
         if (m_source)
             m_track = pc_factory->CreateVideoTrack(m_label, (webrtc::VideoSourceInterface *)(m_source.get()));
     }
-    return m_track != NULL;
+    return (m_track != NULL);
 }
 
-explicit CMediaStreamTrack() 
-{}
+explicit CMediaStreamTrack(std::string kind, std::string id, std::string label, MediaTrackConstraints *constraints)
+{
+    m_kind = kind;
+    m_id = id;
+    m_label = label;
+
+    if (constraints) {
+        m_constraints.mandatory = constraints->mandatory;
+        m_constraints.optional = constraints->optional;
+    }
+}
 
 virtual ~CMediaStreamTrack()
 {
@@ -62,32 +94,30 @@ virtual ~CMediaStreamTrack()
     m_track.release();
 }
 
-sequence<SourceInfo> & getSourceInfos()
+void * getptr()
 {
-    sequence<SourceInfo> ssi;
-    return ssi;
+    return m_track.get();
 }
 
 MediaTrackConstraints constraints()
 {
-    MediaTrackConstraints cons;
-    return cons;
+    return m_constraints;
 }
 
 MediaSourceStates states()
 {
-    MediaSourceStates stats;
-    return stats;    
+    return m_source_states;
 }
 
-AllMediaCapabilities capabilities()
+AllMediaCapabilities * capabilities()
 {
-    AllMediaCapabilities caps;
-    return caps;
+    return m_capabilities;
 }
 
 void applyConstraints(MediaTrackConstraints &constraints)
-{}
+{
+    m_constraints = constraints;
+}
 
 //MediaStreamTrack clone()
 //{}
@@ -95,7 +125,10 @@ void applyConstraints(MediaTrackConstraints &constraints)
 void stop()
 {}
 
-static cricket::VideoCapturer* OpenVideoCaptureDevice(DOMString dev_id) 
+
+///
+/// for device
+static cricket::VideoCapturer* OpenVideoCaptureDevice(std::string name)
 {
     talk_base::scoped_ptr<cricket::DeviceManagerInterface> dev_manager(
             cricket::DeviceManagerFactory::Create());
@@ -103,92 +136,87 @@ static cricket::VideoCapturer* OpenVideoCaptureDevice(DOMString dev_id)
         return NULL;
     }
 
-    std::vector<cricket::Device> devs;
-    if (!dev_manager->GetVideoCaptureDevices(&devs)) {
+    cricket::Device device;
+    if(!dev_manager->GetVideoCaptureDevice(name, &device)) {
         return NULL;
     }
 
     cricket::VideoCapturer* capturer = NULL;
-    std::vector<cricket::Device>::iterator dev_it = devs.begin();
-    for (; dev_it != devs.end(); ++dev_it) {
-        std::string key = (*dev_it).id;
-        if (!dev_id.empty() && dev_id != key) {
-            continue;
-        }
-        capturer = dev_manager->CreateVideoCapturer(*dev_it);
-        if (capturer != NULL)
-            break;
-    }
+    capturer = dev_manager->CreateVideoCapturer(device);
 
     // TODO: choose the best format
-
     return capturer;
 }
 
-static std::map<std::string, std::string> GetVideoDevices()
-{
-    std::string key;
-    std::string val;
-    std::map<std::string, std::string> devices;
+}; //class CMediaStreamTrack
 
+
+static bool GetSourceInfos(const std::string kind, sequence<SourceInfo> &sources) {
     talk_base::scoped_ptr<cricket::DeviceManagerInterface> dev_manager(
             cricket::DeviceManagerFactory::Create());
     if (!dev_manager->Init()) {
-        return devices;
+        return false;
     }
 
     std::vector<cricket::Device> devs;
-    if (!dev_manager->GetVideoCaptureDevices(&devs)) {
-        return devices;
+    if (kind == kVideoKind) {
+        dev_manager->GetVideoCaptureDevices(&devs);
+    }else if (kind == kAudioKind) {
+        // dev_manager->GetAudioOutputDevices(&devs);
+        dev_manager->GetAudioInputDevices(&devs);
+    }else {
+        return false;
     }
 
-    std::vector<cricket::Device>::iterator dev_it = devs.begin();
-    for (; dev_it != devs.end(); ++dev_it) {
-        key = (*dev_it).id;
-        val = (*dev_it).name;
-        devices[key] = val;
-
-#if 0
-        std::string msg("Capture device [id = ");
-        msg += key;
-        msg += ", name = ";
-        msg += (val + "]");
-        printf("video devices: %s\n", msg.c_str());
-#endif
+    SourceInfo source;
+    source.kind = kind;
+    std::vector<cricket::Device>::iterator iter;
+    for (iter=devs.begin(); iter != devs.end(); ++iter) {
+        source.sourceId = (*iter).id;
+        source.label = (*iter).name;
+        sources.push_back(source);
     }
+    devs.clear();
 
-    return devices;
+    return true;
 }
 
-static std::vector<std::string> GetAudioDevices(bool bInput)
-{
-    std::vector<std::string> devices;
-    std::vector<cricket::Device> devicelist;
-
-    static bool initTried = false;
-    static talk_base::scoped_ptr<cricket::DeviceManagerInterface> devmgr(cricket::DeviceManagerFactory::Create());
-
-    if(false == initTried) {
-        if(false == devmgr->Init()) {
-            return devices;
-        }
-        initTried = true;
-    }
-
-    if(bInput)
-        devmgr->GetAudioInputDevices(&devicelist);
-    else
-        devmgr->GetAudioOutputDevices(&devicelist);
-
-    for(size_t i=0; i<devicelist.size(); i++) {
-        devices.push_back(devicelist[i].name);
-    }
-    devicelist.clear();
-
-    return devices;
+sequence<SourceInfo> & VideoStreamTrack::getSourceInfos() {
+    _video_sources.clear();
+    GetSourceInfos(kVideoKind, _video_sources);
+    return _video_sources;
 }
 
-};
+sequence<SourceInfo> & AudioStreamTrack::getSourceInfos() {
+    _audio_sources.clear();
+    GetSourceInfos(kAudioKind, _audio_sources);
+    return _audio_sources;
+}
+
+static MediaStreamTrack * CreateMediaStreamTrack(talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory, 
+        std::string kind, std::string id, std::string label, MediaTrackConstraints *constraints) {
+    CMediaStreamTrack *track = new CMediaStreamTrack(kind, id, label, constraints);
+    if (!track) return NULL;
+    if (!track->Init(pc_factory)) {
+        delete track;
+        track = NULL;
+    }
+    return track;
+}
+
+MediaStreamTrack * CreateAudioStreamTrack(talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory, 
+        MediaTrackConstraints *constraints) {
+    std::string id = "audio_unqieu_id";
+    std::string label = "Audio Stream Track";
+    return CreateMediaStreamTrack(pc_factory, kAudioKind, id, label, constraints);
+}
+
+MediaStreamTrack * CreateVideoStreamTrack(talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory,
+        MediaTrackConstraints *constraints) {
+    std::string id = "video_unqieu_id";
+    std::string label = "Video Stream Track";
+    return CreateMediaStreamTrack(pc_factory, kVideoKind, id, label, constraints);
+}
 
 } // namespace xrtc
 

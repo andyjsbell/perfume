@@ -27,7 +27,12 @@
 namespace xrtc {
 
 void NavigatorUserMedia::getUserMedia (MediaStreamConstraints &constraints, NavigatorUserMediaCallback &callback)
-{}
+{
+    MediaStream *stream = NULL; //CreateMediaStream(kStreamLabel);
+    if (!stream) {
+        return;
+    } 
+}
 
 } //namespace xrtc
 

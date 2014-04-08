@@ -48,6 +48,10 @@ class CRTCPeerConnection : public RTCPeerConnection,
 private:
     talk_base::scoped_refptr<webrtc::PeerConnectionInterface> m_conn;
 
+    MediaStream m_null_stream;
+    sequence<MediaStream> m_local_streams;
+    sequence<MediaStream> m_remote_streams;
+
 public:
 bool Init(talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory)
 {
@@ -71,6 +75,11 @@ explicit CRTCPeerConnection ()
 virtual ~CRTCPeerConnection ()
 {
     m_conn = NULL;
+}
+
+void * getptr() 
+{
+    return m_conn.get();
 }
 
 void setParams (RTCConfiguration *configuration, MediaConstraints *constraints)
@@ -112,20 +121,17 @@ void addIceCandidate (RTCIceCandidate &candidate)
 
 sequence<MediaStream> & getLocalStreams ()
 {
-    sequence<MediaStream> sms;
-    return sms;
+    return m_local_streams;
 }
 
 sequence<MediaStream> & getRemoteStreams ()
 {
-    sequence<MediaStream> sms;
-    return sms;
+    return m_remote_streams;
 }
 
 MediaStream & getStreamById (DOMString streamId)
 {
-    MediaStream ms;
-    return ms;
+    return m_null_stream;
 }
 
 void addStream (MediaStream &stream, MediaConstraints *constraints)
@@ -246,6 +252,7 @@ virtual void OnFailure(const std::string& error)
 }
 
 }; // class CRTCPeerConnection
+
 
 RTCPeerConnection *CreatePeerConnection(talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory) {
     talk_base::scoped_refptr<CRTCPeerConnection> pc = new talk_base::RefCountedObject<CRTCPeerConnection>();
