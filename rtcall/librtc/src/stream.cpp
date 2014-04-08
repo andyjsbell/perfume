@@ -34,28 +34,31 @@ private:
     MediaStreamTrack m_null_track;
     sequence<MediaStreamTrack> m_audio_tracks;
     sequence<MediaStreamTrack> m_video_tracks;
-    
 
 public:
-bool Init(talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory, const std::string label) {
-    if (!pc_factory)    return false;
-    talk_base::scoped_refptr<webrtc::MediaStreamInterface> stream = pc_factory->CreateLocalMediaStream(label);
+bool Init(talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory, 
+        const std::string label, 
+        talk_base::scoped_refptr<webrtc::MediaStreamInterface> stream) {
     m_stream = stream;
+    if (!m_stream) {
+        if (pc_factory) {
+            m_stream = pc_factory->CreateLocalMediaStream(label);
+        }
+    }
     return (m_stream != NULL);
 }
 
-explicit CMediaStream ()
-{}
-
-explicit CMediaStream (CMediaStream &stream)
-{}
-
-explicit CMediaStream (MediaStreamTrackSequence &tracks)
-{}
+explicit CMediaStream (std::string id)
+{
+    m_id = id;
+    m_stream = NULL;
+}
 
 virtual ~CMediaStream()
 {
     m_stream = NULL;
+    m_audio_tracks.clear();
+    m_video_tracks.clear();
 }
 
 void * getptr() 
@@ -115,10 +118,11 @@ void removeTrack (MediaStreamTrack &track)
 }; //class CMediaStream
 
 
-MediaStream * CreateMediaStream(talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory) {
-    CMediaStream * stream = new CMediaStream();
-    if (!stream)    return NULL;
-    if (!stream->Init(pc_factory, kStreamLabel)) {
+MediaStream * CreateMediaStream(talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory, 
+        talk_base::scoped_refptr<webrtc::MediaStreamInterface> streamptr) {
+    std::string id = "stream_unique_id";
+    CMediaStream * stream = new CMediaStream(id);
+    if (!stream->Init(pc_factory, kStreamLabel, streamptr)) {
         delete stream;
         stream = NULL;
     }

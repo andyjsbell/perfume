@@ -196,7 +196,6 @@ sequence<SourceInfo> & AudioStreamTrack::getSourceInfos() {
 static MediaStreamTrack * CreateMediaStreamTrack(talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory, 
         std::string kind, std::string id, std::string label, MediaTrackConstraints *constraints) {
     CMediaStreamTrack *track = new CMediaStreamTrack(kind, id, label, constraints);
-    if (!track) return NULL;
     if (!track->Init(pc_factory)) {
         delete track;
         track = NULL;
