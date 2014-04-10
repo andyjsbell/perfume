@@ -1,8 +1,9 @@
 # The pre-processor and compiler options.  
 MY_CFLAGS = -DPOSIX -DWEBRTC_LINUX -I../../third_party/webrtc/trunk -Wunused-but-set-variable
+MY_CFLAGS += -D_TEST
  
 # The linker options.  
-MY_LIBS   =  
+MY_LIBS   = -L../../third_party/webrtc/trunk/out/Release/ -lwebrtc_Release
 
 # default no depend
 NODEP = no
@@ -18,7 +19,7 @@ LDFLAGS   =
 SRCDIRS   =  ../../src
  
 # The target types: exe(default if not set), static, dynamic
-LIBRARY   = dynamic
+LIBRARY   = exe
 
 # The target file name.  
 # If not specified, current directory name or `a.out' will be used.  

@@ -48,9 +48,8 @@ class CRTCPeerConnection : public RTCPeerConnection,
 private:
     talk_base::scoped_refptr<webrtc::PeerConnectionInterface> m_conn;
 
-    MediaStream m_null_stream;
-    sequence<MediaStream> m_local_streams;
-    sequence<MediaStream> m_remote_streams;
+    sequence<MediaStreamPtr> m_local_streams;
+    sequence<MediaStreamPtr> m_remote_streams;
 
 public:
 bool Init(talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory)
@@ -119,25 +118,25 @@ void addIceCandidate (RTCIceCandidate &candidate)
 {
 }
 
-sequence<MediaStream> & getLocalStreams ()
+sequence<MediaStreamPtr> & getLocalStreams ()
 {
     return m_local_streams;
 }
 
-sequence<MediaStream> & getRemoteStreams ()
+sequence<MediaStreamPtr> & getRemoteStreams ()
 {
     return m_remote_streams;
 }
 
-MediaStream & getStreamById (DOMString streamId)
+MediaStreamPtr getStreamById (DOMString streamId)
 {
-    return m_null_stream;
+    return NULL;
 }
 
-void addStream (MediaStream &stream, MediaConstraints *constraints)
+void addStream (MediaStreamPtr stream, MediaConstraints *constraints)
 {}
 
-void removeStream (MediaStream &stream)
+void removeStream (MediaStreamPtr stream)
 {}
 
 void close ()

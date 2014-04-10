@@ -2,7 +2,7 @@
 #include "xrtc_std.h"
 #include "webrtc.h"
 
-static talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> _pc_factory = NULL;
+talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> _pc_factory = NULL;
 
 bool xrtc_init()
 {
@@ -18,12 +18,12 @@ void xrtc_uninit()
     _pc_factory = NULL;
 }
 
-pc_ptr_t xrtc_pc_create()
+pc_ptr_t xrtc_new_pc()
 {
-    return (pc_ptr_t) CreatePeerConnection(_pc_factory);
+    return (pc_ptr_t) xrtc::CreatePeerConnection(_pc_factory);
 }
 
-void xrtc_pc_destroy(pc_ptr_t pc)
+void xrtc_del_pc(pc_ptr_t pc)
 {
     if (pc) {
         xrtc::RTCPeerConnection *_pc = (xrtc::RTCPeerConnection *) pc;

@@ -40,37 +40,40 @@ private:
     AllMediaCapabilities *m_capabilities;
 
 public:
-bool Init(talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory)
+bool Init(talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory,
+        talk_base::scoped_refptr<webrtc::MediaStreamTrackInterface> track)
 {
-    if (!pc_factory)    return false;
-    if (m_kind == kAudioKind) {
-        if (!m_source)
-            m_source = pc_factory->CreateAudioSource(NULL);
-        m_track = pc_factory->CreateAudioTrack(m_label, (webrtc::AudioSourceInterface *)(m_source.get()));
-    }else if (m_kind == kVideoKind) {
-        if (!m_source) {
-            std::string vname = "";
-            sequence<MediaTrackConstraint>::iterator iter;
-            for (iter=m_constraints.optional.begin(); iter != m_constraints.optional.end(); iter++) {
-                if (iter->first == "sourceId") {
-                    sequence<SourceInfo>::iterator iter2;
-                    for (iter2=_video_sources.begin(); iter2 != _video_sources.end(); iter2++) {
-                        if (iter2->sourceId == iter->second) {
-                            vname = iter2->label;
-                            break;
+    m_track = track;
+    if (m_track == NULL && pc_factory != NULL) {
+        if (m_kind == kAudioKind) {
+            if (!m_source)
+                m_source = pc_factory->CreateAudioSource(NULL);
+            m_track = pc_factory->CreateAudioTrack(m_label, (webrtc::AudioSourceInterface *)(m_source.get()));
+        }else if (m_kind == kVideoKind) {
+            if (!m_source) {
+                std::string vname = "";
+                sequence<MediaTrackConstraint>::iterator iter;
+                for (iter=m_constraints.optional.begin(); iter != m_constraints.optional.end(); iter++) {
+                    if (iter->first == "sourceId") {
+                        sequence<SourceInfo>::iterator iter2;
+                        for (iter2=_video_sources.begin(); iter2 != _video_sources.end(); iter2++) {
+                            if (iter2->sourceId == iter->second) {
+                                vname = iter2->label;
+                                break;
+                            }
                         }
+                        break;
                     }
-                    break;
                 }
-            }
 
-            // if vname empty, select default device
-            cricket::VideoCapturer* capturer = OpenVideoCaptureDevice(vname);
-            if (capturer)
-                m_source = pc_factory->CreateVideoSource(capturer, NULL);
+                // if vname empty, select default device
+                cricket::VideoCapturer* capturer = OpenVideoCaptureDevice(vname);
+                if (capturer)
+                    m_source = pc_factory->CreateVideoSource(capturer, NULL);
+            }
+            if (m_source)
+                m_track = pc_factory->CreateVideoTrack(m_label, (webrtc::VideoSourceInterface *)(m_source.get()));
         }
-        if (m_source)
-            m_track = pc_factory->CreateVideoTrack(m_label, (webrtc::VideoSourceInterface *)(m_source.get()));
     }
     return (m_track != NULL);
 }
@@ -193,29 +196,36 @@ sequence<SourceInfo> & AudioStreamTrack::getSourceInfos() {
     return _audio_sources;
 }
 
-static MediaStreamTrack * CreateMediaStreamTrack(talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory, 
-        std::string kind, std::string id, std::string label, MediaTrackConstraints *constraints) {
+
+MediaStreamTrack * CreateMediaStreamTrack(
+        media_t mtype,
+        const std::string label,
+        MediaTrackConstraints *constraints,
+        talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory, 
+        talk_base::scoped_refptr<webrtc::MediaStreamTrackInterface> ptrack)
+{
+    std::string kind, id;
+    switch(mtype) {
+    case XRTC_AUDIO:
+        kind = kAudioKind;
+        id = "audio_unqieu_id";
+        break;
+    case XRTC_VIDEO:
+        kind = kVideoKind;
+        id = "video_unqieu_id";
+        break;
+    default:
+        return NULL;
+    }
+
     CMediaStreamTrack *track = new CMediaStreamTrack(kind, id, label, constraints);
-    if (!track->Init(pc_factory)) {
+    if (!track->Init(pc_factory, ptrack)) {
         delete track;
         track = NULL;
     }
     return track;
 }
 
-MediaStreamTrack * CreateAudioStreamTrack(talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory, 
-        MediaTrackConstraints *constraints) {
-    std::string id = "audio_unqieu_id";
-    std::string label = "Audio Stream Track";
-    return CreateMediaStreamTrack(pc_factory, kAudioKind, id, label, constraints);
-}
-
-MediaStreamTrack * CreateVideoStreamTrack(talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory,
-        MediaTrackConstraints *constraints) {
-    std::string id = "video_unqieu_id";
-    std::string label = "Video Stream Track";
-    return CreateMediaStreamTrack(pc_factory, kVideoKind, id, label, constraints);
-}
 
 } // namespace xrtc
 

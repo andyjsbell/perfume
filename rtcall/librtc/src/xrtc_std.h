@@ -80,15 +80,19 @@ enum event_t {
 };
 
 
+enum media_t {
+    XRTC_UNKNOWN,
+    XRTC_AUDIO,
+    XRTC_VIDEO,
+};
+const DOMString kUnknownKind = "unknown";
+const DOMString kAudioKind = "audio";
+const DOMString kVideoKind = "video";
+//const DOMString kStreamLabel = "stream";
+
 
 ///
 /// ==============================
-const DOMString kStreamLabel = "stream";
-
-const DOMString kNullKind = "null";
-const DOMString kAudioKind = "audio";
-const DOMString kVideoKind = "video";
-
 enum MediaStreamTrackState {
     TRACK_NEW,            //"new",
     TRACK_LIVE,           //"live",
@@ -172,9 +176,9 @@ class MediaStreamTrack : public EventTarget {
 
 public:
     explicit MediaStreamTrack() {reset();}
-    virtual ~MediaStreamTrack();
+    virtual ~MediaStreamTrack() {}
     void reset() {
-        m_kind = kNullKind;
+        m_kind = kUnknownKind;
         m_id = "";
         m_label = "Unknown Track";
         m_enabled = false;
@@ -185,14 +189,15 @@ public:
         m_pEventHandler = NULL;
     }
 
-    virtual MediaTrackConstraints   constraints ();
-    virtual MediaSourceStates       states ();
-    virtual AllMediaCapabilities *  capabilities ();
-    virtual void                    applyConstraints (MediaTrackConstraints &constraints);
-    //virtual MediaStreamTrack        clone ();
-    virtual void                    stop ();
+    virtual MediaTrackConstraints   constraints ()      = 0;
+    virtual MediaSourceStates       states ()           = 0;
+    virtual AllMediaCapabilities *  capabilities ()     = 0;
+    virtual void                    applyConstraints (MediaTrackConstraints &constraints) {}
+    //virtual MediaStreamTrack        clone () {}
+    virtual void                    stop () {}
 };
-typedef sequence<MediaStreamTrack> MediaStreamTrackSequence;
+typedef MediaStreamTrack * MediaStreamTrackPtr;
+//typedef sequence<MediaStreamTrackPtr> MediaStreamTrackSequence;
 
 class VideoStreamTrack : public MediaStreamTrack {
 public:
@@ -222,20 +227,21 @@ class MediaStream : public EventTarget {
 
 public:
     explicit MediaStream () {reset();}
-    virtual ~MediaStream ();
+    virtual ~MediaStream () {}
     void reset() {
         m_id = "";
         m_ended = false;
         m_pEventHandler = NULL;
     }
 
-    virtual sequence<MediaStreamTrack> & getAudioTracks ();
-    virtual sequence<MediaStreamTrack> & getVideoTracks ();
-    virtual MediaStreamTrack         & getTrackById (DOMString trackId);
-    virtual void                     addTrack (MediaStreamTrack &track);
-    virtual void                     removeTrack (MediaStreamTrack &track);
-    //virtual MediaStream              clone ();
+    virtual sequence<MediaStreamTrackPtr> & getAudioTracks ()           = 0;
+    virtual sequence<MediaStreamTrackPtr> & getVideoTracks ()           = 0;
+    virtual MediaStreamTrackPtr      getTrackById (DOMString trackId)   = 0;
+    virtual void                     addTrack (MediaStreamTrack &track) {}
+    virtual void                     removeTrack (MediaStreamTrack &track) {}
+    //virtual MediaStream              clone () {}
 };
+typedef MediaStream * MediaStreamPtr;
 
 
 ///
@@ -344,7 +350,7 @@ class RTCPeerConnection : public EventTarget  {
 
 public:
     explicit RTCPeerConnection () {reset();}
-    virtual ~RTCPeerConnection ();
+    virtual ~RTCPeerConnection () {}
     void reset() {
         //m_localDescription = "";
         //m_remoteDescription = "";
@@ -354,23 +360,24 @@ public:
         m_pEventHandler = NULL;
     }
 
-    virtual void                  setParams (RTCConfiguration *configuration, MediaConstraints *constraints);   ///@future
+    virtual void                  setParams (RTCConfiguration *configuration, MediaConstraints *constraints) {}   ///@future
 
-    virtual void                  createOffer (MediaConstraints *constraints);
-    virtual void                  createAnswer (RTCSessionDescription &offer, MediaConstraints *constraints);
-    virtual void                  setLocalDescription (RTCSessionDescription &description);
-    virtual void                  setRemoteDescription (RTCSessionDescription &description);
+    virtual void                  createOffer (MediaConstraints *constraints) {}
+    virtual void                  createAnswer (RTCSessionDescription &offer, MediaConstraints *constraints) {}
+    virtual void                  setLocalDescription (RTCSessionDescription &description) {}
+    virtual void                  setRemoteDescription (RTCSessionDescription &description) {}
 
-    virtual void                  updateIce (RTCConfiguration *configuration, MediaConstraints *constraints);   ///@future
-    virtual void                  addIceCandidate (RTCIceCandidate &candidate); ///@future
+    virtual void                  updateIce (RTCConfiguration *configuration, MediaConstraints *constraints) {}   ///@future
+    virtual void                  addIceCandidate (RTCIceCandidate &candidate) {} ///@future
 
-    virtual sequence<MediaStream> & getLocalStreams ();
-    virtual sequence<MediaStream> & getRemoteStreams ();
-    virtual MediaStream           & getStreamById (DOMString streamId);
-    virtual void                  addStream (MediaStream &stream, MediaConstraints *constraints);   ///@future
-    virtual void                  removeStream (MediaStream &stream);   ///@future
-    virtual void                  close ();
+    virtual sequence<MediaStreamPtr> & getLocalStreams ()               = 0;
+    virtual sequence<MediaStreamPtr> & getRemoteStreams ()              = 0;
+    virtual MediaStreamPtr        getStreamById (DOMString streamId)    = 0;
+    virtual void                  addStream (MediaStream &stream, MediaConstraints *constraints) {}   ///@future
+    virtual void                  removeStream (MediaStream &stream) {}   ///@future
+    virtual void                  close () {}
 };
+typedef RTCPeerConnection * RTCPeerConnectionPtr;
 
 } // namespace xrtc
 

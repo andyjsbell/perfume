@@ -23,12 +23,16 @@
  */
 
 #include "xrtc_std.h"
+#include "webrtc.h"
+
+extern talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> _pc_factory;
 
 namespace xrtc {
 
 void NavigatorUserMedia::getUserMedia (MediaStreamConstraints &constraints, NavigatorUserMediaCallback &callback)
 {
-    MediaStream *stream = NULL; //CreateMediaStream(kStreamLabel);
+    std::string label = "local stream";
+    MediaStream *stream = CreateMediaStream(label, _pc_factory, NULL);
     if (!stream) {
         return;
     } 

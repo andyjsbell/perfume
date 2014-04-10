@@ -12,7 +12,25 @@
 
 #include "xrtc_std.h"
 
-xrtc::RTCPeerConnection *CreatePeerConnection(talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory);
+namespace xrtc {
+
+RTCPeerConnection *CreatePeerConnection(
+        talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory);
+
+MediaStream * CreateMediaStream(
+        const std::string label,
+        talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory, 
+        talk_base::scoped_refptr<webrtc::MediaStreamInterface> pstream);
+
+MediaStreamTrack * CreateMediaStreamTrack(
+        media_t mtype,
+        const std::string label,
+        MediaTrackConstraints *constraints,
+        talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory, 
+        talk_base::scoped_refptr<webrtc::MediaStreamTrackInterface> ptrack);
+
+} //namespace xrtc
+
 
 #endif
 

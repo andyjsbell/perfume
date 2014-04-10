@@ -31,8 +31,11 @@ extern "C" {
 
 typedef void * pc_ptr_t;
 
-bool xrtc_init();
-void xrtc_uninit();
+bool        xrtc_init();
+void        xrtc_uninit();
+
+pc_ptr_t    xrtc_new_pc();
+void        xrtc_del_pc(pc_ptr_t pc);
 
 #ifdef __cplusplus
 }
