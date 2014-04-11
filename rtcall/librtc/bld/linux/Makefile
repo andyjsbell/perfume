@@ -3,7 +3,9 @@ MY_CFLAGS = -DPOSIX -DWEBRTC_LINUX -I../../third_party/webrtc/trunk -Wunused-but
 MY_CFLAGS += -D_TEST
  
 # The linker options.  
-MY_LIBS   = -L../../third_party/webrtc/trunk/out/Release/ -lwebrtc_Release
+MY_LIBS   =
+MY_LIBS   += -L../../third_party/webrtc/trunk/out/Release/ -lwebrtc_Release
+MY_LIBS   += -lX11 -lXext -lXrender -lXcomposite -lGL -lexpat -ldl -lpthread -lrt 
 
 # default no depend
 NODEP = no

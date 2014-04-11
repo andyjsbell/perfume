@@ -177,7 +177,7 @@ pack_webrtc() {
         thelibs=`find . -name "lib*.a" -print | grep -v "$excludes"`
         make_archive $target
         check_err "fail to gen archive .a"
-        make_so $target
+        #make_so $target
         check_err "fail to gen shared .so"
     else
         echor "fail to pack webrtc"
