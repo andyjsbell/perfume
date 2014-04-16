@@ -1,4 +1,5 @@
-=====================
+Audio/Video Over Internet
+=========================
 
 /**
  * Targets
@@ -8,13 +9,7 @@
  
 
 /**
- * development tools
- */
-1. git scm
-2. scons/maven/cmake build
-
-/**
- * webrtc library
+ * Webrtc library
  */
 1. Audio
     a. To define audio stream interfaces
@@ -33,7 +28,7 @@
 
 
 /**
- * sip stack
+ * SIP stack
  */
 TODO: provide client interfaces for iOS & Android.
 
@@ -43,7 +38,7 @@ TODO: provide client interfaces for iOS & Android.
 4. Android sip(java): android.net.sip package.
 
 /**
- * sip server
+ * SIP server
  */
 TODO: aim to build SIP server
 
@@ -56,7 +51,7 @@ TODO: aim to build SIP server
 
 
 /**
- * helpful sites
+ * Helpful sites
  */
 1. http://www.opentelecoms.org/
 2. http://www.rtcquickstart.org/
