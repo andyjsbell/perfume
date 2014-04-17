@@ -36,9 +36,11 @@ detect_env() {
     which ninja >/dev/null
     check_err "'ninja' is required and was not found in the path!"
 
-    if [ "#"$JAVA_HOME = "#" ]; then
-        echor "[Err] no JAVA_HOME env set!"
-        exit 1
+    if [ $HOST_OS != "Darwin" ] ; then
+        if [ "#"$JAVA_HOME = "#" ]; then
+            echor "[Err] no JAVA_HOME env set!"
+            exit 1
+        fi
     fi
 
     if [ $HOST_OS != "Linux" ] && [ $HOST_OS != "Darwin" ] ; then
@@ -92,24 +94,65 @@ config_webrtc() {
     fi
 }
 
+build_webrtc_mac() {
+    export GYP_DEFINES="build_with_libjingle=1 build_with_chromium=0 libjingle_objc=1"
+    export GYP_GENERATORS="ninja"
+
+    if [ $TARGET_OS = "IOS" ]; then
+        outdir=out_sim
+        export GYP_DEFINES="$GYP_DEFINES OS=ios target_arch=ia32"
+        export GYP_CROSSCOMPILE=1
+    elif [ $TARGET_OS = "MacOSX" ]; then
+        outdir=out_mac
+        export GYP_DEFINES="$GYP_DEFINES OS=mac target_arch=x64"
+        export GYP_CROSSCOMPILE=0
+    else
+        return;
+    fi
+    #export GYP_GENERATOR_FLAGS="$GYP_GENERATOR_FLAGS output_dir=$outdir"
+
+    obj_path=$ROOT/third_party/webrtc
+    pushd $obj_path/trunk
+    mkdir -p $outdir/$BUILD_TYPE
+    ninja -C $outdir/$BUILD_TYPE
+    check_err "fail to build webrtc $outdir"
+    popd
+}
+
+build_webrtc_nix() {
+    obj_path=$ROOT/third_party/webrtc
+    pushd $obj_path
+    if [ $TARGET_OS = "Android" ]; then
+        echo "target_os = ['android', 'unix']" >> .gclient
+        gclient sync -r $WEBRTC_REV --nohooks >/tmp/svn_webrtc.log 2>&1
+    fi
+    popd
+
+    pushd $obj_path/trunk
+    if [ $TARGET_OS = "Android" ]; then
+        outdir=out_android
+        source ./build/android/envsetup.sh
+    else
+        outdir=out_linux
+    fi
+    mkdir -p $outdir/$BUILD_TYPE
+    ninja -C $outdir/$BUILD_TYPE
+    ninja -C $outdir/$BUILD_TYPE -j 1 # build again to avoid failed before
+    check_err "fail to build webrtc $outdir!"
+    popd
+}
 
 build_webrtc() {
     obj_path=$ROOT/third_party/webrtc
-    echog "[+] Building webrtc in $obj_path/trunk ..."
-    if [ -e $obj_path/trunk ]; then
-        cd $obj_path
-        if [ $TARGET_OS = "Android" ]; then
-            echo "target_os = ['android', 'unix']" >> .gclient
-            gclient sync -r $WEBRTC_REV --nohooks >/tmp/svn_webrtc.log 2>&1
-        fi
+    if [ ! -e $obj_path/trunk ]; then
+        return
+    fi
 
-        cd $obj_path/trunk
-        if [ $TARGET_OS = "Android" ]; then
-            source ./build/android/envsetup.sh
-        fi
-        ninja -C out/$BUILD_TYPE
-        ninja -C out/$BUILD_TYPE -j 1 # build again to avoid failed before
-        check_err "fail to build webrtc!"
+    echog "[+] Building webrtc_nix in $obj_path/trunk for $TARGET_OS ..."
+    if [ $TARGET_OS == "Android" ] || [ $TARGET_OS == "Linux" ]; then
+        build_webrtc_nix
+    elif [ $TARGET_OS == "IOS" ] || [ $TARGET_OS == "MacOSX" ]; then
+        build_webrtc_mac
     fi
 }
 
