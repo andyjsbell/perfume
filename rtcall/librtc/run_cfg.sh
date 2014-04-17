@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # author: peterxu
 #
 
@@ -7,6 +7,7 @@ ROOT=`pwd`
 HOST_OS=`uname`
 WEBRTC_URL=http://webrtc.googlecode.com/svn/trunk
 WEBRTC_REV=5301
+OUT_DIR="out"
 
 
 echox() {
@@ -85,37 +86,36 @@ detect_env() {
 config_webrtc() {
     obj_path=$ROOT/third_party/webrtc
     echog "[+] Getting webrtc from its repo into $obj_path ..."
-    mkdir -p $obj_path
-    if [ ! -e $obj_path/trunk ]; then
-        cd $obj_path
-        gclient config --name=trunk $WEBRTC_URL
-        gclient sync -r $WEBRTC_REV --force >/tmp/svn_webrtc.log 2>&1
-        check_err "fail to gclient sync for webrtc!"
-    fi
-}
-
-build_webrtc_mac() {
-    export GYP_DEFINES="build_with_libjingle=1 build_with_chromium=0 libjingle_objc=1"
-    export GYP_GENERATORS="ninja"
-
     if [ $TARGET_OS = "IOS" ]; then
-        outdir=out_sim
+        OUT_DIR=out_sim
         export GYP_DEFINES="$GYP_DEFINES OS=ios target_arch=ia32"
         export GYP_CROSSCOMPILE=1
     elif [ $TARGET_OS = "MacOSX" ]; then
-        outdir=out_mac
+        OUT_DIR=out_mac
         export GYP_DEFINES="$GYP_DEFINES OS=mac target_arch=x64"
-        export GYP_CROSSCOMPILE=0
-    else
-        return;
+    elif [ $TARGET_OS = "Android" ]; then
+        OUT_DIR=out_android
+    elif [ $TARGET_OS = "Linux" ]; then
+        OUT_DIR=out_linux
     fi
-    #export GYP_GENERATOR_FLAGS="$GYP_GENERATOR_FLAGS output_dir=$outdir"
+    export GYP_GENERATOR_FLAGS="$GYP_GENERATOR_FLAGS output_dir=$OUT_DIR"
+
+    mkdir -p $obj_path
+    cd $obj_path
+    gclient config --name=trunk $WEBRTC_URL
+    gclient sync -r $WEBRTC_REV --force >/tmp/svn_webrtc.log 2>&1
+    check_err "fail to gclient sync for webrtc!"
+}
+
+build_webrtc_mac() {
+    export GYP_DEFINES="$GYP_DEFINES build_with_libjingle=1 build_with_chromium=0 libjingle_objc=1"
+    export GYP_GENERATORS="ninja"
 
     obj_path=$ROOT/third_party/webrtc
     pushd $obj_path/trunk
-    mkdir -p $outdir/$BUILD_TYPE
-    ninja -C $outdir/$BUILD_TYPE
-    check_err "fail to build webrtc $outdir"
+    mkdir -p $OUT_DIR/$BUILD_TYPE
+    ninja -C $OUT_DIR/$BUILD_TYPE
+    check_err "fail to build webrtc $TARGET_OS"
     popd
 }
 
@@ -130,15 +130,12 @@ build_webrtc_nix() {
 
     pushd $obj_path/trunk
     if [ $TARGET_OS = "Android" ]; then
-        outdir=out_android
         source ./build/android/envsetup.sh
-    else
-        outdir=out_linux
     fi
-    mkdir -p $outdir/$BUILD_TYPE
-    ninja -C $outdir/$BUILD_TYPE
-    ninja -C $outdir/$BUILD_TYPE -j 1 # build again to avoid failed before
-    check_err "fail to build webrtc $outdir!"
+    mkdir -p $OUT_DIR/$BUILD_TYPE
+    ninja -C $OUT_DIR/$BUILD_TYPE
+    ninja -C $OUT_DIR/$BUILD_TYPE -j 1 # build again to avoid failed before
+    check_err "fail to build webrtc $TARGET_OS"
     popd
 }
 
@@ -148,10 +145,10 @@ build_webrtc() {
         return
     fi
 
-    echog "[+] Building webrtc_nix in $obj_path/trunk for $TARGET_OS ..."
-    if [ $TARGET_OS == "Android" ] || [ $TARGET_OS == "Linux" ]; then
+    echog "[+] Building webrtc in $obj_path/trunk for $TARGET_OS ..."
+    if [ $TARGET_OS = "Android" ] || [ $TARGET_OS = "Linux" ]; then
         build_webrtc_nix
-    elif [ $TARGET_OS == "IOS" ] || [ $TARGET_OS == "MacOSX" ]; then
+    elif [ $TARGET_OS = "IOS" ] || [ $TARGET_OS = "MacOSX" ]; then
         build_webrtc_mac
     fi
 }
