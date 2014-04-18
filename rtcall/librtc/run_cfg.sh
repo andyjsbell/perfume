@@ -4,7 +4,7 @@
 
 ## build config
 ROOT=`pwd`
-HOST_OS=`uname`
+HOST=`uname`
 WEBRTC_URL=http://webrtc.googlecode.com/svn/trunk
 WEBRTC_REV=5301
 OUT_DIR="out"
@@ -37,27 +37,27 @@ detect_env() {
     which ninja >/dev/null
     check_err "'ninja' is required and was not found in the path!"
 
-    if [ $HOST_OS != "Darwin" ] ; then
+    if [ $HOST != "Darwin" ] ; then
         if [ "#"$JAVA_HOME = "#" ]; then
             echor "[Err] no JAVA_HOME env set!"
             exit 1
         fi
     fi
 
-    if [ $HOST_OS != "Linux" ] && [ $HOST_OS != "Darwin" ] ; then
+    if [ $HOST != "Linux" ] && [ $HOST != "Darwin" ] ; then
         echor "[Err] Only support host Linux and MacOSX"
         exit 1
     fi
 
-    if [ "#"$TARGET_OS = "#" ]; then
-        TARGET_OS=Linux
+    if [ "#"$TARGET = "#" ]; then
+        TARGET=Linux
     fi
 
     # Linux, Android, MacOSX, IOS
-    if [ $TARGET_OS = "Linux" ]; then
+    if [ $TARGET = "Linux" ]; then
         AR=ar
         CC=gcc
-    elif [ $TARGET_OS = "Android" ]; then
+    elif [ $TARGET = "Android" ]; then
         if [ "#"$ANDROID_NDK_HOME = "#" ]; then
             echor "[Err] no ANDROID_NDK_HOME env set!"
             exit 1
@@ -65,7 +65,7 @@ detect_env() {
         SYSROOT=$ANDROID_NDK_HOME/toolchains/arm-linux-androideabi-4.6/prebuilt/
         AR=`$ANDROID_NDK_HOME/ndk-which ar`
         CC=`$ANDROID_NDK_HOME/ndk-which gcc` --sysroot=$SYSROOT
-    elif [ $TARGET_OS = "MacOSX" ] || [ $TARGET_OS = "IOS" ]; then
+    elif [ $TARGET = "MacOSX" ] || [ $TARGET = "IOS" ]; then
         :
     else
         echor "[Err] only support targets: Linux, MacOSX, Android and IOS"
@@ -82,82 +82,87 @@ detect_env() {
     fi
 }
 
+wrbase() {
+  #cd /path/to/webrtc/trunk
+  export GYP_DEFINES="build_with_libjingle=1 build_with_chromium=0 libjingle_objc=1"
+  export GYP_GENERATORS="ninja"
+}
+
+wrios() {
+  wrbase
+  export GYP_DEFINES="$GYP_DEFINES OS=ios target_arch=armv7"
+  export GYP_GENERATOR_FLAGS="$GYP_GENERATOR_FLAGS output_dir=out_ios"
+  export GYP_CROSSCOMPILE=1
+}
+
+wrsim() {
+  wrbase
+  export GYP_DEFINES="$GYP_DEFINES OS=ios target_arch=ia32"
+  export GYP_GENERATOR_FLAGS="$GYP_GENERATOR_FLAGS output_dir=out_sim"
+  export GYP_CROSSCOMPILE=1
+}
+
+wrmac() {
+  wrbase
+  export GYP_DEFINES="$GYP_DEFINES OS=mac target_arch=x64"
+  export GYP_GENERATOR_FLAGS="$GYP_GENERATOR_FLAGS output_dir=out_mac"
+}
+
 
 config_webrtc() {
     obj_path=$ROOT/third_party/webrtc
     echog "[+] Getting webrtc from its repo into $obj_path ..."
-    if [ $TARGET_OS = "IOS" ]; then
-        OUT_DIR=out_sim
-        export GYP_DEFINES="$GYP_DEFINES OS=ios target_arch=ia32"
-        export GYP_CROSSCOMPILE=1
-    elif [ $TARGET_OS = "MacOSX" ]; then
-        OUT_DIR=out_mac
-        export GYP_DEFINES="$GYP_DEFINES OS=mac target_arch=x64"
-    elif [ $TARGET_OS = "Android" ]; then
-        OUT_DIR=out_android
-    elif [ $TARGET_OS = "Linux" ]; then
-        OUT_DIR=out_linux
-    fi
-    export GYP_GENERATOR_FLAGS="$GYP_GENERATOR_FLAGS output_dir=$OUT_DIR"
 
     mkdir -p $obj_path
-    cd $obj_path
-    gclient config --name=trunk $WEBRTC_URL
-    gclient sync -r $WEBRTC_REV --force >/tmp/svn_webrtc.log 2>&1
-    check_err "fail to gclient sync for webrtc!"
-}
-
-build_webrtc_mac() {
-    export GYP_DEFINES="$GYP_DEFINES build_with_libjingle=1 build_with_chromium=0 libjingle_objc=1"
-    export GYP_GENERATORS="ninja"
-
-    obj_path=$ROOT/third_party/webrtc
-    pushd $obj_path/trunk
-    mkdir -p $OUT_DIR/$BUILD_TYPE
-    ninja -C $OUT_DIR/$BUILD_TYPE
-    check_err "fail to build webrtc $TARGET_OS"
-    popd
-}
-
-build_webrtc_nix() {
-    obj_path=$ROOT/third_party/webrtc
     pushd $obj_path
-    if [ $TARGET_OS = "Android" ]; then
-        echo "target_os = ['android', 'unix']" >> .gclient
-        gclient sync -r $WEBRTC_REV --nohooks >/tmp/svn_webrtc.log 2>&1
+    rm -f .gclient
+    gclient config --name=trunk $WEBRTC_URL
+    if [ ! -e $obj_path/trunk ]; then
+        gclient sync -r $WEBRTC_REV --force >/tmp/svn_webrtc.log 2>&1
+        check_err "fail to get webrtc with force from svn!"
     fi
-    popd
 
-    pushd $obj_path/trunk
-    if [ $TARGET_OS = "Android" ]; then
+    export GYP_DEFINES="build_with_libjingle=1 build_with_chromium=0"
+    if [ $TARGET = "IOS" ]; then
+        #wrios
+        wrsim
+        echo "target_os = ['ios', 'mac']" >> .gclient
+    elif [ $TARGET = "MacOSX" ]; then
+        wrmac
+    elif [ $TARGET = "Android" ]; then
+        echo "target_os = ['android', 'unix']" >> .gclient
+        export GYP_GENERATOR_FLAGS="$GYP_GENERATOR_FLAGS output_dir=out_android"
+        gclient sync --nohooks
+        pushd $obj_path/trunk
         source ./build/android/envsetup.sh
+        popd
+    elif [ $TARGET = "Linux" ]; then
+        export GYP_GENERATOR_FLAGS="$GYP_GENERATOR_FLAGS output_dir=out_linux"
     fi
-    mkdir -p $OUT_DIR/$BUILD_TYPE
-    ninja -C $OUT_DIR/$BUILD_TYPE
-    ninja -C $OUT_DIR/$BUILD_TYPE -j 1 # build again to avoid failed before
-    check_err "fail to build webrtc $TARGET_OS"
+
+    gclient runhooks --force >/tmp/svn_webrtc.log 2>&1
+    check_err "fail to get webrtc with hook from svn!"
     popd
 }
+
 
 build_webrtc() {
     obj_path=$ROOT/third_party/webrtc
-    if [ ! -e $obj_path/trunk ]; then
-        return
-    fi
+    echog "[+] Building webrtc in $obj_path/trunk for $TARGET ..."
 
-    echog "[+] Building webrtc in $obj_path/trunk for $TARGET_OS ..."
-    if [ $TARGET_OS = "Android" ] || [ $TARGET_OS = "Linux" ]; then
-        build_webrtc_nix
-    elif [ $TARGET_OS = "IOS" ] || [ $TARGET_OS = "MacOSX" ]; then
-        build_webrtc_mac
-    fi
+    echog "Building webrtc $OUT_DIR/$BUILD_TYPE ..."
+    mkdir -p $OUT_DIR/$BUILD_TYPE
+    ninja -C $OUT_DIR/$BUILD_TYPE
+    ninja -C $OUT_DIR/$BUILD_TYPE -j 1 # build again to avoid failed before
+    check_err "fail to build webrtc $TARGET"
+    popd
 }
 
 
 make_archive () {
     target=$1
     echog "[+] Generating archive lib$target.a ..."
-    if [ $HOST_OS = "Linux" ]; then
+    if [ $HOST = "Linux" ]; then
         rm -rf tmpobj; mkdir tmpobj; cd tmpobj
         $AR x ../libyuv.a
         for lib in $thelibs; do
@@ -182,7 +187,7 @@ make_archive () {
 make_so () {
     target=$1
     echog "[+] Generate shared lib$target.so ..."
-    if [ $HOST_OS = "Linux" ]; then
+    if [ $HOST = "Linux" ]; then
         $CC -shared -o lib$target.so -Wl,-whole-archive $thelibs -Wl,-no-whole-archive $ldflags
         #$CC -DTEST_PRIV_API -o /tmp/test_$target -L. -l$target $ldflags 
     else
@@ -192,21 +197,6 @@ make_so () {
 
 
 pack_webrtc() {
-    # for jingle
-    targets="libjingle libjingle_p2p libjingle_media libjingle_peerconnection libjingle_sound libjingle_xmpphelp peerconnection_server "
-    # for webrtc misc
-    targets=$targets"bitrate_controller remote_bitrate_estimator rtp_rtcp udp_transport webrtc_utility system_wrappers "
-    targets=$targets"libjpeg libsrtp protobuf_full_do_not_use protobuf_lite protoc libyuv "
-    # for webrtc audio
-    targets=$targets"resampler signal_processing vad CNG G711 G722 NetEq NetEq4 PCM16B iLBC iSAC iSACFix opus "
-    targets=$targets"audio_coding_module audio_conference_mixer audio_device audio_processing "
-    targets=$targets"voice_engine_core media_file paced_sender audio_processing_sse2 webrtc_opus "
-    # for webrtc video
-    targets=$targets"common_video video_capture_module webrtc_vp8 video_coding_utility video_processing video_processing_sse2 "
-    targets=$targets"webrtc_video_coding video_engine_core video_render_module webrtc_i420 "
-    targets=$targets"gen_asm_offsets_vp8 gen_asm_offsets_vp9 gen_asm_offsets_vpx_scale "
-    targets=$targets"libvpx libvpx_asm_offsets libvpx_asm_offsets_vp9 libvpx_asm_offsets_vpx_scale "
-
     local_root=$ROOT/third_party/webrtc/trunk/out/
     local_root=$local_root/$BUILD_TYPE
     if [ -e $local_root ]; then
