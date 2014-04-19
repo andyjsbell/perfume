@@ -7,7 +7,6 @@ ROOT=`pwd`
 HOST=`uname`
 WEBRTC_URL=http://webrtc.googlecode.com/svn/trunk
 WEBRTC_REV=5301
-OUT_DIR="out"
 
 
 echox() {
@@ -53,7 +52,7 @@ detect_env() {
         TARGET=Linux
     fi
 
-    # Linux, Android, MacOSX, IOS
+    # Linux, Android, MacOSX, IOS, IOS-SIM
     if [ $TARGET = "Linux" ]; then
         AR=ar
         CC=gcc
@@ -65,7 +64,7 @@ detect_env() {
         SYSROOT=$ANDROID_NDK_HOME/toolchains/arm-linux-androideabi-4.6/prebuilt/
         AR=`$ANDROID_NDK_HOME/ndk-which ar`
         CC=`$ANDROID_NDK_HOME/ndk-which gcc` --sysroot=$SYSROOT
-    elif [ $TARGET = "MacOSX" ] || [ $TARGET = "IOS" ]; then
+    elif [ $TARGET = "MacOSX" ] || [ $TARGET = "IOS" ] || [ $TARGET = "IOS-SIM" ]; then
         :
     else
         echor "[Err] only support targets: Linux, MacOSX, Android and IOS"
@@ -82,32 +81,6 @@ detect_env() {
     fi
 }
 
-wrbase() {
-  #cd /path/to/webrtc/trunk
-  export GYP_DEFINES="build_with_libjingle=1 build_with_chromium=0 libjingle_objc=1"
-  export GYP_GENERATORS="ninja"
-}
-
-wrios() {
-  wrbase
-  export GYP_DEFINES="$GYP_DEFINES OS=ios target_arch=armv7"
-  export GYP_GENERATOR_FLAGS="$GYP_GENERATOR_FLAGS output_dir=out_ios"
-  export GYP_CROSSCOMPILE=1
-}
-
-wrsim() {
-  wrbase
-  export GYP_DEFINES="$GYP_DEFINES OS=ios target_arch=ia32"
-  export GYP_GENERATOR_FLAGS="$GYP_GENERATOR_FLAGS output_dir=out_sim"
-  export GYP_CROSSCOMPILE=1
-}
-
-wrmac() {
-  wrbase
-  export GYP_DEFINES="$GYP_DEFINES OS=mac target_arch=x64"
-  export GYP_GENERATOR_FLAGS="$GYP_GENERATOR_FLAGS output_dir=out_mac"
-}
-
 
 config_webrtc() {
     obj_path=$ROOT/third_party/webrtc
@@ -122,35 +95,34 @@ config_webrtc() {
         check_err "fail to get webrtc with force from svn!"
     fi
 
-    export GYP_DEFINES="build_with_libjingle=1 build_with_chromium=0"
-    if [ $TARGET = "IOS" ]; then
-        #wrios
-        wrsim
+    if [ $TARGET = "IOS" ] || [ $TARGET = "IOS-SIM" ]; then
         echo "target_os = ['ios', 'mac']" >> .gclient
+        gclient runhooks >/tmp/svn_webrtc.log 2>&1
+        check_err "fail to get webrtc with hook from svn!"
     elif [ $TARGET = "MacOSX" ]; then
-        wrmac
+        gclient runhooks >/tmp/svn_webrtc.log 2>&1
+        check_err "fail to get webrtc with hook from svn!"
     elif [ $TARGET = "Android" ]; then
         echo "target_os = ['android', 'unix']" >> .gclient
-        export GYP_GENERATOR_FLAGS="$GYP_GENERATOR_FLAGS output_dir=out_android"
         gclient sync --nohooks
+        check_err "fail to get webrtc with hook from svn!"
+
         pushd $obj_path/trunk
         source ./build/android/envsetup.sh
         popd
     elif [ $TARGET = "Linux" ]; then
-        export GYP_GENERATOR_FLAGS="$GYP_GENERATOR_FLAGS output_dir=out_linux"
+        gclient runhooks >/tmp/svn_webrtc.log 2>&1
+        check_err "fail to get webrtc with hook from svn!"
     fi
-
-    gclient runhooks --force >/tmp/svn_webrtc.log 2>&1
-    check_err "fail to get webrtc with hook from svn!"
     popd
 }
 
 
 build_webrtc() {
     obj_path=$ROOT/third_party/webrtc
-    echog "[+] Building webrtc in $obj_path/trunk for $TARGET ..."
+    echog "[+] Building webrtc in $obj_path/trunk for $TARGET for $BUILD_TYPE ..."
 
-    echog "Building webrtc $OUT_DIR/$BUILD_TYPE ..."
+    pushd $obj_path/trunk
     mkdir -p $OUT_DIR/$BUILD_TYPE
     ninja -C $OUT_DIR/$BUILD_TYPE
     ninja -C $OUT_DIR/$BUILD_TYPE -j 1 # build again to avoid failed before
@@ -162,7 +134,7 @@ build_webrtc() {
 make_archive () {
     target=$1
     echog "[+] Generating archive lib$target.a ..."
-    if [ $HOST = "Linux" ]; then
+    if [ $TARGET = "Linux" ] || [ $TARGET = "Android" ]; then
         rm -rf tmpobj; mkdir tmpobj; cd tmpobj
         $AR x ../libyuv.a
         for lib in $thelibs; do
@@ -174,12 +146,16 @@ make_archive () {
             $AR t $lib | xargs $AR qc lib$target.a
         done
         echo "Adding symbol table to archive."
-        ar sv lib$target.a
+        $AR sv lib$target.a
         mv lib$target.a ../
         cd -
         rm -rf tmpobj
-    else
+    elif [ $TARGET = "IOS" ]; then
+        libtool -static -arch_only armv7 -o lib$target.a ${thelibs[@]:0}
+    elif [ $TARGET = "IOS-SIM" ]; then
         libtool -static -arch_only i386 -o lib$target.a ${thelibs[@]:0}
+    elif [ $TARGET = "MacOSX" ]; then
+        libtool -static -arch_only x64 -o lib$target.a ${thelibs[@]:0}
     fi
 }
 
@@ -197,8 +173,8 @@ make_so () {
 
 
 pack_webrtc() {
-    local_root=$ROOT/third_party/webrtc/trunk/out/
-    local_root=$local_root/$BUILD_TYPE
+    obj_path=$ROOT/third_party/webrtc
+    local_root=$obj_path/trunk/$OUT_DIR/$BUILD_TYPE
     if [ -e $local_root ]; then
         cd $local_root
         target=webrtc_$BUILD_TYPE
@@ -213,7 +189,6 @@ pack_webrtc() {
         echor "fail to pack webrtc"
     fi
 }
-
 
 
 detect_env
