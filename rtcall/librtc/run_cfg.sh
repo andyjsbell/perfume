@@ -133,7 +133,7 @@ build_webrtc() {
 
 make_archive () {
     target=$1
-    echog "[+] Generating archive lib$target.a ..."
+    echog "[-] Generating archive lib$target.a ..."
     if [ $TARGET = "Linux" ] || [ $TARGET = "Android" ]; then
         rm -rf tmpobj; mkdir tmpobj; cd tmpobj
         $AR x ../libyuv.a
@@ -155,25 +155,26 @@ make_archive () {
     elif [ $TARGET = "IOS-SIM" ]; then
         libtool -static -arch_only i386 -o lib$target.a ${thelibs[@]:0}
     elif [ $TARGET = "MacOSX" ]; then
-        libtool -static -arch_only x64 -o lib$target.a ${thelibs[@]:0}
+        libtool -static -arch_only x86_64 -o lib$target.a ${thelibs[@]:0}
     fi
 }
 
 
 make_so () {
     target=$1
-    echog "[+] Generate shared lib$target.so ..."
-    if [ $HOST = "Linux" ]; then
+    echog "[-] Generate shared lib$target.so ..."
+    if [ $TARGET = "Linux" ] || [ $TARGET = "Android" ]; then
         $CC -shared -o lib$target.so -Wl,-whole-archive $thelibs -Wl,-no-whole-archive $ldflags
         #$CC -DTEST_PRIV_API -o /tmp/test_$target -L. -l$target $ldflags 
-    else
-        libtool -dynamic -arch_only i386 -o lib$target.so ${thelibs[@]:0}
+    elif [ $TARGET = "MacOSX" ]; then
+        libtool -dynamic -arch_only x86_64 -o lib$target.so ${thelibs[@]:0}
     fi
 }
 
 
 pack_webrtc() {
     obj_path=$ROOT/third_party/webrtc
+    echog "[+] To package webrtc libs $OUT_DIR/$BUILD_TYPE ..."
     local_root=$obj_path/trunk/$OUT_DIR/$BUILD_TYPE
     if [ -e $local_root ]; then
         cd $local_root
@@ -190,10 +191,30 @@ pack_webrtc() {
     fi
 }
 
+test_webrtc() {
+    obj_path=$ROOT/third_party
+    echog "[+] To test webrtc of $TARGET ..."
+    if [ $TARGET = "IOS-SIM" ]; then
+        if [ ! -e $obj_path/iphonesim ]; then
+            git clone https://github.com/hborders/iphonesim.git
+        fi
+
+        echog "[-] building iphonesim tool..."
+        pushd $obj_path/iphonesim
+        xcodebuild
+        popd
+
+        echog "[-] lanuching AppRTCDemo.app ..."
+        if [ -f $obj_path/iphonesim/build/Release/iphonesim ]; then
+            $obj_path/iphonesim/build/Release/iphonesim launch $obj_path/webrtc/trunk/$OUT_DIR/$BUILD_TYPE/AppRTCDemo.app &
+        fi
+    fi
+}
 
 detect_env
 config_webrtc
 build_webrtc
 pack_webrtc
+test_webrtc
 
 exit 0
