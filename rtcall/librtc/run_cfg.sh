@@ -36,42 +36,43 @@ detect_env() {
     which ninja >/dev/null
     check_err "'ninja' is required and was not found in the path!"
 
-    if [ $HOST != "Darwin" ] ; then
-        if [ "#"$JAVA_HOME = "#" ]; then
-            echor "[Err] no JAVA_HOME env set!"
-            exit 1
-        fi
-    fi
-
     if [ $HOST != "Linux" ] && [ $HOST != "Darwin" ] ; then
         echor "[Err] Only support host Linux and MacOSX"
         exit 1
     fi
 
-    if [ "#"$TARGET = "#" ]; then
-        TARGET=Linux
+    if [ "#$TARGET" = "#" ]; then
+        echor "[Err] No set for TARGET"
+        exit 1
     fi
 
-    # Linux, Android, MacOSX, IOS, IOS-SIM
-    if [ $TARGET = "Linux" ]; then
+    if [ $TARGET = "UNIX" ]; then
         AR=ar
         CC=gcc
-    elif [ $TARGET = "Android" ]; then
-        if [ "#"$ANDROID_NDK_HOME = "#" ]; then
+    elif [ $TARGET = "ANDROID" ]; then
+        if [ "#$JAVA_HOME" = "#" ]; then
+            echor "[Err] no JAVA_HOME env set!"
+            exit 1
+        fi
+        if [ "#$ANDROID_HOME" = "#" ]; then
+            echor "[Err] no ANDROID_HOME env set!"
+            exit 1
+        fi
+        if [ "#$ANDROID_NDK_HOME" = "#" ]; then
             echor "[Err] no ANDROID_NDK_HOME env set!"
             exit 1
         fi
         SYSROOT=$ANDROID_NDK_HOME/toolchains/arm-linux-androideabi-4.6/prebuilt/
         AR=`$ANDROID_NDK_HOME/ndk-which ar`
         CC=`$ANDROID_NDK_HOME/ndk-which gcc` --sysroot=$SYSROOT
-    elif [ $TARGET = "MacOSX" ] || [ $TARGET = "IOS" ] || [ $TARGET = "IOS-SIM" ]; then
+    elif [ $TARGET = "MAC" ] || [ $TARGET = "IOS" ] || [ $TARGET = "IOS-SIM" ]; then
         :
     else
-        echor "[Err] only support targets: Linux, MacOSX, Android and IOS"
+        echor "[Err] only support targets: UNIX, MAC, ANDROID, IOS and IOS-SIM"
         exit 1
     fi
 
-    if [ "#"$BUILD_TYPE = "#" ]; then
+    if [ "#$BUILD_TYPE" = "#" ]; then
         BUILD_TYPE=Release
     fi
 
@@ -95,11 +96,11 @@ config_webrtc() {
         check_err "fail to get webrtc with force from svn!"
     fi
 
-    if [ $TARGET = "IOS" ] || [ $TARGET = "IOS-SIM" ] || [ $TARGET = "MacOSX" ]; then
+    if [ $TARGET = "IOS" ] || [ $TARGET = "IOS-SIM" ] || [ $TARGET = "MAC" ]; then
         echo "target_os = ['ios', 'mac']" >> .gclient
         gclient runhooks >/tmp/svn_webrtc.log 2>&1
         check_err "fail to get webrtc with hook from svn!"
-    elif [ $TARGET = "Android" ]; then
+    elif [ $TARGET = "ANDROID" ]; then
         echo "target_os = ['android', 'unix']" >> .gclient
         gclient sync --nohooks
         check_err "fail to get webrtc with hook from svn!"
@@ -107,7 +108,7 @@ config_webrtc() {
         pushd $obj_path/trunk
         source ./build/android/envsetup.sh
         popd
-    elif [ $TARGET = "Linux" ]; then
+    elif [ $TARGET = "UNIX" ]; then
         gclient runhooks >/tmp/svn_webrtc.log 2>&1
         check_err "fail to get webrtc with hook from svn!"
     fi
@@ -131,7 +132,7 @@ build_webrtc() {
 make_archive () {
     target=$1
     echog "[-] Generating archive lib$target.a ..."
-    if [ $TARGET = "Linux" ] || [ $TARGET = "Android" ]; then
+    if [ $TARGET = "UNIX" ] || [ $TARGET = "ANDROID" ]; then
         rm -rf tmpobj; mkdir tmpobj; cd tmpobj
         $AR x ../libyuv.a
         for lib in $thelibs; do
@@ -151,7 +152,7 @@ make_archive () {
         libtool -static -arch_only armv7 -o lib$target.a ${thelibs[@]:0}
     elif [ $TARGET = "IOS-SIM" ]; then
         libtool -static -arch_only i386 -o lib$target.a ${thelibs[@]:0}
-    elif [ $TARGET = "MacOSX" ]; then
+    elif [ $TARGET = "MAC" ]; then
         libtool -static -arch_only x86_64 -o lib$target.a ${thelibs[@]:0}
     fi
 }
@@ -160,10 +161,10 @@ make_archive () {
 make_so () {
     target=$1
     echog "[-] Generate shared lib$target.so ..."
-    if [ $TARGET = "Linux" ] || [ $TARGET = "Android" ]; then
+    if [ $TARGET = "UNIX" ] || [ $TARGET = "ANDROID" ]; then
         $CC -shared -o lib$target.so -Wl,-whole-archive $thelibs -Wl,-no-whole-archive $ldflags
         #$CC -DTEST_PRIV_API -o /tmp/test_$target -L. -l$target $ldflags 
-    elif [ $TARGET = "MacOSX" ]; then
+    elif [ $TARGET = "MAC" ]; then
         libtool -dynamic -arch_only x86_64 -o lib$target.so ${thelibs[@]:0}
     fi
 }
@@ -217,9 +218,28 @@ clean_webrtc() {
     fi
 }
 
+build_librtc() {
+    pushd $ROOT
+    rm -rf bld
+    mkdir bld
+    pushd bld
+    if [ $TARGET = "MAC" ]; then
+        cmake -D MAC=1 -G Xcode ..
+        xcodebuild
+    elif [ $TARGET = "IOS" ]; then
+        cmake -D IOS=1 -G Xcode ..
+        xcodebuild
+    elif [ $TARGET = "UNIX" ]; then
+        cmake -D UNIX=1 ..
+        make
+    fi
+    popd
+    popd
+}
+
 main() {
     if [ $# -lt 1 ]; then 
-        echor "usage: $0 build|clean"
+        echor "usage: $0 build|clean|librtc"
         exit 1
     fi
 
@@ -231,6 +251,8 @@ main() {
         build_webrtc
         pack_webrtc
         test_webrtc
+    elif [ $1 = "librtc" ]; then
+        build_librtc
     else
         echor "usage: $0 build|clean"
     fi

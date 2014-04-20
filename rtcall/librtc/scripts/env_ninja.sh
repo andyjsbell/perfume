@@ -37,7 +37,7 @@ function wrmac() {
     export OUT_DIR="out_mac"
     export GYP_DEFINES="$GYP_DEFINES OS=mac target_arch=x64"
     export GYP_GENERATOR_FLAGS="$GYP_GENERATOR_FLAGS output_dir=out_mac"
-    export TARGET=MacOSX
+    export TARGET=MAC
 }
 
 function wrandroid() {
@@ -45,13 +45,13 @@ function wrandroid() {
     export OUT_DIR="out_android"
     export GYP_DEFINES="build_with_libjingle=1 build_with_chromium=0"
     export GYP_GENERATOR_FLAGS="$GYP_GENERATOR_FLAGS output_dir=out_android"
-    export TARGET=Android
+    export TARGET=ANDROID
 }
 
-function wrlinux() {
+function wrunix() {
     wrinit
-    export OUT_DIR="out_linux"
-    export GYP_GENERATOR_FLAGS="$GYP_GENERATOR_FLAGS output_dir=out_linux"
-    export TARGET=Linux
+    export OUT_DIR="out_unix"
+    export GYP_GENERATOR_FLAGS="$GYP_GENERATOR_FLAGS output_dir=out_unix"
+    export TARGET=UNIX
 }
 
