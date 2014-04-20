@@ -1,7 +1,5 @@
 #include "xrtc_api.h"
 
-#ifdef _TEST
-
 int main(int argc, char *argv[]) {
     xrtc_init();
 
@@ -11,6 +9,4 @@ int main(int argc, char *argv[]) {
     xrtc_uninit();
     return 0;
 }
-
-#endif
 

@@ -95,11 +95,8 @@ config_webrtc() {
         check_err "fail to get webrtc with force from svn!"
     fi
 
-    if [ $TARGET = "IOS" ] || [ $TARGET = "IOS-SIM" ]; then
+    if [ $TARGET = "IOS" ] || [ $TARGET = "IOS-SIM" ] || [ $TARGET = "MacOSX" ]; then
         echo "target_os = ['ios', 'mac']" >> .gclient
-        gclient runhooks >/tmp/svn_webrtc.log 2>&1
-        check_err "fail to get webrtc with hook from svn!"
-    elif [ $TARGET = "MacOSX" ]; then
         gclient runhooks >/tmp/svn_webrtc.log 2>&1
         check_err "fail to get webrtc with hook from svn!"
     elif [ $TARGET = "Android" ]; then
@@ -211,10 +208,33 @@ test_webrtc() {
     fi
 }
 
-detect_env
-config_webrtc
-build_webrtc
-pack_webrtc
-test_webrtc
+clean_webrtc() {
+    obj_path=$ROOT/third_party/webrtc
+    local_root=$obj_path/trunk/$OUT_DIR/$BUILD_TYPE
+    echog "[+] To clean webrtc of $OUT_DIR/$BUILD_TYPE ..."
+    if [ -e $local_root ]; then
+        rm -rf $local_root
+    fi
+}
 
+main() {
+    if [ $# -lt 1 ]; then 
+        echor "usage: $0 build|clean"
+        exit 1
+    fi
+
+    detect_env
+    if [ $1 = "clean" ]; then
+        clean_webrtc
+    elif [ $1 = "build" ]; then
+        config_webrtc
+        build_webrtc
+        pack_webrtc
+        test_webrtc
+    else
+        echor "usage: $0 build|clean"
+    fi
+}
+
+main $*
 exit 0
