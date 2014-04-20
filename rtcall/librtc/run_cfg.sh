@@ -220,15 +220,14 @@ clean_webrtc() {
 
 build_librtc() {
     pushd $ROOT
-    rm -rf bld
     mkdir bld
     pushd bld
     if [ $TARGET = "MAC" ]; then
         cmake -D MAC=1 -G Xcode ..
-        xcodebuild
+        xcodebuild -target rtc_static -target testrtc -configuration $BUILD_TYPE
     elif [ $TARGET = "IOS" ]; then
         cmake -D IOS=1 -G Xcode ..
-        xcodebuild
+        xcodebuild -target rtc_static -target testrtc -configuration $BUILD_TYPE
     elif [ $TARGET = "UNIX" ]; then
         cmake -D UNIX=1 ..
         make

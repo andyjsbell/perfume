@@ -2,6 +2,7 @@
 add_definitions(-O2 -Wall)
 
 include_directories(
+    ${PROJECT_SOURCE_DIR}/inc
     ${PROJECT_SOURCE_DIR}/src
     ${PROJECT_SOURCE_DIR}/third_party/webrtc/trunk
 )
@@ -13,7 +14,6 @@ set(librtc_LIB_SRCS
     peer.cpp
     stream.cpp
     track.cpp
-    unittest.cpp
 )
 
 set(a_NAME rtc_static)
@@ -25,5 +25,5 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib/)
 
 #set(CMAKE_INSTALL_PREFIX /tmp/librtc)
 install(TARGETS ${a_NAME}  ARCHIVE DESTINATION lib)
-install(FILES ${PROJECT_SOURCE_DIR}/src/xrtc_api.h DESTINATION inc)
+install(FILES ${PROJECT_SOURCE_DIR}/inc/xrtc_api.h DESTINATION inc)
 

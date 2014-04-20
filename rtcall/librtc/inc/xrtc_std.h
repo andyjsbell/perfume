@@ -237,8 +237,8 @@ public:
     virtual sequence<MediaStreamTrackPtr> & getAudioTracks ()           = 0;
     virtual sequence<MediaStreamTrackPtr> & getVideoTracks ()           = 0;
     virtual MediaStreamTrackPtr      getTrackById (DOMString trackId)   = 0;
-    virtual void                     addTrack (MediaStreamTrack &track) {}
-    virtual void                     removeTrack (MediaStreamTrack &track) {}
+    virtual void                     addTrack (MediaStreamTrackPtr track) {}
+    virtual void                     removeTrack (MediaStreamTrackPtr track) {}
     //virtual MediaStream              clone () {}
 };
 typedef MediaStream * MediaStreamPtr;
@@ -373,8 +373,8 @@ public:
     virtual sequence<MediaStreamPtr> & getLocalStreams ()               = 0;
     virtual sequence<MediaStreamPtr> & getRemoteStreams ()              = 0;
     virtual MediaStreamPtr        getStreamById (DOMString streamId)    = 0;
-    virtual void                  addStream (MediaStream &stream, MediaConstraints *constraints) {}   ///@future
-    virtual void                  removeStream (MediaStream &stream) {}   ///@future
+    virtual void                  addStream (MediaStreamPtr stream, MediaConstraints *constraints) {}   ///@future
+    virtual void                  removeStream (MediaStreamPtr stream) {}   ///@future
     virtual void                  close () {}
 };
 typedef RTCPeerConnection * RTCPeerConnectionPtr;
