@@ -200,7 +200,7 @@ public:
     //virtual MediaStreamTrack        clone () {}
     virtual void                    stop () {}
 };
-typedef MediaStreamTrack * MediaStreamTrackPtr;
+typedef ubase::zeroptr<MediaStreamTrack> MediaStreamTrackPtr;
 //typedef sequence<MediaStreamTrackPtr> MediaStreamTrackSequence;
 
 class VideoStreamTrack : public MediaStreamTrack {
@@ -245,7 +245,7 @@ public:
     virtual void                     removeTrack (MediaStreamTrackPtr track) {}
     //virtual MediaStream              clone () {}
 };
-typedef MediaStream * MediaStreamPtr;
+typedef ubase::zeroptr<MediaStream> MediaStreamPtr;
 
 
 ///
@@ -384,7 +384,7 @@ public:
     virtual void removeStream (MediaStreamPtr stream) {}
     virtual void close () {}
 };
-typedef RTCPeerConnection * RTCPeerConnectionPtr;
+typedef ubase::zeroptr<RTCPeerConnection> RTCPeerConnectionPtr;
 
 } // namespace xrtc
 
