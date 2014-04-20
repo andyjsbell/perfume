@@ -3,6 +3,7 @@ add_definitions(-O2 -Wall)
 
 include_directories(
     ${PROJECT_SOURCE_DIR}/inc
+    ${PROJECT_SOURCE_DIR}/ubase
     ${PROJECT_SOURCE_DIR}/src
     ${PROJECT_SOURCE_DIR}/third_party/webrtc/trunk
 )
@@ -12,6 +13,7 @@ set(librtc_LIB_SRCS
     mainx.cpp
     media.cpp
     peer.cpp
+    observer.cpp
     stream.cpp
     track.cpp
 )

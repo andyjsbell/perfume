@@ -197,7 +197,7 @@ sequence<SourceInfo> & AudioStreamTrack::getSourceInfos() {
 }
 
 
-MediaStreamTrack * CreateMediaStreamTrack(
+ubase::zeroptr<MediaStreamTrack> CreateMediaStreamTrack(
         media_t mtype,
         const std::string label,
         MediaTrackConstraints *constraints,
@@ -218,9 +218,8 @@ MediaStreamTrack * CreateMediaStreamTrack(
         return NULL;
     }
 
-    CMediaStreamTrack *track = new CMediaStreamTrack(kind, id, label, constraints);
+    ubase::zeroptr<CMediaStreamTrack> track = new ubase::RefCounted<CMediaStreamTrack>(kind, id, label, constraints);
     if (!track->Init(pc_factory, ptrack)) {
-        delete track;
         track = NULL;
     }
     return track;

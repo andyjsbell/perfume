@@ -224,10 +224,10 @@ build_librtc() {
     pushd bld
     if [ $TARGET = "MAC" ]; then
         cmake -D MAC=1 -G Xcode ..
-        xcodebuild -target rtc_static -target testrtc -configuration $BUILD_TYPE
+        xcodebuild -target ubase_static -target rtc_static -target testrtc -configuration $BUILD_TYPE
     elif [ $TARGET = "IOS" ]; then
         cmake -D IOS=1 -G Xcode ..
-        xcodebuild -target rtc_static -target testrtc -configuration $BUILD_TYPE
+        xcodebuild -target ubase_static -target rtc_static -target testrtc -configuration $BUILD_TYPE
     elif [ $TARGET = "UNIX" ]; then
         cmake -D UNIX=1 ..
         make

@@ -13,6 +13,7 @@ set(CMAKE_C_COMPILER clang)
 set(CMAKE_CXX_COMPILER clang)
 include(scripts/common.cmake)
 
+add_subdirectory(ubase)
 add_subdirectory(src)
 add_subdirectory(tests)
 

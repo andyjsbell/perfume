@@ -29,6 +29,8 @@
 #include <vector>
 #include <map>
 
+#include "refcount.h"
+#include "zeroptr.h"
 
 namespace xrtc {
 
@@ -62,15 +64,17 @@ struct DOMError {
     int errno;
 };
 
-class EventTarget {
+class EventTarget : public ubase::RefCount {
 public:
     virtual ~EventTarget() {}
     virtual void * getptr()         {return NULL;}
 };
 
-#define readonly_attribute(t, n)        public: t Get_##n() { return m_##n; }; protected: t m_##n;
-#define readwrite_attribute(t, n)       public: void Put_##n(t value) { m_##n = value; }; readonly_attribute(t, n);
-#define eventhandler_attribute(c)       public: void Put_EventHandler(c##EventHandler *handler) { m_pEventHandler = handler; }; protected: c##EventHandler *m_pEventHandler;
+#define readonly_attribute(t, n)        protected: virtual void Put_##n(t value) { m_##n = value; } public: virtual t Get_##n() { return m_##n; } protected: t m_##n;
+#define readwrite_attribute(t, n)       public:    virtual void Put_##n(t value) { m_##n = value; } public: virtual t Get_##n() { return m_##n; } protected: t m_##n;
+#define eventhandler_attribute(c)       public: virtual void Put_EventHandler(c##EventHandler *handler) { m_pEventHandler = handler; } \
+                                        protected: virtual c##EventHandler * Get_EventHandler() {return m_pEventHandler; } \
+                                        protected: c##EventHandler *m_pEventHandler;
 #define event_process0(f)               event_t revent = EVENT_OK; if(m_pEventHandler) { revent = m_pEventHandler->f(); }
 #define event_process1(f, a)            event_t revent = EVENT_OK; if(m_pEventHandler) { revent = m_pEventHandler->f((a)); }
 #define event_process2(f, a, b)         event_t revent = EVENT_OK; if(m_pEventHandler) { revent = m_pEventHandler->f((a), (b)); }
@@ -325,13 +329,16 @@ enum RTCIceConnectionState {
     CONN_CLOSED,    //"closed"
 };
 
+//
+//> return EVENT_OK it will continue with defalut action
+//> else stop at this callback
 class RTCPeerConnectionEventHandler {
 public:
     virtual event_t onnegotiationneeded()                  {return EVENT_OK;}
     virtual event_t onicecandidate()                       {return EVENT_OK;}
     virtual event_t onsignalingstatechange(int state)      {return EVENT_OK;}
-    virtual event_t onaddstream()                          {return EVENT_OK;}
-    virtual event_t onremovestream()                       {return EVENT_OK;}
+    virtual event_t onaddstream(MediaStreamPtr)            {return EVENT_OK;}
+    virtual event_t onremovestream(MediaStreamPtr)         {return EVENT_OK;}
     virtual event_t oniceconnectionstatechange(int state)  {return EVENT_OK;}
 
     virtual event_t onsuccess(RTCSessionDescription &desc) {return EVENT_OK;}
@@ -360,22 +367,22 @@ public:
         m_pEventHandler = NULL;
     }
 
-    virtual void                  setParams (RTCConfiguration *configuration, MediaConstraints *constraints) {}   ///@future
+    virtual void setParams (const RTCConfiguration & configuration, const MediaConstraints & constraints) {}
+    virtual void createOffer (const MediaConstraints & constraints) {}
+    virtual void createAnswer (const RTCSessionDescription & offer, const MediaConstraints & constraints) {}
+    virtual void setLocalDescription (const RTCSessionDescription & description) {}
+    virtual void setRemoteDescription (const RTCSessionDescription & description) {}
 
-    virtual void                  createOffer (MediaConstraints *constraints) {}
-    virtual void                  createAnswer (RTCSessionDescription &offer, MediaConstraints *constraints) {}
-    virtual void                  setLocalDescription (RTCSessionDescription &description) {}
-    virtual void                  setRemoteDescription (RTCSessionDescription &description) {}
-
-    virtual void                  updateIce (RTCConfiguration *configuration, MediaConstraints *constraints) {}   ///@future
-    virtual void                  addIceCandidate (RTCIceCandidate &candidate) {} ///@future
+    virtual void updateIce (const RTCConfiguration & configuration, const MediaConstraints & constraints) {}
+    virtual void addIceCandidate (const RTCIceCandidate & candidate) {}
 
     virtual sequence<MediaStreamPtr> & getLocalStreams ()               = 0;
     virtual sequence<MediaStreamPtr> & getRemoteStreams ()              = 0;
     virtual MediaStreamPtr        getStreamById (DOMString streamId)    = 0;
-    virtual void                  addStream (MediaStreamPtr stream, MediaConstraints *constraints) {}   ///@future
-    virtual void                  removeStream (MediaStreamPtr stream) {}   ///@future
-    virtual void                  close () {}
+
+    virtual void addStream (MediaStreamPtr stream, const MediaConstraints & constraints) {}
+    virtual void removeStream (MediaStreamPtr stream) {}
+    virtual void close () {}
 };
 typedef RTCPeerConnection * RTCPeerConnectionPtr;
 

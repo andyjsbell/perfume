@@ -121,14 +121,13 @@ void removeTrack (MediaStreamTrackPtr track)
 }; //class CMediaStream
 
 
-MediaStream * CreateMediaStream(
+ubase::zeroptr<MediaStream> CreateMediaStream(
         const std::string label,
         talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory, 
         talk_base::scoped_refptr<webrtc::MediaStreamInterface> pstream) {
     std::string id = "stream_unique_id";
-    CMediaStream * stream = new CMediaStream(id);
+    ubase::zeroptr<CMediaStream> stream = new ubase::RefCounted<CMediaStream>(id);
     if (!stream->Init(pc_factory, label, pstream)) {
-        delete stream;
         stream = NULL;
     }
     return stream;

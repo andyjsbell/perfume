@@ -14,15 +14,15 @@
 
 namespace xrtc {
 
-RTCPeerConnection *CreatePeerConnection(
+ubase::zeroptr<RTCPeerConnection> CreatePeerConnection(
         talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory);
 
-MediaStream * CreateMediaStream(
+ubase::zeroptr<MediaStream> CreateMediaStream(
         const std::string label,
         talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory, 
         talk_base::scoped_refptr<webrtc::MediaStreamInterface> pstream);
 
-MediaStreamTrack * CreateMediaStreamTrack(
+ubase::zeroptr<MediaStreamTrack> CreateMediaStreamTrack(
         media_t mtype,
         const std::string label,
         MediaTrackConstraints *constraints,
