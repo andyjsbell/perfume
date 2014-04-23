@@ -37,6 +37,9 @@ void        xrtc_uninit();
 pc_ptr_t    xrtc_new_pc();
 void        xrtc_del_pc(pc_ptr_t pc);
 
+long        xrtc_call(pc_ptr_t pc);
+long        xrtc_answer(pc_ptr_t pc);
+
 #ifdef __cplusplus
 }
 #endif

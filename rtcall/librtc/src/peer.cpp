@@ -156,15 +156,11 @@ void CRTCPeerConnection::close ()
 //
 //> for create interface
 ubase::zeroptr<RTCPeerConnection> CreatePeerConnection(talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory) {
-#if 0
-    talk_base::scoped_refptr<CRTCPeerConnectionObserver> observer = new talk_base::RefCountedObject<CRTCPeerConnectionObserver>();
     ubase::zeroptr<CRTCPeerConnection> pc = new ubase::RefCounted<CRTCPeerConnection>();
     if (!pc.get() || !pc->Init(pc_factory)) {
         pc = NULL;
     }
     return pc;
-#endif
-    return NULL;
 }
 
 

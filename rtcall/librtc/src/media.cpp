@@ -24,18 +24,64 @@
 
 #include "xrtc_std.h"
 #include "webrtc.h"
+#include "error.h"
 
 extern talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> _pc_factory;
+extern ubase::zeroptr<xrtc::MediaStream> _local_stream;
 
 namespace xrtc {
 
-void NavigatorUserMedia::getUserMedia (MediaStreamConstraints &constraints, NavigatorUserMediaCallback &callback)
+void NavigatorUserMedia::getUserMedia (const MediaStreamConstraints & constraints, NavigatorUserMediaCallback *callback)
 {
-    std::string label = "local stream";
-    MediaStream *stream = CreateMediaStream(label, _pc_factory, NULL);
-    if (!stream) {
-        return;
-    } 
+    return_assert(callback);
+
+    NavigatorUserMediaError error;
+
+    std::string slabel = "local stream";
+    talk_base::scoped_refptr<webrtc::MediaStreamInterface> mstream = _pc_factory->CreateLocalMediaStream(slabel);
+    return_assert(mstream.get());
+    ubase::zeroptr<MediaStream> stream = CreateMediaStream(slabel, _pc_factory, mstream);
+    return_assert(stream.get());
+    
+    // for audio track
+    if (constraints.audio) {
+        std::string alabel = "audio track";
+        ubase::zeroptr<MediaStreamTrack> audio_track = CreateMediaStreamTrack(XRTC_AUDIO, alabel, NULL, _pc_factory, NULL);
+        if (audio_track->getptr() == NULL) {
+            error.errstr = "no audio track";
+            callback->ErrorCallback(error);
+        }
+        stream->addTrack(audio_track);
+    }
+
+    if (constraints.video) {
+        std::string vlabel = "video track";
+        ubase::zeroptr<MediaStreamTrack> video_track = CreateMediaStreamTrack(XRTC_VIDEO, vlabel, NULL, _pc_factory, NULL);
+        if (video_track->getptr() == NULL) {
+            error.errstr = "no video track";
+            callback->ErrorCallback(error);
+        }
+        stream->addTrack(video_track);
+    }
+
+    callback->SuccessCallback(stream);
+}
+
+
+class NavigatorUserMediaSink : public NavigatorUserMediaCallback {
+public:
+    virtual void SuccessCallback(MediaStreamPtr stream)         {
+        _local_stream = stream;
+    }
+    virtual void ErrorCallback(NavigatorUserMediaError &error)  {
+    }
+};
+
+void GetUserMedia(const MediaStreamConstraints & constraints)
+{
+    _local_stream = NULL;
+    NavigatorUserMediaSink *callback;
+    NavigatorUserMedia::getUserMedia(constraints, callback);
 }
 
 } //namespace xrtc

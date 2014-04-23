@@ -62,6 +62,7 @@ struct MediaStreamConstraints {
 
 struct DOMError {
     int errno;
+    DOMString errstr;
 };
 
 class EventTarget : public ubase::RefCount {
@@ -256,13 +257,13 @@ struct NavigatorUserMediaError : public DOMError {
 
 class NavigatorUserMediaCallback {
 public:
-    virtual void SuccessCallback(MediaStream &stream)           {};
+    virtual void SuccessCallback(MediaStreamPtr stream)         {};
     virtual void ErrorCallback(NavigatorUserMediaError &error)  {};
 };
 
 class NavigatorUserMedia {
 public:
-    static void getUserMedia (MediaStreamConstraints &constraints, NavigatorUserMediaCallback &callback);
+    static void getUserMedia (const MediaStreamConstraints & constraints, NavigatorUserMediaCallback *callback);
 };
 
 

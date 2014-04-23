@@ -93,24 +93,52 @@ MediaStreamTrackPtr getTrackById (DOMString trackId)
     return NULL;
 }
 
+void _addTrack(sequence<MediaStreamTrackPtr> & tracks, MediaStreamTrackPtr track)
+{
+    sequence<MediaStreamTrackPtr>::iterator iter;
+    for(iter=tracks.begin(); iter != tracks.end(); iter++) {
+        if((*iter)->Get_id() == track->Get_id()) {
+            return;
+        }
+    }
+    tracks.push_back(track);
+}
+
 void addTrack (MediaStreamTrackPtr track)
 {
     if (m_stream != NULL && track != NULL) {
         if (track->Get_kind() == kAudioKind) {
             m_stream->AddTrack((webrtc::AudioTrackInterface *)track->getptr());
+            _addTrack(m_audio_tracks, track);
         }else if (track->Get_kind() == kVideoKind) {
             m_stream->AddTrack((webrtc::VideoTrackInterface *)track->getptr());
+            _addTrack(m_video_tracks, track);
+        }
+    }
+}
+
+void _removeTrack(sequence<MediaStreamTrackPtr> & tracks, MediaStreamTrackPtr track)
+{
+    sequence<MediaStreamTrackPtr>::iterator iter;
+    for(iter=tracks.begin(); iter != tracks.end(); iter++) {
+        if((*iter)->Get_id() == track->Get_id()) {
+            tracks.erase(iter);
+            return;
         }
     }
 }
 
 void removeTrack (MediaStreamTrackPtr track)
 {
-    if (m_stream != NULL && track != NULL) {
+    if (track != NULL) {
         if (track->Get_kind() == kAudioKind) {
-            m_stream->RemoveTrack((webrtc::AudioTrackInterface *)track->getptr());
+            if (m_stream != NULL)
+                m_stream->RemoveTrack((webrtc::AudioTrackInterface *)track->getptr());
+            _removeTrack(m_audio_tracks, track);
         }else if (track->Get_kind() == kVideoKind) {
-            m_stream->RemoveTrack((webrtc::VideoTrackInterface *)track->getptr());
+            if (m_stream != NULL)
+                m_stream->RemoveTrack((webrtc::VideoTrackInterface *)track->getptr());
+            _removeTrack(m_video_tracks, track);
         }
     }
 }

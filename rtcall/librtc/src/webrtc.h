@@ -14,6 +14,8 @@
 
 namespace xrtc {
 
+void GetUserMedia(const MediaStreamConstraints & constraints);
+
 ubase::zeroptr<RTCPeerConnection> CreatePeerConnection(
         talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory);
 
