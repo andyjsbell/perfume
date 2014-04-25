@@ -25,24 +25,56 @@
 #ifndef _XRTC_API_H_
 #define _XRTC_API_H_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <string>
 
 typedef void * pc_ptr_t;
 
+enum video_format {
+    UnknownFmt = 0,
+    I420Fmt,
+    RGB24Fmt,
+    RGBA32Fmt,
+};
+
+typedef struct video_frame {
+    int width;
+    int height;
+    int format;
+    int size;
+    unsigned char *data;
+}video_frame_t;
+
+class IRenderSink {
+public:
+    virtual void OnSize(int width, int height) = 0;
+    virtual void OnFrame(const video_frame_t *frame) = 0;
+};
+
+class ICallSink {
+public:
+    virtual void OnLocalSdp(const std::string &sdp) = 0;
+    virtual void OnRemoteRender(IRenderSink * & render) = 0;
+};
+
+class IAnswerSink {
+public:
+    virtual void OnLocalSdp(const std::string &sdp) = 0;
+    virtual void OnRemoteRender(IRenderSink * & render) = 0;
+};
+
+
+
+extern "C" {
 bool        xrtc_init();
 void        xrtc_uninit();
 
 pc_ptr_t    xrtc_new_pc();
 void        xrtc_del_pc(pc_ptr_t pc);
 
-long        xrtc_call(pc_ptr_t pc);
-long        xrtc_answer(pc_ptr_t pc);
-
-#ifdef __cplusplus
+long        xrtc_media(IRenderSink *local);
+long        xrtc_call(pc_ptr_t pc, ICallSink *sink);
+long        xrtc_answer(pc_ptr_t pc, const std::string & sdp, IAnswerSink *sink);
 }
-#endif
 
 #endif // _XRTC_API_H_
 

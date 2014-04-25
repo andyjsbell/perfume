@@ -25,7 +25,7 @@ CRTCPeerConnectionObserver::~CRTCPeerConnectionObserver()
 
 ///
 /// for webrtc::PeerConnectionObserver
-void CRTCPeerConnectionObserver::CRTCPeerConnectionObserver::OnError() 
+void CRTCPeerConnectionObserver::OnError() 
 {
     event_process0(onerror);
 }

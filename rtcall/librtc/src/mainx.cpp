@@ -16,10 +16,12 @@ bool xrtc_init()
 void xrtc_uninit()
 {
     _pc_factory = NULL;
+    _local_stream = NULL;
 }
 
 pc_ptr_t xrtc_new_pc()
 {
+    returnv_assert (_pc_factory.get(), NULL);
     ubase::zeroptr<xrtc::RTCPeerConnection> pc = xrtc::CreatePeerConnection(_pc_factory);
     pc->AddRef();
     return (pc_ptr_t)pc.get();
@@ -27,14 +29,14 @@ pc_ptr_t xrtc_new_pc()
 
 void xrtc_del_pc(pc_ptr_t pc)
 {
-    if (pc) {
-        xrtc::RTCPeerConnection *_pc = (xrtc::RTCPeerConnection *) pc;
-        delete _pc;
-    }
+    return_assert (pc);
+    xrtc::RTCPeerConnection *_pc = (xrtc::RTCPeerConnection *) pc;
+    delete _pc;
 }
 
 long xrtc_media()
 {
+    returnv_assert (_pc_factory.get(), UBASE_E_INVALIDPTR);
     xrtc::MediaStreamConstraints constraints;
     constraints.audio = true;
     constraints.video = true;
@@ -53,5 +55,7 @@ long xrtc_call(pc_ptr_t pc)
 
 long xrtc_answer(pc_ptr_t pc)
 {
+    returnv_assert (pc, UBASE_E_INVALIDPTR);
     return UBASE_S_OK;
 }
+

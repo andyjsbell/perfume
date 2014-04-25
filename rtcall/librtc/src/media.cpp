@@ -80,7 +80,7 @@ public:
 void GetUserMedia(const MediaStreamConstraints & constraints)
 {
     _local_stream = NULL;
-    NavigatorUserMediaSink *callback;
+    NavigatorUserMediaSink *callback = new NavigatorUserMediaSink;
     NavigatorUserMedia::getUserMedia(constraints, callback);
 }
 
