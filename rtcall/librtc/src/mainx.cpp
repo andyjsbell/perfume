@@ -4,7 +4,63 @@
 #include "error.h"
 
 talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> _pc_factory = NULL;
-ubase::zeroptr<xrtc::MediaStream> _local_stream = NULL;
+
+
+class CRtcCenter : public IRtcCenter, public xrtc::NavigatorUserMediaCallback {
+private:
+    ubase::zeroptr<xrtc::RTCPeerConnection> m_pc;
+    ubase::zeroptr<xrtc::MediaStream> m_local_stream;
+
+    ICallSink *m_call_sink;
+    IAnswerSink *m_answer_sink;
+
+public:
+bool Init() {
+    return true;
+}
+
+virtual long GetUserMedia() {
+    returnv_assert (_pc_factory.get(), UBASE_E_INVALIDPTR);
+    xrtc::MediaStreamConstraints constraints;
+    constraints.audio = true;
+    constraints.video = true;
+    xrtc::GetUserMedia(constraints, (xrtc::NavigatorUserMediaCallback *)this);
+    return UBASE_S_OK;
+}
+
+virtual long CreatePeerConnection() {
+    returnv_assert (_pc_factory.get(), UBASE_E_INVALIDPTR);
+    m_pc = xrtc::CreatePeerConnection(_pc_factory);
+}
+
+virtual long  SetupCall(ICallSink *sink) {
+    returnv_assert (m_pc.get(), UBASE_E_INVALIDPTR);
+    xrtc::MediaConstraints constraints;
+    m_pc->createOffer(constraints);   
+    m_call_sink = sink;
+    return UBASE_S_OK;
+}
+
+virtual long AddRender(IRenderSink *render) {
+
+}
+
+virtual long AnswerCall(IAnswerSink * sink) {
+    m_answer_sink = sink;
+}
+
+virtual void SuccessCallback(xrtc::MediaStreamPtr stream)         {
+    m_local_stream = stream;
+}
+
+virtual void ErrorCallback(xrtc::NavigatorUserMediaError &error)  {
+}
+
+};
+
+
+//
+//>======================================================
 
 bool xrtc_init()
 {
@@ -16,46 +72,24 @@ bool xrtc_init()
 void xrtc_uninit()
 {
     _pc_factory = NULL;
-    _local_stream = NULL;
 }
 
-pc_ptr_t xrtc_new_pc()
+bool xrtc_create(IRtcCenter * &rtc)
 {
-    returnv_assert (_pc_factory.get(), NULL);
-    ubase::zeroptr<xrtc::RTCPeerConnection> pc = xrtc::CreatePeerConnection(_pc_factory);
-    pc->AddRef();
-    return (pc_ptr_t)pc.get();
+    rtc = NULL;
+    returnv_assert (_pc_factory.get(), UBASE_E_FAIL);
+
+    CRtcCenter *pRtc = new CRtcCenter();
+    if (!pRtc->Init()) {
+        delete pRtc;
+        pRtc = NULL;
+    }
+    rtc = (IRtcCenter *)pRtc;
+    return (rtc != NULL);
 }
 
-void xrtc_del_pc(pc_ptr_t pc)
+void xrtc_destroy(IRtcCenter *rtc)
 {
-    return_assert (pc);
-    xrtc::RTCPeerConnection *_pc = (xrtc::RTCPeerConnection *) pc;
-    delete _pc;
+    return_assert(rtc);
+    delete rtc;
 }
-
-long xrtc_media()
-{
-    returnv_assert (_pc_factory.get(), UBASE_E_INVALIDPTR);
-    xrtc::MediaStreamConstraints constraints;
-    constraints.audio = true;
-    constraints.video = true;
-    GetUserMedia(constraints);
-    return UBASE_S_OK;
-}
-
-long xrtc_call(pc_ptr_t pc)
-{
-    returnv_assert (pc, UBASE_E_INVALIDPTR);
-    xrtc::RTCPeerConnection *_pc = (xrtc::RTCPeerConnection *) pc;
-    xrtc::MediaConstraints constraints;
-    _pc->createOffer(constraints);   
-    return UBASE_S_OK;
-}
-
-long xrtc_answer(pc_ptr_t pc)
-{
-    returnv_assert (pc, UBASE_E_INVALIDPTR);
-    return UBASE_S_OK;
-}
-

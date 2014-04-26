@@ -123,6 +123,7 @@ void CRTCPeerConnectionObserver::OnSuccess(webrtc::SessionDescriptionInterface* 
     desc->ToString(&sdp);
     rtcDesc.sdp = sdp;
 
+#if 1
     const webrtc::SessionDescriptionInterface* ldesc = m_conn->local_description();
     if (ldesc) {
         ldesc->ToString(&sdp);
@@ -140,6 +141,7 @@ void CRTCPeerConnectionObserver::OnSuccess(webrtc::SessionDescriptionInterface* 
         desp.type = rdesc->type();
         m_pc->Put_remoteDescription(desp);
     }
+#endif
 
     event_process1(onsuccess, rtcDesc);
 }

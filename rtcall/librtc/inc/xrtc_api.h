@@ -27,13 +27,16 @@
 
 #include <string>
 
-typedef void * pc_ptr_t;
-
 enum video_format {
     UnknownFmt = 0,
     I420Fmt,
     RGB24Fmt,
     RGBA32Fmt,
+};
+
+enum video_render {
+    LocalRender,
+    RemoteRender,
 };
 
 typedef struct video_frame {
@@ -52,29 +55,56 @@ public:
 
 class ICallSink {
 public:
-    virtual void OnLocalSdp(const std::string &sdp) = 0;
-    virtual void OnRemoteRender(IRenderSink * & render) = 0;
+    virtual void OnOffer(const std::string &offer) = 0;
 };
 
 class IAnswerSink {
 public:
-    virtual void OnLocalSdp(const std::string &sdp) = 0;
-    virtual void OnRemoteRender(IRenderSink * & render) = 0;
+    virtual void OnAnswer(const std::string &answer) = 0;
 };
 
 
+class IRtcCenter {
+public:
+    virtual ~IRtcCenter() {}
+
+    virtual long GetUserMedia() = 0;
+    virtual long CreatePeerConnection() = 0;
+    virtual long SetupCall(ICallSink *sink) = 0;
+    virtual long AddRender(IRenderSink *render) = 0;
+    virtual long AnswerCall(IAnswerSink * sink) = 0;
+};
 
 extern "C" {
 bool        xrtc_init();
 void        xrtc_uninit();
-
-pc_ptr_t    xrtc_new_pc();
-void        xrtc_del_pc(pc_ptr_t pc);
-
-long        xrtc_media(IRenderSink *local);
-long        xrtc_call(pc_ptr_t pc, ICallSink *sink);
-long        xrtc_answer(pc_ptr_t pc, const std::string & sdp, IAnswerSink *sink);
+bool        xrtc_create(IRtcCenter * &rtc);
+void        xrtc_destroy(IRtcCenter * rtc);
 }
+
+//> setup one call
+/**
+ * xrtc_init:       create peer connection factory
+ * xrtc_media:      get local stream(audio/video track)
+ * xrtc_new_pc:     create peer connection
+ * xrtc_call:       create offer
+ * ---------------> App send offer to remote peer.
+ *  ......
+ * ---------------> App recv answer from remote peer.
+ *
+ */
+
+//> receive one call
+/**
+ * ---------------> App recv offer from remote peer
+ * xrtc_init:       To create peer connection factory
+ * xrtc_new_pc:     To create peer connection
+ * xrtc_media:      Get local stream(audio/video track)
+ * xrtc_answer:     Set offer and callback of IAnswerSink::Answer()
+ * ---------------> App send answer to remote peer.
+ *
+ */
+
 
 #endif // _XRTC_API_H_
 
