@@ -365,21 +365,21 @@ public:
     }
 
     virtual void setParams (const RTCConfiguration & configuration, const MediaConstraints & constraints) {}
-    virtual void createOffer (const MediaConstraints & constraints) {}
-    virtual void createAnswer (const RTCSessionDescription & offer, const MediaConstraints & constraints) {}
-    virtual void setLocalDescription (const RTCSessionDescription & description) {}
-    virtual void setRemoteDescription (const RTCSessionDescription & description) {}
+    virtual void createOffer (const MediaConstraints & constraints) = 0;
+    virtual void createAnswer (const MediaConstraints & constraints) = 0;
+    virtual void setLocalDescription (const RTCSessionDescription & description) = 0;
+    virtual void setRemoteDescription (const RTCSessionDescription & description) = 0;
 
     virtual void updateIce (const RTCConfiguration & configuration, const MediaConstraints & constraints) {}
-    virtual void addIceCandidate (const RTCIceCandidate & candidate) {}
+    virtual void addIceCandidate (const RTCIceCandidate & candidate) = 0;
 
     virtual sequence<MediaStreamPtr> & getLocalStreams ()               = 0;
     virtual sequence<MediaStreamPtr> & getRemoteStreams ()              = 0;
     virtual MediaStreamPtr        getStreamById (DOMString streamId)    = 0;
 
-    virtual void addStream (MediaStreamPtr stream, const MediaConstraints & constraints) {}
-    virtual void removeStream (MediaStreamPtr stream) {}
-    virtual void close () {}
+    virtual void addStream (MediaStreamPtr stream, const MediaConstraints & constraints) = 0;
+    virtual void removeStream (MediaStreamPtr stream) = 0;
+    virtual void close () = 0;
 };
 typedef ubase::zeroptr<RTCPeerConnection> RTCPeerConnectionPtr;
 

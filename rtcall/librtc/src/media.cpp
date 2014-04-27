@@ -26,14 +26,14 @@
 #include "webrtc.h"
 #include "error.h"
 
-extern talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> _pc_factory;
-extern ubase::zeroptr<xrtc::MediaStream> _local_stream;
+static talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> _pc_factory;
 
 namespace xrtc {
 
 void NavigatorUserMedia::getUserMedia (const MediaStreamConstraints & constraints, NavigatorUserMediaCallback *sink)
 {
     return_assert(sink);
+    return_assert(_pc_factory.get());
 
     NavigatorUserMediaError error;
 
@@ -66,10 +66,14 @@ void NavigatorUserMedia::getUserMedia (const MediaStreamConstraints & constraint
     sink->SuccessCallback(stream);
 }
 
-
-void GetUserMedia(const MediaStreamConstraints & constraints, NavigatorUserMediaCallback *sink)
+void GetUserMedia(
+        const MediaStreamConstraints & constraints, 
+        NavigatorUserMediaCallback *sink,
+        talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory)
 {
+    _pc_factory = pc_factory;
     NavigatorUserMedia::getUserMedia(constraints, sink);
+    _pc_factory = NULL;
 }
 
 } //namespace xrtc

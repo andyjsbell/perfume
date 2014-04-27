@@ -50,6 +50,7 @@ void CRTCPeerConnectionObserver::OnAddStream(webrtc::MediaStreamInterface* strea
 {
     if (!stream)    return;
     MediaStreamPtr mstream = CreateMediaStream("remote_stream", NULL, stream);
+    m_pc->m_remote_streams.push_back(mstream);
     event_process1(onaddstream, mstream);
 }
 
@@ -59,6 +60,7 @@ void CRTCPeerConnectionObserver::OnRemoveStream(webrtc::MediaStreamInterface* st
     if (!stream)    return;
     MediaStreamPtr mstream = CreateMediaStream("remote_stream", NULL, stream);
     event_process1(onremovestream, mstream);
+    m_pc->m_remote_streams.clear(); //TODO: only support one remote stream
 }
 
 // Triggered when a remote peer open a data channel.

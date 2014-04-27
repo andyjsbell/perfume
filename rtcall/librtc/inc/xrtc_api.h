@@ -27,18 +27,33 @@
 
 #include <string>
 
-enum video_format {
+enum action_t {
+    ADD_ACTION,
+    REMOVE_ACTION,
+};
+
+enum color_t {
     UnknownFmt = 0,
     I420Fmt,
     RGB24Fmt,
-    RGBA32Fmt,
+    ARGB32Fmt,
+};
+
+enum rotation_t{
+  ROTATION_0 = 0,
+  ROTATION_90 = 90,
+  ROTATION_180 = 180,
+  ROTATION_270 = 270
 };
 
 typedef struct _video_frame {
     int width;
     int height;
-    int format;
-    int size;
+    int color;    // refer to color_t
+    int rotation; // refer to rotation_t
+    unsigned long timestamp;
+    int length; // length of video frame
+    int size;   // size of data buffer
     unsigned char *data;
 }video_frame_t;
 
@@ -52,8 +67,11 @@ class IRtcSink {
 public:
     virtual void OnSessionDescription(const std::string &type, const std::string &sdp) = 0;
     virtual void OnIceCandidate(const std::string &candidate, const std::string &sdpMid, int sdpMLineIndex) = 0;
-    virtual void OnAddStream() = 0;
-    virtual void OnRemoveStream() = 0;
+    //> action: refer to action_t
+    virtual void OnRemoteStream(int action) = 0;
+
+    virtual void OnGetUserMedia(int error, std::string errstr) = 0;
+    virtual void OnFailureMesssage(std::string errstr) = 0;
 };
 
 class IRtcCenter {
@@ -63,19 +81,20 @@ public:
 
     virtual long GetUserMedia() = 0;
     virtual long CreatePeerConnection() = 0;
-
     virtual long AddLocalStream() = 0;
-    virtual long AddLocalRender(IRtcRender *render) = 0;
-    virtual long AddRemoteRender(IRtcRender *render) = 0;
+
+    //> action: refer to action_t
+    virtual long SetLocalRender(IRtcRender *render, int action) = 0;
+    virtual long SetRemoteRender(IRtcRender *render, int action) = 0;
 
     virtual long SetupCall() = 0;
     virtual long AnswerCall() = 0;
+    virtual void Close() = 0;
 
     //> type: offer, pranswer, answer
-    virtual long SetLocalSdp(const std::string &type, const std::string &sdp) = 0;
-    virtual long SetRemoteSdp(const std::string &type, const std::string &sdp) = 0;
+    virtual long SetLocalDescription(const std::string &type, const std::string &sdp) = 0;
+    virtual long SetRemoteDescription(const std::string &type, const std::string &sdp) = 0;
     virtual long AddIceCandidate(const std::string &candidate, const std::string &sdpMid, int sdpMLineIndex) = 0;
-
 };
 
 extern "C" {
@@ -87,54 +106,61 @@ void        xrtc_destroy(IRtcCenter * rtc);
 
 //> setup one call
 /**
- * xrtc_init:                   create peer connection factory
- * xrtc_create:                 create rtc center
+ * xrtc_init():                 create peer connection factory
+ * xrtc_create():               create rtc center
+ *                              call SetSink()
  *
- * GetUserMedia:                get local stream(audio/video track)
- * CreatePeerConnection:        create peer connection
+ * GetUserMedia():              get local stream(audio/video track)
+ * CreatePeerConnection():      create peer connection
+ * AddLocalStream():            add local stream into peer connection
+ * SetLocalRender(ADD):         add render to local stream
  *
- * AddLocalStream:              add local stream into peer connection
- * AddLocalRender:              add render to local stream
- *
- * SetupCall:                   create offer
- * IRtcSink::OnSessionSdp:      SetLocalSdp() of offer;
- *                              =>Send sdp(offer) to remote peer.
- * IRtcSink::OnIceCandidate:    =>send candidate to remote peer
+ * SetupCall():                         create offer
+ * IRtcSink::OnSessionDescription():    call SetLocalDescription() of offer
+ *                                      app=>Send sdp(offer) to remote peer
+ * IRtcSink::OnIceCandidate:            app=>send candidate to remote peer
  *
  * ......
- * =>Recv sdp(answer):          SetRemoteSdp() of answer,
- * =>Recv candidate:            AddIceCandidate(),
- *
- * IRtcSink::OnAddStream:       AddRemoteRender()
+ * =>Recv sdp(answer) from SIP:         call SetRemoteDescription() of answer
+ * =>Recv candidate from SIP:           call AddIceCandidate()
+ * IRtcSink::OnRemotetream():           call SetRemoteRender(ADD)
  *
  */
 
 //> receive one call
 /**
- * ---------------> App recv offer from remote peer
- * xrtc_init:                   create peer connection factory
- * xrtc_create:                 create rtc center
+ * xrtc_init():                 create peer connection factory
+ * xrtc_create():               create rtc center
+ *                              call SetSink()
  *
  * ......
- * =>Recv sdp(offer):                
- * GetUserMedia:                get local stream(audio/video track)
- * CreatePeerConnection:        create peer connection
- * AddLocalStream:              add local stream into peer connection
- * AddLocalRender:              add render to local stream
- * SetRemoteSdp:                by received offer.
+ * App=>Recv sdp(offer) from SIP:                
+ * GetUserMedia():              get local stream(audio/video track)
+ * CreatePeerConnection():      create peer connection
+ * AddLocalStream():            add local stream into peer connection
+ * SetLocalRender(ADD):         add render to local stream
+ * SetRemoteDescription():      with received offer.
  *
- * AnswerCall:                  create answer
- * IRtcSink::OnSessionSdp:      SetLocalSdp() of answer; 
- *                              =>Send sdp(answer) to remote peer.
- * IRtcSink::OnIceCandidate:    =>Send candidate to remote peer
+ * AnswerCall():                        create answer
+ * IRtcSink::OnSessionDescription():    call SetLocalDescription() of answer; 
+ *                                      app=>Send sdp(answer) to remote peer over SIP.
+ * IRtcSink::OnIceCandidate():          app=>Send candidate to remote peer over SIP.
  *
  * ......
- * =>Recv candidate:            AddIceCandidate(),
- *
- * IRtcSink::OnAddStream:       AddRemoteRender()
+ * app=>Recv candidate from SIP:        call AddIceCandidate(),
+ * IRtcSink::OnRemoteStream(ADD):       call SetRemoteRender(ADD)
  *
  */
 
+//> close one call
+/**
+ * Close():                 
+ * SetLocalRender(REMOVE):
+ * SetRemoteRender(REMOVE):
+ * xrtc_destroy():
+ * xrtc_uninit():
+ *
+ */
 
 #endif // _XRTC_API_H_
 

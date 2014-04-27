@@ -36,30 +36,33 @@ class CRTCPeerConnection : public RTCPeerConnection {
 private:
     talk_base::scoped_refptr<CRTCPeerConnectionObserver> m_observer;
     talk_base::scoped_refptr<webrtc::PeerConnectionInterface> m_conn;
+
+protected:
     sequence<MediaStreamPtr> m_local_streams;
     sequence<MediaStreamPtr> m_remote_streams;
 
 public:
     bool Init(talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory);
+
     explicit CRTCPeerConnection ();
     virtual ~CRTCPeerConnection ();
     virtual void * getptr();
 
-    void setParams (const RTCConfiguration & configuration, const MediaConstraints & constraints);
-    void createOffer (const MediaConstraints & constraints);
-    void createAnswer (const RTCSessionDescription & offer, const MediaConstraints & constraints);
-    void setLocalDescription (const RTCSessionDescription & description);
-    void setRemoteDescription (const RTCSessionDescription & description);
-    void updateIce (const RTCConfiguration & configuration, const MediaConstraints & constraints);
-    void addIceCandidate (const RTCIceCandidate & candidate);
+    virtual void setParams (const RTCConfiguration & configuration, const MediaConstraints & constraints);
+    virtual void createOffer (const MediaConstraints & constraints);
+    virtual void createAnswer (const MediaConstraints & constraints);
+    virtual void setLocalDescription (const RTCSessionDescription & description);
+    virtual void setRemoteDescription (const RTCSessionDescription & description);
+    virtual void updateIce (const RTCConfiguration & configuration, const MediaConstraints & constraints);
+    virtual void addIceCandidate (const RTCIceCandidate & candidate);
 
-    sequence<MediaStreamPtr> & getLocalStreams ();
-    sequence<MediaStreamPtr> & getRemoteStreams ();
-    MediaStreamPtr getStreamById (DOMString streamId);
+    virtual sequence<MediaStreamPtr> & getLocalStreams ();
+    virtual sequence<MediaStreamPtr> & getRemoteStreams ();
+    virtual MediaStreamPtr getStreamById (DOMString streamId);
 
-    void addStream (MediaStreamPtr stream, const MediaConstraints & constraints);
-    void removeStream (MediaStreamPtr stream);
-    void close ();
+    virtual void addStream (MediaStreamPtr stream, const MediaConstraints & constraints);
+    virtual void removeStream (MediaStreamPtr stream);
+    virtual void close ();
 
 }; // class CRTCPeerConnection
 
