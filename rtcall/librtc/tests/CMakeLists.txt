@@ -4,6 +4,7 @@ set(testrtc_EXEC_SRCS
 
 include_directories(
     ${PROJECT_SOURCE_DIR}/inc
+    ${PROJECT_SOURCE_DIR}/ubase
 )
 
 link_directories(

@@ -59,17 +59,20 @@ typedef struct _video_frame {
 
 class IRtcRender {
 public:
+    virtual ~IRtcRender() {}
+
     virtual void OnSize(int width, int height) = 0;
     virtual void OnFrame(const video_frame_t *frame) = 0;
 };
 
 class IRtcSink {
 public:
+    virtual ~IRtcSink() {}
+
     virtual void OnSessionDescription(const std::string &type, const std::string &sdp) = 0;
     virtual void OnIceCandidate(const std::string &candidate, const std::string &sdpMid, int sdpMLineIndex) = 0;
     //> action: refer to action_t
     virtual void OnRemoteStream(int action) = 0;
-
     virtual void OnGetUserMedia(int error, std::string errstr) = 0;
     virtual void OnFailureMesssage(std::string errstr) = 0;
 };

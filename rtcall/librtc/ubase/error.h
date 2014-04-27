@@ -14,16 +14,26 @@
 #define UBASE_E_FAIL              4
 #define UBASE_E_UNIMPL            5
 
-// For log output
+// For log tag
 #define CXX_FUNC_TAG            "["<<__func__<<"]"
 #define CXX_INFO_TAG            "["<<__FILE__<<":"<<__LINE__<<"]"
 
+
+// For log trace
+#define LOG(pp)                         {   std::cout << CXX_FUNC_TAG << " " \
+                                            << pp << " " << \
+                                            CXX_INFO_TAG << std::endl;}
+
+
+// For one expression: #pp->pp
 #define log_print(pp)                   {   std::cout << CXX_FUNC_TAG << " " \
                                             #pp"["<< pp << "] printed!" << \
                                             CXX_INFO_TAG << std::endl;}
+// For one expression: #pp->pv
 #define log_print2(pp, pv)              {   std::cout << CXX_FUNC_TAG << " " \
                                             pp"["<< pv << "] printed!" << \
                                             CXX_INFO_TAG << std::endl;}
+// For two expression: #p1->pv1, #p2->pv2
 #define log_print4(p1, pv1, p2, pv2)    {   std::cout << CXX_FUNC_TAG << " " \
                                             p1"["<< pv1 << "] != " << p2"[" << pv2 << "]" << \
                                             CXX_INFO_TAG << std::endl;}
