@@ -23,6 +23,7 @@
  */
 
 #include "peer.h"
+#include "error.h"
 
 namespace xrtc {
 
@@ -87,16 +88,20 @@ void CRTCPeerConnection::setParams (const RTCConfiguration & configuration, cons
 
 void CRTCPeerConnection::createOffer (const MediaConstraints & constraints)
 {
+    return_assert(m_conn.get());
     m_conn->CreateOffer((webrtc::CreateSessionDescriptionObserver *)m_observer, NULL);
 }
 
 void CRTCPeerConnection::createAnswer (const RTCSessionDescription & offer, const MediaConstraints & constraints)
 {
+    return_assert(m_conn.get());
+    // must be webrtc::SessionDescriptionInterface::kOffer
     m_conn->CreateAnswer((webrtc::CreateSessionDescriptionObserver *)m_observer, NULL);
 }
 
 void CRTCPeerConnection::setLocalDescription (const RTCSessionDescription & description)
 {
+    return_assert(m_conn.get());
     webrtc::SessionDescriptionInterface* desp(webrtc::CreateSessionDescription(description.type, description.sdp));
     if (desp) {
         m_conn->SetLocalDescription(DummySetSessionDescriptionObserver::Create(), desp);
@@ -105,6 +110,7 @@ void CRTCPeerConnection::setLocalDescription (const RTCSessionDescription & desc
 
 void CRTCPeerConnection::setRemoteDescription (const RTCSessionDescription & description)
 {
+    return_assert(m_conn.get());
     webrtc::SessionDescriptionInterface* desp(webrtc::CreateSessionDescription(description.type, description.sdp));
     if (desp) {
         m_conn->SetRemoteDescription(DummySetSessionDescriptionObserver::Create(), desp);
@@ -115,8 +121,12 @@ void CRTCPeerConnection::updateIce (const RTCConfiguration & configuration, cons
 {
 }
 
-void CRTCPeerConnection::addIceCandidate (const RTCIceCandidate & candidate)
+void CRTCPeerConnection::addIceCandidate (const RTCIceCandidate & ice)
 {
+    return_assert(m_conn.get());
+    talk_base::scoped_ptr<webrtc::IceCandidateInterface> candidate(
+            webrtc::CreateIceCandidate(ice.sdpMid, ice.sdpMLineIndex, ice.candidate));
+    m_conn->AddIceCandidate(candidate.get());
 }
 
 sequence<MediaStreamPtr> & CRTCPeerConnection::getLocalStreams ()
@@ -136,6 +146,7 @@ MediaStreamPtr CRTCPeerConnection::getStreamById (DOMString streamId)
 
 void CRTCPeerConnection::addStream (MediaStreamPtr stream, const MediaConstraints & constraints)
 {
+    return_assert(m_conn.get());
     if (stream && stream->getptr()) {
         webrtc::MediaConstraintsInterface* constraints = NULL;
         m_conn->AddStream((webrtc::MediaStreamInterface *)stream->getptr(), constraints);
@@ -144,6 +155,7 @@ void CRTCPeerConnection::addStream (MediaStreamPtr stream, const MediaConstraint
 
 void CRTCPeerConnection::removeStream (MediaStreamPtr stream)
 {
+    return_assert(m_conn.get());
     if (stream && stream->getptr()) {
         m_conn->RemoveStream((webrtc::MediaStreamInterface *)stream->getptr());
     }

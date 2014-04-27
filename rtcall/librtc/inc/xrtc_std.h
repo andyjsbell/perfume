@@ -76,13 +76,9 @@ public:
 #define eventhandler_attribute(c)       public: virtual void Put_EventHandler(c##EventHandler *handler) { m_pEventHandler = handler; } \
                                         protected: virtual c##EventHandler * Get_EventHandler() {return m_pEventHandler; } \
                                         protected: c##EventHandler *m_pEventHandler;
-#define event_process0(f)               event_t revent = EVENT_OK; if(m_pEventHandler) { revent = m_pEventHandler->f(); }
-#define event_process1(f, a)            event_t revent = EVENT_OK; if(m_pEventHandler) { revent = m_pEventHandler->f((a)); }
-#define event_process2(f, a, b)         event_t revent = EVENT_OK; if(m_pEventHandler) { revent = m_pEventHandler->f((a), (b)); }
-enum event_t {
-    EVENT_OK = 0,
-    EVENT_DECLINE = 1,
-};
+#define event_process0(f)               if(m_pEventHandler) { m_pEventHandler->f(); }
+#define event_process1(f, a)            if(m_pEventHandler) { m_pEventHandler->f((a)); }
+#define event_process2(f, a, b)         if(m_pEventHandler) { m_pEventHandler->f((a), (b)); }
 
 
 enum media_t {
@@ -160,11 +156,11 @@ struct AllAudioCapabilities : public AllMediaCapabilities {
 
 class MediaStreamTrackEventHandler {
 public:
-    virtual event_t onmute()       {return EVENT_OK;}
-    virtual event_t onunmute()     {return EVENT_OK;}
-    virtual event_t onstarted()    {return EVENT_OK;}
-    virtual event_t onended()      {return EVENT_OK;}
-    virtual event_t onoverconstrained()    {return EVENT_OK;}
+    virtual void onmute()       {}
+    virtual void onunmute()     {}
+    virtual void onstarted()    {}
+    virtual void onended()      {}
+    virtual void onoverconstrained()    {}
 };
 
 class MediaStreamTrack : public EventTarget {
@@ -219,9 +215,9 @@ public:
 /// ==============================
 class MediaStreamEventHandler {
 public:
-    virtual event_t onended()          {return EVENT_OK;}
-    virtual event_t onaddtrack()       {return EVENT_OK;}
-    virtual event_t onremovetrack()    {return EVENT_OK;}
+    virtual void onended()          {}
+    virtual void onaddtrack()       {}
+    virtual void onremovetrack()    {}
 };
 
 class MediaStream : public EventTarget {
@@ -335,16 +331,16 @@ enum RTCIceConnectionState {
 //> else stop at this callback
 class RTCPeerConnectionEventHandler {
 public:
-    virtual event_t onnegotiationneeded()                  {return EVENT_OK;}
-    virtual event_t onicecandidate()                       {return EVENT_OK;}
-    virtual event_t onsignalingstatechange(int state)      {return EVENT_OK;}
-    virtual event_t onaddstream(MediaStreamPtr)            {return EVENT_OK;}
-    virtual event_t onremovestream(MediaStreamPtr)         {return EVENT_OK;}
-    virtual event_t oniceconnectionstatechange(int state)  {return EVENT_OK;}
+    virtual void onnegotiationneeded()                  {}
+    virtual void onicecandidate(RTCIceCandidate & ice)  {}
+    virtual void onsignalingstatechange(int state)      {}
+    virtual void onaddstream(MediaStreamPtr)            {}
+    virtual void onremovestream(MediaStreamPtr)         {}
+    virtual void oniceconnectionstatechange(int state)  {}
 
-    virtual event_t onsuccess(RTCSessionDescription &desc) {return EVENT_OK;}
-    virtual event_t onfailure(const DOMString &error)      {return EVENT_OK;}
-    virtual event_t onerror()                              {return EVENT_OK;}
+    virtual void onsuccess(RTCSessionDescription &desc) {}
+    virtual void onfailure(const DOMString &error)      {}
+    virtual void onerror()                              {}
 };
 
 class RTCPeerConnection : public EventTarget  {

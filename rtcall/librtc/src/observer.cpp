@@ -36,7 +36,7 @@ void CRTCPeerConnectionObserver::OnSignalingChange(
 {
     int state = (int)new_state;
     event_process1(onsignalingstatechange, state);
-    m_pc->Put_signalingState((RTCSignalingState)state);
+    m_pc->Put_signalingState((xrtc::RTCSignalingState)state);
 }
 
 // Triggered when SignalingState or IceState have changed.
@@ -49,13 +49,8 @@ void CRTCPeerConnectionObserver::OnStateChange(webrtc::PeerConnectionObserver::S
 void CRTCPeerConnectionObserver::OnAddStream(webrtc::MediaStreamInterface* stream) 
 {
     if (!stream)    return;
-
     MediaStreamPtr mstream = CreateMediaStream("remote_stream", NULL, stream);
     event_process1(onaddstream, mstream);
-    if (revent == EVENT_OK) {
-        MediaConstraints constraints;
-        m_pc->addStream(mstream, constraints);
-    }
 }
 
 // Triggered when a remote peer close a stream.
@@ -64,9 +59,6 @@ void CRTCPeerConnectionObserver::OnRemoveStream(webrtc::MediaStreamInterface* st
     if (!stream)    return;
     MediaStreamPtr mstream = CreateMediaStream("remote_stream", NULL, stream);
     event_process1(onremovestream, mstream);
-    if (revent == EVENT_OK) {
-        m_pc->removeStream(mstream);
-    }
 }
 
 // Triggered when a remote peer open a data channel.
@@ -101,10 +93,16 @@ void CRTCPeerConnectionObserver::OnIceGatheringChange(
 void CRTCPeerConnectionObserver::OnIceCandidate(const webrtc::IceCandidateInterface* candidate) 
 {
     if (!candidate)   return;
-    event_process0(onicecandidate);
-    if (revent == EVENT_OK) {
-        m_conn->AddIceCandidate(candidate);
+    std::string sdp;
+    if (!candidate->ToString(&sdp)) {
+        return;
     }
+
+    RTCIceCandidate ice;
+    ice.candidate = sdp;
+    ice.sdpMid = candidate->sdp_mid();
+    ice.sdpMLineIndex = candidate->sdp_mline_index();
+    event_process1(onicecandidate, ice);
 }
 
 // TODO(bemasc): Remove this once callers transition to OnIceGatheringChange.

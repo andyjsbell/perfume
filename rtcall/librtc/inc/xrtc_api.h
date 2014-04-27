@@ -34,12 +34,7 @@ enum video_format {
     RGBA32Fmt,
 };
 
-enum video_render {
-    LocalRender,
-    RemoteRender,
-};
-
-typedef struct video_frame {
+typedef struct _video_frame {
     int width;
     int height;
     int format;
@@ -47,32 +42,40 @@ typedef struct video_frame {
     unsigned char *data;
 }video_frame_t;
 
-class IRenderSink {
+class IRtcRender {
 public:
     virtual void OnSize(int width, int height) = 0;
     virtual void OnFrame(const video_frame_t *frame) = 0;
 };
 
-class ICallSink {
+class IRtcSink {
 public:
-    virtual void OnOffer(const std::string &offer) = 0;
+    virtual void OnSessionDescription(const std::string &type, const std::string &sdp) = 0;
+    virtual void OnIceCandidate(const std::string &candidate, const std::string &sdpMid, int sdpMLineIndex) = 0;
+    virtual void OnAddStream() = 0;
+    virtual void OnRemoveStream() = 0;
 };
-
-class IAnswerSink {
-public:
-    virtual void OnAnswer(const std::string &answer) = 0;
-};
-
 
 class IRtcCenter {
 public:
     virtual ~IRtcCenter() {}
+    virtual void SetSink(IRtcSink *sink) = 0;
 
     virtual long GetUserMedia() = 0;
     virtual long CreatePeerConnection() = 0;
-    virtual long SetupCall(ICallSink *sink) = 0;
-    virtual long AddRender(IRenderSink *render) = 0;
-    virtual long AnswerCall(IAnswerSink * sink) = 0;
+
+    virtual long AddLocalStream() = 0;
+    virtual long AddLocalRender(IRtcRender *render) = 0;
+    virtual long AddRemoteRender(IRtcRender *render) = 0;
+
+    virtual long SetupCall() = 0;
+    virtual long AnswerCall() = 0;
+
+    //> type: offer, pranswer, answer
+    virtual long SetLocalSdp(const std::string &type, const std::string &sdp) = 0;
+    virtual long SetRemoteSdp(const std::string &type, const std::string &sdp) = 0;
+    virtual long AddIceCandidate(const std::string &candidate, const std::string &sdpMid, int sdpMLineIndex) = 0;
+
 };
 
 extern "C" {
@@ -84,24 +87,51 @@ void        xrtc_destroy(IRtcCenter * rtc);
 
 //> setup one call
 /**
- * xrtc_init:       create peer connection factory
- * xrtc_media:      get local stream(audio/video track)
- * xrtc_new_pc:     create peer connection
- * xrtc_call:       create offer
- * ---------------> App send offer to remote peer.
- *  ......
- * ---------------> App recv answer from remote peer.
+ * xrtc_init:                   create peer connection factory
+ * xrtc_create:                 create rtc center
+ *
+ * GetUserMedia:                get local stream(audio/video track)
+ * CreatePeerConnection:        create peer connection
+ *
+ * AddLocalStream:              add local stream into peer connection
+ * AddLocalRender:              add render to local stream
+ *
+ * SetupCall:                   create offer
+ * IRtcSink::OnSessionSdp:      SetLocalSdp() of offer;
+ *                              =>Send sdp(offer) to remote peer.
+ * IRtcSink::OnIceCandidate:    =>send candidate to remote peer
+ *
+ * ......
+ * =>Recv sdp(answer):          SetRemoteSdp() of answer,
+ * =>Recv candidate:            AddIceCandidate(),
+ *
+ * IRtcSink::OnAddStream:       AddRemoteRender()
  *
  */
 
 //> receive one call
 /**
  * ---------------> App recv offer from remote peer
- * xrtc_init:       To create peer connection factory
- * xrtc_new_pc:     To create peer connection
- * xrtc_media:      Get local stream(audio/video track)
- * xrtc_answer:     Set offer and callback of IAnswerSink::Answer()
- * ---------------> App send answer to remote peer.
+ * xrtc_init:                   create peer connection factory
+ * xrtc_create:                 create rtc center
+ *
+ * ......
+ * =>Recv sdp(offer):                
+ * GetUserMedia:                get local stream(audio/video track)
+ * CreatePeerConnection:        create peer connection
+ * AddLocalStream:              add local stream into peer connection
+ * AddLocalRender:              add render to local stream
+ * SetRemoteSdp:                by received offer.
+ *
+ * AnswerCall:                  create answer
+ * IRtcSink::OnSessionSdp:      SetLocalSdp() of answer; 
+ *                              =>Send sdp(answer) to remote peer.
+ * IRtcSink::OnIceCandidate:    =>Send candidate to remote peer
+ *
+ * ......
+ * =>Recv candidate:            AddIceCandidate(),
+ *
+ * IRtcSink::OnAddStream:       AddRemoteRender()
  *
  */
 
