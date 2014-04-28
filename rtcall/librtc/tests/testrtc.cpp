@@ -13,12 +13,12 @@ public:
 
     virtual void OnSize(int width, int height)
     {
-        LOG(m_tag<<" width="<<width<<", height="<<height);
+        LOGI(m_tag<<" width="<<width<<", height="<<height);
     }
 
     virtual void OnFrame(const video_frame_t *frame)
     {
-        LOG(m_tag<<" length="<<frame->length);
+        LOGI(m_tag<<" length="<<frame->length);
     }
 };
 
@@ -39,11 +39,11 @@ public:
     }
 
     virtual void OnSessionDescription(const std::string &type, const std::string &sdp) {
-        LOG("type="<<type<<",\nsdp="<<sdp);
+        LOGI("type="<<type<<",\nsdp="<<sdp);
     }
 
     virtual void OnIceCandidate(const std::string &candidate, const std::string &sdpMid, int sdpMLineIndex) {
-        LOG("candidate="<<candidate<<",\nsdpMid="<<sdpMid<<",\nsdpMLineIndex"<<sdpMLineIndex);
+        LOGI("candidate="<<candidate<<",\nsdpMid="<<sdpMid<<",\nsdpMLineIndex"<<sdpMLineIndex);
     }
 
     //> action: refer to action_t
@@ -52,7 +52,7 @@ public:
     }
 
     virtual void OnGetUserMedia(int error, std::string errstr) {
-        LOG("error="<<error<<", errstr="<<errstr);
+        LOGI("error="<<error<<", errstr="<<errstr);
         if (error == 0) {
             m_rtc->AddLocalStream();
             m_rtc->SetLocalRender(m_lrender, ADD_ACTION);
@@ -66,9 +66,8 @@ public:
 void usage() {
     const char *kUsage =
         "h: help\n"
-        "m: GetUserMedia\n"
+        "g: GetUserMedia\n"
         "c: CreatePeerConnection\n"
-        "r: SetLocalRender\n"
         "s: SetupCall\n" 
         "q: quit\n"
     ;
@@ -86,10 +85,11 @@ int main(int argc, char *argv[]) {
 
     bool quit = false;
     do {
+        printf(">");
         char ch = getchar();
         switch(ch) {
         case 'h': usage(); break;
-        case 'm': rtc->GetUserMedia(); break;
+        case 'g': rtc->GetUserMedia(); break;
         case 'c': rtc->CreatePeerConnection(); break;
         case 's': rtc->SetupCall(); break;
         case 'q': quit=true; break;

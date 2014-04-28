@@ -76,7 +76,7 @@ detect_env() {
         BUILD_TYPE=Release
     fi
 
-    if [ $BUILD_TYPE != "Release" ] && [ $BUILD_TYPE = "Debug" ]; then
+    if [ $BUILD_TYPE != "Release" ] && [ $BUILD_TYPE != "Debug" ]; then
         echor "[Err] only support build types: Release, Debug"
         exit 1
     fi
@@ -223,13 +223,13 @@ build_librtc() {
     mkdir bld
     pushd bld
     if [ $TARGET = "MAC" ]; then
-        cmake -D MAC=1 -G Xcode ..
+        cmake -D MAC=1 -D CMAKE_BUILD_TYPE=$BUILD_TYPE -G Xcode ..
         xcodebuild -target ubase_static -target rtc_static -target testrtc -configuration $BUILD_TYPE
     elif [ $TARGET = "IOS" ]; then
-        cmake -D IOS=1 -G Xcode ..
+        cmake -D IOS=1 -D CMAKE_BUILD_TYPE=$BUILD_TYPE -G Xcode ..
         xcodebuild -target ubase_static -target rtc_static -target testrtc -configuration $BUILD_TYPE
     elif [ $TARGET = "UNIX" ]; then
-        cmake -D UNIX=1 ..
+        cmake -D CMAKE_BUILD_TYPE=$BUILD_TYPE UNIX=1 ..
         make
     fi
     popd

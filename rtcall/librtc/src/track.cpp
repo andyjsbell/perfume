@@ -24,6 +24,7 @@
 
 #include "xrtc_std.h"
 #include "webrtc.h"
+#include "error.h"
 
 namespace xrtc {
 
@@ -46,11 +47,11 @@ bool Init(talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_fa
     m_track = track;
     if (m_track == NULL && pc_factory != NULL) {
         if (m_kind == kAudioKind) {
-            if (!m_source)
+            if (!m_source.get())
                 m_source = pc_factory->CreateAudioSource(NULL);
             m_track = pc_factory->CreateAudioTrack(m_label, (webrtc::AudioSourceInterface *)(m_source.get()));
         }else if (m_kind == kVideoKind) {
-            if (!m_source) {
+            if (!m_source.get()) {
                 std::string vname = "";
                 sequence<MediaTrackConstraint>::iterator iter;
                 for (iter=m_constraints.optional.begin(); iter != m_constraints.optional.end(); iter++) {
@@ -67,12 +68,18 @@ bool Init(talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_fa
                 }
 
                 // if vname empty, select default device
+                LOGI("vname="<<vname);
                 cricket::VideoCapturer* capturer = OpenVideoCaptureDevice(vname);
-                if (capturer)
+                if (capturer) {
+                    LOGD("create video source by capturer");
                     m_source = pc_factory->CreateVideoSource(capturer, NULL);
+                }
             }
-            if (m_source)
+
+            if (m_source) {
+                LOGD("create video track by source");
                 m_track = pc_factory->CreateVideoTrack(m_label, (webrtc::VideoSourceInterface *)(m_source.get()));
+            }
         }
     }
     return (m_track != NULL);
@@ -136,14 +143,17 @@ static cricket::VideoCapturer* OpenVideoCaptureDevice(std::string name)
     talk_base::scoped_ptr<cricket::DeviceManagerInterface> dev_manager(
             cricket::DeviceManagerFactory::Create());
     if (!dev_manager->Init()) {
+        LOGW("fail to init DeviceManager");
         return NULL;
     }
 
     cricket::Device device;
     if(!dev_manager->GetVideoCaptureDevice(name, &device)) {
+        LOGW("fail to GetVideoCaptureDevice");
         return NULL;
     }
 
+    LOGD("call CreateVideoCapturer, device name="<<device.name<<", id="<<device.id);
     cricket::VideoCapturer* capturer = NULL;
     capturer = dev_manager->CreateVideoCapturer(device);
 

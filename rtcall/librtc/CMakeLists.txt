@@ -11,6 +11,14 @@ project(librtc C CXX)
 
 set(CMAKE_C_COMPILER clang)
 set(CMAKE_CXX_COMPILER clang)
+
+if(CMAKE_BUILD_TYPE)
+    message("===== building with profile: ${CMAKE_BUILD_TYPE}")
+else()
+    message("===== building with default profile: Release")
+    set(CMAKE_BUILD_TYPE Release)
+endif()
+
 include(scripts/common.cmake)
 
 add_subdirectory(ubase)
