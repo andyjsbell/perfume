@@ -71,13 +71,12 @@ bool Init(talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_fa
                 LOGI("vname="<<vname);
                 cricket::VideoCapturer* capturer = OpenVideoCaptureDevice(vname);
                 if (capturer) {
-                    LOGD("create video source by capturer");
                     m_source = pc_factory->CreateVideoSource(capturer, NULL);
                 }
             }
 
+            LOGD("create video track by source");
             if (m_source) {
-                LOGD("create video track by source");
                 m_track = pc_factory->CreateVideoTrack(m_label, (webrtc::VideoSourceInterface *)(m_source.get()));
             }
         }
@@ -138,7 +137,7 @@ void stop()
 
 ///
 /// for device
-static cricket::VideoCapturer* OpenVideoCaptureDevice(std::string name)
+static cricket::VideoCapturer* OpenVideoCaptureDevice(std::string vid)
 {
     talk_base::scoped_ptr<cricket::DeviceManagerInterface> dev_manager(
             cricket::DeviceManagerFactory::Create());
@@ -147,17 +146,40 @@ static cricket::VideoCapturer* OpenVideoCaptureDevice(std::string name)
         return NULL;
     }
 
+    LOGD("device id="<<vid);
+    cricket::VideoCapturer* capturer = NULL;
+
+#if 1
+    std::vector<cricket::Device> devices;
+    if(!dev_manager->GetVideoCaptureDevices(&devices)) {
+        LOGW("fail to GetVideoCaptureDevices");
+        return NULL;
+    }
+
+    std::vector<cricket::Device>::iterator iter = devices.begin();
+    for (; iter != devices.end(); iter++) {
+        std::string key = (*iter).id;
+        if (!vid.empty() && vid != key) {
+            continue;
+        }
+        if (iter->name.find("iSight") != std::string::npos)
+            continue;
+        capturer = dev_manager->CreateVideoCapturer(*iter);
+        if (capturer != NULL)
+            break;
+    }
+#else
     cricket::Device device;
-    if(!dev_manager->GetVideoCaptureDevice(name, &device)) {
+    if(!dev_manager->GetVideoCaptureDevice(vid, &device)) {
         LOGW("fail to GetVideoCaptureDevice");
         return NULL;
     }
 
-    LOGD("call CreateVideoCapturer, device name="<<device.name<<", id="<<device.id);
-    cricket::VideoCapturer* capturer = NULL;
     capturer = dev_manager->CreateVideoCapturer(device);
+#endif
 
     // TODO: choose the best format
+    LOGD("get capturer end");
     return capturer;
 }
 
