@@ -1,10 +1,13 @@
 set(testrtc_EXEC_SRCS
+    defaults.cc
+    pclient.cpp
     testrtc.cpp
 )
 
 include_directories(
     ${PROJECT_SOURCE_DIR}/inc
     ${PROJECT_SOURCE_DIR}/ubase
+    ${PROJECT_SOURCE_DIR}/third_party/webrtc/trunk
 )
 
 link_directories(

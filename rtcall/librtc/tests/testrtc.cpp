@@ -1,5 +1,10 @@
 #include "xrtc_api.h"
 #include "error.h"
+#include "pclient.h"
+
+static std::string kServIp = "127.0.0.1";
+static int kServPort = 0;
+static std::string kPeerName = "peer";
 
 class CRtcRender : public IRtcRender {
 private:
@@ -22,9 +27,10 @@ public:
     }
 };
 
-class CApplication : public IRtcSink {
+class CApplication : public IRtcSink, public PeerConnectionClientObserver {
 private:
     IRtcCenter *m_rtc;
+    PeerConnectionClient *m_client;
     IRtcRender *m_rrender;
     CRtcRender *m_lrender;
 
@@ -33,6 +39,7 @@ public:
         m_rrender = new CRtcRender("remote render");
         m_lrender = new CRtcRender("local render");
     }
+    void SetClient(PeerConnectionClient *client) {m_client=client;}
     virtual ~CApplication() {
         delete m_lrender;
         delete m_rrender;
@@ -61,6 +68,28 @@ public:
 
     virtual void OnFailureMesssage(std::string errstr) {
     }
+
+    virtual void OnSignedIn() {
+        LOGD("ok");
+    }
+    virtual void OnDisconnected() {
+        LOGD("ok");
+    }
+    virtual void OnPeerConnected(int id, const std::string& name) {
+        LOGD("id="<<id<<", name="<<name);
+    }
+    virtual void OnPeerDisconnected(int peer_id) {
+        LOGD("peer_id="<<peer_id);
+    }
+    virtual void OnMessageFromPeer(int peer_id, const std::string& message) {
+        LOGD("peer_id="<<peer_id<<", message="<<message);
+    }
+    virtual void OnMessageSent(int err) {
+        LOGD("err="<<err);
+    }
+    virtual void OnServerConnectionFailure() {
+        LOGD("ok");
+    }
 };
 
 void usage() {
@@ -83,6 +112,10 @@ int main(int argc, char *argv[]) {
     CApplication app(rtc);
     rtc->SetSink((IRtcSink *)&app);
 
+    PeerConnectionClient client;
+    client.RegisterObserver((PeerConnectionClientObserver*) &app);
+    app.SetClient(&client);
+
     bool quit = false;
     do {
         printf(">");
@@ -91,7 +124,16 @@ int main(int argc, char *argv[]) {
         case 'h': usage(); break;
         case 'g': rtc->GetUserMedia(); break;
         case 'c': rtc->CreatePeerConnection(); break;
-        case 's': rtc->SetupCall(); break;
+        case 'p':
+            LOGD("connect to remote peer");
+            std::cout<<"IP: "; std::cin>>kServIp;
+            std::cout<<"Port: "; std::cin>>kServPort;
+            std::cout<<"Name: "; std::cin>>kPeerName;
+            client.Connect(kServIp, kServPort, kPeerName);
+            break;
+        case 's': 
+            rtc->SetupCall(); 
+            break;
         case 'q': quit=true; break;
         }
     }while(!quit);

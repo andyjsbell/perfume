@@ -1,4 +1,5 @@
 add_definitions(
+    -fno-rtti
     -DPOSIX
     -DOSX
     -DWEBRTC_MAC
