@@ -149,7 +149,7 @@ static cricket::VideoCapturer* OpenVideoCaptureDevice(std::string vid)
     LOGD("device id="<<vid);
     cricket::VideoCapturer* capturer = NULL;
 
-#if 1
+#if 0
     std::vector<cricket::Device> devices;
     if(!dev_manager->GetVideoCaptureDevices(&devices)) {
         LOGW("fail to GetVideoCaptureDevices");
@@ -162,8 +162,6 @@ static cricket::VideoCapturer* OpenVideoCaptureDevice(std::string vid)
         if (!vid.empty() && vid != key) {
             continue;
         }
-        if (iter->name.find("iSight") != std::string::npos)
-            continue;
         capturer = dev_manager->CreateVideoCapturer(*iter);
         if (capturer != NULL)
             break;
@@ -174,12 +172,18 @@ static cricket::VideoCapturer* OpenVideoCaptureDevice(std::string vid)
         LOGW("fail to GetVideoCaptureDevice");
         return NULL;
     }
-
     capturer = dev_manager->CreateVideoCapturer(device);
 #endif
 
     // TODO: choose the best format
-    LOGD("get capturer end");
+    if (capturer) {
+        const std::vector<cricket::VideoFormat>* formats = capturer->GetSupportedFormats();
+        LOGD("supported format size="<<formats->size());
+        for (int k=0; k < formats->size(); k++) {
+            const cricket::VideoFormat & format = (*formats)[k];
+            LOGD("supported format, width="<<format.width<<", height="<<format.height);
+        }
+    }
     return capturer;
 }
 

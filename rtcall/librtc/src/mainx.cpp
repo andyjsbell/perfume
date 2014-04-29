@@ -278,9 +278,12 @@ virtual void onerror() {
 
 bool xrtc_init()
 {
-    talk_base::LogMessage::SetDiagnosticMode(true);
+    //talk_base::LogMessage::SetDiagnosticMode(true);
     talk_base::LogMessage::LogToDebug(talk_base::LS_VERBOSE);
-    _pc_factory = webrtc::CreatePeerConnectionFactory();
+
+    talk_base::Thread *worker_thread = talk_base::Thread::Current();
+    talk_base::Thread *signal_thread = talk_base::Thread::Current(); 
+    _pc_factory = webrtc::CreatePeerConnectionFactory(worker_thread, signal_thread, NULL, NULL, NULL);
     returnb_assert (_pc_factory.get());
     return true;
 }
