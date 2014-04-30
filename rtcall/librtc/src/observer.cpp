@@ -28,6 +28,7 @@ CRTCPeerConnectionObserver::~CRTCPeerConnectionObserver()
 /// for webrtc::PeerConnectionObserver
 void CRTCPeerConnectionObserver::OnError() 
 {
+    LOGD("ok");
     event_process0(onerror);
 }
 
@@ -35,6 +36,7 @@ void CRTCPeerConnectionObserver::OnError()
 void CRTCPeerConnectionObserver::OnSignalingChange(
         webrtc::PeerConnectionInterface::SignalingState new_state) 
 {
+    LOGD("ok");
     int state = (int)new_state;
     event_process1(onsignalingstatechange, state);
     m_pc->Put_signalingState((xrtc::RTCSignalingState)state);
@@ -44,11 +46,13 @@ void CRTCPeerConnectionObserver::OnSignalingChange(
 // TODO(bemasc): Remove once callers transition to OnSignalingChange.
 void CRTCPeerConnectionObserver::OnStateChange(webrtc::PeerConnectionObserver::StateType state_changed) 
 {
+    LOGD("ok");
 }
 
 // Triggered when media is received on a new stream from remote peer.
 void CRTCPeerConnectionObserver::OnAddStream(webrtc::MediaStreamInterface* stream) 
 {
+    LOGD("ok");
     if (!stream)    return;
     MediaStreamPtr mstream = CreateMediaStream("remote_stream", NULL, stream);
     m_pc->m_remote_streams.push_back(mstream);
@@ -58,6 +62,7 @@ void CRTCPeerConnectionObserver::OnAddStream(webrtc::MediaStreamInterface* strea
 // Triggered when a remote peer close a stream.
 void CRTCPeerConnectionObserver::OnRemoveStream(webrtc::MediaStreamInterface* stream) 
 {
+    LOGD("ok");
     if (!stream)    return;
     MediaStreamPtr mstream = CreateMediaStream("remote_stream", NULL, stream);
     event_process1(onremovestream, mstream);
@@ -72,6 +77,7 @@ void CRTCPeerConnectionObserver::OnDataChannel(webrtc::DataChannelInterface* dat
 // Triggered when renegotation is needed, for example the ICE has restarted.
 void CRTCPeerConnectionObserver::OnRenegotiationNeeded() 
 {
+    LOGD("ok");
     event_process0(onnegotiationneeded);
 }
 
@@ -79,6 +85,7 @@ void CRTCPeerConnectionObserver::OnRenegotiationNeeded()
 void CRTCPeerConnectionObserver::OnIceConnectionChange(
         webrtc::PeerConnectionInterface::IceConnectionState new_state) 
 {
+    LOGD("ok");
     int state = (int)new_state;
     m_pc->Put_iceConnectionState((RTCIceConnectionState)state);
     event_process1(oniceconnectionstatechange, state);
@@ -88,6 +95,7 @@ void CRTCPeerConnectionObserver::OnIceConnectionChange(
 void CRTCPeerConnectionObserver::OnIceGatheringChange(
         webrtc::PeerConnectionInterface::IceGatheringState new_state) 
 {
+    LOGD("ok");
     int state = (int)new_state;
     m_pc->Put_iceGatheringState((RTCIceGatheringState)state);
 }
@@ -120,7 +128,7 @@ void CRTCPeerConnectionObserver::OnIceComplete() {
 void CRTCPeerConnectionObserver::OnSuccess(webrtc::SessionDescriptionInterface* desc) 
 {
     LOGD("ok");
-    if (!desc)  return;
+    return_assert(desc != NULL);
     RTCSessionDescription rtcDesc;
     rtcDesc.type = desc->type();
 
@@ -147,7 +155,6 @@ void CRTCPeerConnectionObserver::OnSuccess(webrtc::SessionDescriptionInterface* 
         m_pc->Put_remoteDescription(desp);
     }
 #endif
-
     event_process1(onsuccess, rtcDesc);
 }
 

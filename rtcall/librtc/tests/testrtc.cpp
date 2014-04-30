@@ -1,49 +1,13 @@
 #include "xrtc_api.h"
 #include "error.h"
 #include "pclient.h"
+#include "mutex.h"
 
 static std::string kServIp = "127.0.0.1";
 static int kServPort = 8888;
 static std::string kPeerName = "peer";
 
-class CustomSocketServer : public talk_base::PhysicalSocketServer {
- public:
-  enum {
-    ON_NONE,
-    ON_MSG,
-  };
 
-  CustomSocketServer(talk_base::Thread* thread)
-      : thread_(thread), client_(NULL), msg_(ON_NONE) {}
-  virtual ~CustomSocketServer() {}
-
-  void set_client(PeerConnectionClient* client) { client_ = client; }
-
-  // Override so that we can also pump the GTK message loop.
-  virtual bool Wait(int cms, bool process_io) {
-    switch(msg_) {
-      case ON_MSG:
-        client_->OnMessage(NULL);
-        msg_ = ON_NONE;
-        break;
-    }
-
-    if (client_ != NULL && !client_->is_connected()) {
-      //LOGD("loop, cms="<<cms);
-      //thread_->Quit();
-      usleep(1000*500);
-    }
-    return talk_base::PhysicalSocketServer::Wait(0/*cms == -1 ? 1 : cms*/,
-                                                 process_io);
-  }
-
-  void post_msg(int msg) { msg_ = msg;}
-
- protected:
-  talk_base::Thread* thread_;
-  PeerConnectionClient* client_;
-  bool msg_;
-};
 
 class CRtcRender : public IRtcRender {
 private:
@@ -132,12 +96,81 @@ public:
     }
 };
 
+enum {
+    ON_NONE,
+    ON_INIT,
+    ON_LOGIN,
+    ON_CREATE_PC,
+    ON_GET_MEDIA,
+    ON_SETUP_CALL,
+};
+
+class CustomSocketServer : public talk_base::PhysicalSocketServer {
+public:
+    CustomSocketServer(talk_base::Thread* thread)
+        : thread_(thread), init_(false) {}
+    virtual ~CustomSocketServer() {}
+    bool Init() {
+        xrtc_init();
+        xrtc_create(rtc_);
+
+        app_ = new CApplication(rtc_);
+        rtc_->SetSink((IRtcSink *)app_);
+
+        client_ = new PeerConnectionClient();
+        client_->RegisterObserver((PeerConnectionClientObserver*)app_);
+        app_->SetClient(client_);
+        init_ = true;
+    }
+    void PostMsg(int msg) { ubase::ScopedLock lock(mtx_); msgs_.push(msg);}
+    void GetUserMedia() { if(init_) rtc_->SetupCall();}
+
+    // Override so that we can also pump the GTK message loop.
+    virtual bool Wait(int cms, bool process_io) {
+        do {
+            ubase::ScopedLock lock(mtx_);
+            if (msgs_.empty()) break;
+
+            int &msg = msgs_.front();
+            switch(msg) {
+            case ON_INIT:
+                if (!init_) Init(); break;
+            case ON_LOGIN:
+                if (init_) client_->OnMessage(NULL);
+                break;
+            case ON_CREATE_PC:
+                if (init_) rtc_->CreatePeerConnection();
+                break;
+            case ON_GET_MEDIA:
+                if(init_) rtc_->GetUserMedia();           
+                break;
+            case ON_SETUP_CALL:
+                if(init_) rtc_->SetupCall();
+                break;
+            }
+            msgs_.pop();
+        }while(false);
+
+        return talk_base::PhysicalSocketServer::Wait(100, process_io);
+    }
+
+protected:
+    talk_base::Thread* thread_;
+    PeerConnectionClient* client_;
+    IRtcCenter* rtc_;
+    CApplication* app_;
+
+    bool init_;
+    ubase::Mutex mtx_;
+    std::queue<int> msgs_;
+};
+
 void usage() {
     const char *kUsage =
         "h: help\n"
+        "i: init\n"
         "c: CreatePeerConnection\n"
         "g: GetUserMedia\n"
-        "i: init network\n"
         "l: login\n"
         "s: SetupCall\n" 
         "q: quit\n"
@@ -146,21 +179,11 @@ void usage() {
 }
 
 int main(int argc, char *argv[]) {
-    xrtc_init();
 
-    IRtcCenter *rtc = NULL;
-    xrtc_create(rtc);
-
-    CApplication app(rtc);
-    rtc->SetSink((IRtcSink *)&app);
-
-    PeerConnectionClient client;
-    client.RegisterObserver((PeerConnectionClientObserver*) &app);
-    app.SetClient(&client);
-
-
-    talk_base::Thread* thread = NULL;
-    CustomSocketServer* socket_server = NULL;
+    talk_base::Thread* thread = new talk_base::Thread();
+    CustomSocketServer* event = new CustomSocketServer(thread);
+    thread->set_socketserver(event);
+    thread->Start();
 
     bool quit = false;
     do {
@@ -168,30 +191,19 @@ int main(int argc, char *argv[]) {
         char ch = getchar();
         switch(ch) {
         case 'h': usage(); break;
-        case 'c': rtc->CreatePeerConnection(); break;
-        case 'g': rtc->GetUserMedia(); break;
-        case 'i': {
-            //talk_base::AutoThread auto_thread;
-            //thread = talk_base::Thread::Current();
-            thread = new talk_base::Thread();
-            socket_server = new CustomSocketServer(thread);
-            thread->set_socketserver(socket_server);
-            socket_server->set_client(&client);
-            thread->Start();
-            break;
-        }
-        case 'l':
-            LOGD("login server");
+        case 'i': event->PostMsg(ON_INIT); break;
+        case 'c': event->PostMsg(ON_CREATE_PC); break;
+        //case 'g': event->PostMsg(ON_GET_MEDIA); break;
+        case 'g': event->GetUserMedia(); break;
+        case 'l': {
+            LOGD("login server ...");
             //std::cout<<"IP: "; std::cin>>kServIp;
             //std::cout<<"Port: "; std::cin>>kServPort;
             std::cout<<"Peer Name: "; std::cin>>kPeerName;
-            client.Connect(kServIp, kServPort, kPeerName);
-            socket_server->post_msg(CustomSocketServer::ON_MSG);
+            event->PostMsg(ON_LOGIN);
             break;
-        case 's': 
-            LOGD("setup call");
-            rtc->SetupCall(); 
-            break;
+        }
+        case 's': event->PostMsg(ON_SETUP_CALL); break;
         case 'q': quit=true; break;
         }
     }while(!quit);

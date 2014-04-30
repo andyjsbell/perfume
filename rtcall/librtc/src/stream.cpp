@@ -24,6 +24,7 @@
 
 #include "xrtc_std.h"
 #include "webrtc.h"
+#include "error.h"
 
 namespace xrtc {
 
@@ -108,10 +109,12 @@ void addTrack (MediaStreamTrackPtr track)
 {
     if (m_stream != NULL && track != NULL) {
         if (track->Get_kind() == kAudioKind) {
-            m_stream->AddTrack((webrtc::AudioTrackInterface *)track->getptr());
+            bool bret = m_stream->AddTrack((webrtc::AudioTrackInterface *)track->getptr());
+            LOGI("Adding audio track to MediaStream, ret="<<bret);
             _addTrack(m_audio_tracks, track);
         }else if (track->Get_kind() == kVideoKind) {
-            m_stream->AddTrack((webrtc::VideoTrackInterface *)track->getptr());
+            bool bret = m_stream->AddTrack((webrtc::VideoTrackInterface *)track->getptr());
+            LOGI("Adding video track to MediaStream, ret="<<bret);
             _addTrack(m_video_tracks, track);
         }
     }

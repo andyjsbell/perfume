@@ -87,12 +87,14 @@ void CRTCPeerConnection::setParams (const RTCConfiguration & configuration, cons
 void CRTCPeerConnection::createOffer (const MediaConstraints & constraints)
 {
     return_assert(m_conn.get());
+    return_assert(m_observer.get());
     m_conn->CreateOffer((webrtc::CreateSessionDescriptionObserver *)m_observer, NULL);
 }
 
 void CRTCPeerConnection::createAnswer (const MediaConstraints & constraints)
 {
     return_assert(m_conn.get());
+    return_assert(m_observer.get());
     m_conn->CreateAnswer((webrtc::CreateSessionDescriptionObserver *)m_observer, NULL);
 }
 
@@ -161,7 +163,8 @@ void CRTCPeerConnection::addStream (MediaStreamPtr stream, const MediaConstraint
     return_assert(m_conn.get());
     if (stream && stream->getptr()) {
         webrtc::MediaConstraintsInterface* constraints = NULL;
-        m_conn->AddStream((webrtc::MediaStreamInterface *)stream->getptr(), constraints);
+        bool bret = m_conn->AddStream((webrtc::MediaStreamInterface *)stream->getptr(), constraints);
+        LOGI("Add stream to PeerConnection success="<<bret);
         m_local_streams.push_back(stream);
     }
 }
