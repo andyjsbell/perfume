@@ -6,6 +6,45 @@ static std::string kServIp = "127.0.0.1";
 static int kServPort = 0;
 static std::string kPeerName = "peer";
 
+class CustomSocketServer : public talk_base::PhysicalSocketServer {
+ public:
+  enum {
+    ON_NONE,
+    ON_MSG,
+  };
+
+  CustomSocketServer(talk_base::Thread* thread)
+      : thread_(thread), client_(NULL), msg_(ON_NONE) {}
+  virtual ~CustomSocketServer() {}
+
+  void set_client(PeerConnectionClient* client) { client_ = client; }
+
+  // Override so that we can also pump the GTK message loop.
+  virtual bool Wait(int cms, bool process_io) {
+    switch(msg_) {
+      case ON_MSG:
+        client_->OnMessage(NULL);
+        msg_ = ON_NONE;
+        break;
+    }
+
+    if (client_ != NULL && !client_->is_connected()) {
+      //LOGD("loop, cms="<<cms);
+      //thread_->Quit();
+      usleep(1000*500);
+    }
+    return talk_base::PhysicalSocketServer::Wait(0/*cms == -1 ? 1 : cms*/,
+                                                 process_io);
+  }
+
+  void post_msg(int msg) { msg_ = msg;}
+
+ protected:
+  talk_base::Thread* thread_;
+  PeerConnectionClient* client_;
+  bool msg_;
+};
+
 class CRtcRender : public IRtcRender {
 private:
     std::string m_tag;
@@ -116,6 +155,10 @@ int main(int argc, char *argv[]) {
     client.RegisterObserver((PeerConnectionClientObserver*) &app);
     app.SetClient(&client);
 
+
+    talk_base::Thread* thread = NULL;
+    CustomSocketServer* socket_server = NULL;
+
     bool quit = false;
     do {
         printf(">");
@@ -124,12 +167,23 @@ int main(int argc, char *argv[]) {
         case 'h': usage(); break;
         case 'g': rtc->GetUserMedia(); break;
         case 'c': rtc->CreatePeerConnection(); break;
+        case 'i': {
+            //talk_base::AutoThread auto_thread;
+            //thread = talk_base::Thread::Current();
+            thread = new talk_base::Thread();
+            socket_server = new CustomSocketServer(thread);
+            thread->set_socketserver(socket_server);
+            socket_server->set_client(&client);
+            thread->Start();
+            break;
+        }
         case 'p':
             LOGD("connect to remote peer");
             std::cout<<"IP: "; std::cin>>kServIp;
             std::cout<<"Port: "; std::cin>>kServPort;
             std::cout<<"Name: "; std::cin>>kPeerName;
             client.Connect(kServIp, kServPort, kPeerName);
+            socket_server->post_msg(CustomSocketServer::ON_MSG);
             break;
         case 's': 
             rtc->SetupCall(); 
@@ -137,7 +191,12 @@ int main(int argc, char *argv[]) {
         case 'q': quit=true; break;
         }
     }while(!quit);
-    
+
+    if (thread) {
+        thread->Stop();
+        thread->Quit();
+        thread->set_socketserver(NULL);
+    }
     xrtc_uninit();
     return 0;
 }
