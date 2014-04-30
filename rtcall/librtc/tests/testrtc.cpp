@@ -3,7 +3,7 @@
 #include "pclient.h"
 
 static std::string kServIp = "127.0.0.1";
-static int kServPort = 0;
+static int kServPort = 8888;
 static std::string kPeerName = "peer";
 
 class CustomSocketServer : public talk_base::PhysicalSocketServer {
@@ -106,6 +106,7 @@ public:
     }
 
     virtual void OnFailureMesssage(std::string errstr) {
+        LOGI("msg="<<errstr);
     }
 
     virtual void OnSignedIn() {
@@ -134,8 +135,10 @@ public:
 void usage() {
     const char *kUsage =
         "h: help\n"
-        "g: GetUserMedia\n"
         "c: CreatePeerConnection\n"
+        "g: GetUserMedia\n"
+        "i: init network\n"
+        "l: login\n"
         "s: SetupCall\n" 
         "q: quit\n"
     ;
@@ -165,8 +168,8 @@ int main(int argc, char *argv[]) {
         char ch = getchar();
         switch(ch) {
         case 'h': usage(); break;
-        case 'g': rtc->GetUserMedia(); break;
         case 'c': rtc->CreatePeerConnection(); break;
+        case 'g': rtc->GetUserMedia(); break;
         case 'i': {
             //talk_base::AutoThread auto_thread;
             //thread = talk_base::Thread::Current();
@@ -177,15 +180,16 @@ int main(int argc, char *argv[]) {
             thread->Start();
             break;
         }
-        case 'p':
-            LOGD("connect to remote peer");
-            std::cout<<"IP: "; std::cin>>kServIp;
-            std::cout<<"Port: "; std::cin>>kServPort;
-            std::cout<<"Name: "; std::cin>>kPeerName;
+        case 'l':
+            LOGD("login server");
+            //std::cout<<"IP: "; std::cin>>kServIp;
+            //std::cout<<"Port: "; std::cin>>kServPort;
+            std::cout<<"Peer Name: "; std::cin>>kPeerName;
             client.Connect(kServIp, kServPort, kPeerName);
             socket_server->post_msg(CustomSocketServer::ON_MSG);
             break;
         case 's': 
+            LOGD("setup call");
             rtc->SetupCall(); 
             break;
         case 'q': quit=true; break;

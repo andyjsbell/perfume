@@ -126,7 +126,7 @@ virtual long AddLocalStream() { // local stream
 long AddRender(sequence<xrtc::MediaStreamPtr> streams, WebrtcRender *render) {
     returnv_assert (!streams.empty(), UBASE_E_FAIL);
     sequence<xrtc::MediaStreamTrackPtr> tracks = streams[0]->getVideoTracks();
-    returnv_assert (tracks.empty(), UBASE_E_FAIL);
+    returnv_assert (!tracks.empty(), UBASE_E_FAIL);
     
     xrtc::VideoStreamTrack *vtrack = (xrtc::VideoStreamTrack *)tracks[0].get();
     webrtc::VideoTrackInterface *mtrack =(webrtc::VideoTrackInterface *) vtrack->getptr();
@@ -137,7 +137,7 @@ long AddRender(sequence<xrtc::MediaStreamPtr> streams, WebrtcRender *render) {
 long RemoveRender(sequence<xrtc::MediaStreamPtr> streams, WebrtcRender *render) {
     returnv_assert (!streams.empty(), UBASE_E_FAIL);
     sequence<xrtc::MediaStreamTrackPtr> tracks = streams[0]->getVideoTracks();
-    returnv_assert (tracks.empty(), UBASE_E_FAIL);
+    returnv_assert (!tracks.empty(), UBASE_E_FAIL);
     
     xrtc::VideoStreamTrack *vtrack = (xrtc::VideoStreamTrack *)tracks[0].get();
     webrtc::VideoTrackInterface *mtrack =(webrtc::VideoTrackInterface *) vtrack->getptr();

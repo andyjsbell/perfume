@@ -1,5 +1,6 @@
 #include "observer.h"
 #include "peer.h"
+#include "error.h"
 
 namespace xrtc {
 
@@ -94,6 +95,7 @@ void CRTCPeerConnectionObserver::OnIceGatheringChange(
 // New Ice candidate have been found.
 void CRTCPeerConnectionObserver::OnIceCandidate(const webrtc::IceCandidateInterface* candidate) 
 {
+    LOGD("ok");
     if (!candidate)   return;
     std::string sdp;
     if (!candidate->ToString(&sdp)) {
@@ -109,12 +111,15 @@ void CRTCPeerConnectionObserver::OnIceCandidate(const webrtc::IceCandidateInterf
 
 // TODO(bemasc): Remove this once callers transition to OnIceGatheringChange.
 // All Ice candidates have been found.
-void CRTCPeerConnectionObserver::OnIceComplete() {}
+void CRTCPeerConnectionObserver::OnIceComplete() {
+    LOGD("ok");
+}
 
 ///
 /// for webrtc::CreateSessionDescriptionObserver
 void CRTCPeerConnectionObserver::OnSuccess(webrtc::SessionDescriptionInterface* desc) 
 {
+    LOGD("ok");
     if (!desc)  return;
     RTCSessionDescription rtcDesc;
     rtcDesc.type = desc->type();
@@ -148,6 +153,7 @@ void CRTCPeerConnectionObserver::OnSuccess(webrtc::SessionDescriptionInterface* 
 
 void CRTCPeerConnectionObserver::OnFailure(const std::string& error)
 {
+    LOGD("ok");
     event_process1(onfailure, error);
 }
 
