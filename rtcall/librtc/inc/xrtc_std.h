@@ -76,9 +76,9 @@ public:
 #define eventhandler_attribute(c)       public: virtual void Put_EventHandler(c##EventHandler *handler) { m_pEventHandler = handler; } \
                                         protected: virtual c##EventHandler * Get_EventHandler() {return m_pEventHandler; } \
                                         protected: c##EventHandler *m_pEventHandler;
-#define event_process0(f)               if(m_pEventHandler) { m_pEventHandler->f(); }
-#define event_process1(f, a)            if(m_pEventHandler) { m_pEventHandler->f((a)); }
-#define event_process2(f, a, b)         if(m_pEventHandler) { m_pEventHandler->f((a), (b)); }
+#define event_process0(h, f)            if(h && (h)->Get_EventHandler()) { (h)->Get_EventHandler()->f(); }
+#define event_process1(h, f, a)         if(h && (h)->Get_EventHandler()) { (h)->Get_EventHandler()->f((a)); }
+#define event_process2(h, f, a, b)      if(h && (h)->Get_EventHandler()) { (h)->Get_EventHandler()->f((a), (b)); }
 
 
 enum media_t {

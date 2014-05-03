@@ -17,8 +17,6 @@ private:
     ubase::zeroptr<CRTCPeerConnection> m_pc;
     talk_base::scoped_refptr<webrtc::PeerConnectionInterface> m_conn;
 
-    eventhandler_attribute (RTCPeerConnection);
-
 public:
     bool Init(ubase::zeroptr<CRTCPeerConnection> pc, talk_base::scoped_refptr<webrtc::PeerConnectionInterface> conn);
     explicit CRTCPeerConnectionObserver();

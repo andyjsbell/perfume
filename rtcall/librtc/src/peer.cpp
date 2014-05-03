@@ -45,12 +45,12 @@ protected:
 
 //
 //> for CRTCPeerConnection
-bool CRTCPeerConnection::Init(talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory)
+bool CRTCPeerConnection::Init(
+    talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory)
 {
     returnb_assert (pc_factory.get() != NULL);
 
     m_observer = new talk_base::RefCountedObject<CRTCPeerConnectionObserver>();
-    m_observer->Put_EventHandler(this->Get_EventHandler());
 
     webrtc::PeerConnectionInterface::IceServers servers;
     webrtc::PeerConnectionInterface::IceServer server;
@@ -187,7 +187,8 @@ void CRTCPeerConnection::close ()
 
 //
 //> for create interface
-ubase::zeroptr<RTCPeerConnection> CreatePeerConnection(talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory) {
+ubase::zeroptr<RTCPeerConnection> CreatePeerConnection(
+    talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory) {
     ubase::zeroptr<CRTCPeerConnection> pc = new ubase::RefCounted<CRTCPeerConnection>();
     if (!pc.get() || !pc->Init(pc_factory)) {
         pc = NULL;

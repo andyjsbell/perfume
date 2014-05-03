@@ -29,7 +29,7 @@ CRTCPeerConnectionObserver::~CRTCPeerConnectionObserver()
 void CRTCPeerConnectionObserver::OnError() 
 {
     LOGD("ok");
-    event_process0(onerror);
+    event_process0(m_pc, onerror);
 }
 
 // Triggered when the SignalingState changed.
@@ -38,7 +38,7 @@ void CRTCPeerConnectionObserver::OnSignalingChange(
 {
     LOGD("ok");
     int state = (int)new_state;
-    event_process1(onsignalingstatechange, state);
+    event_process1(m_pc, onsignalingstatechange, state);
     m_pc->Put_signalingState((xrtc::RTCSignalingState)state);
 }
 
@@ -56,7 +56,7 @@ void CRTCPeerConnectionObserver::OnAddStream(webrtc::MediaStreamInterface* strea
     if (!stream)    return;
     MediaStreamPtr mstream = CreateMediaStream("remote_stream", NULL, stream);
     m_pc->m_remote_streams.push_back(mstream);
-    event_process1(onaddstream, mstream);
+    event_process1(m_pc, onaddstream, mstream);
 }
 
 // Triggered when a remote peer close a stream.
@@ -65,7 +65,7 @@ void CRTCPeerConnectionObserver::OnRemoveStream(webrtc::MediaStreamInterface* st
     LOGD("ok");
     if (!stream)    return;
     MediaStreamPtr mstream = CreateMediaStream("remote_stream", NULL, stream);
-    event_process1(onremovestream, mstream);
+    event_process1(m_pc, onremovestream, mstream);
     m_pc->m_remote_streams.clear(); //TODO: only support one remote stream
 }
 
@@ -78,7 +78,7 @@ void CRTCPeerConnectionObserver::OnDataChannel(webrtc::DataChannelInterface* dat
 void CRTCPeerConnectionObserver::OnRenegotiationNeeded() 
 {
     LOGD("ok");
-    event_process0(onnegotiationneeded);
+    event_process0(m_pc, onnegotiationneeded);
 }
 
 // Called any time the IceConnectionState changes
@@ -88,7 +88,7 @@ void CRTCPeerConnectionObserver::OnIceConnectionChange(
     LOGD("ok");
     int state = (int)new_state;
     m_pc->Put_iceConnectionState((RTCIceConnectionState)state);
-    event_process1(oniceconnectionstatechange, state);
+    event_process1(m_pc, oniceconnectionstatechange, state);
 }
 
 // Called any time the IceGatheringState changes
@@ -114,7 +114,7 @@ void CRTCPeerConnectionObserver::OnIceCandidate(const webrtc::IceCandidateInterf
     ice.candidate = sdp;
     ice.sdpMid = candidate->sdp_mid();
     ice.sdpMLineIndex = candidate->sdp_mline_index();
-    event_process1(onicecandidate, ice);
+    event_process1(m_pc, onicecandidate, ice);
 }
 
 // TODO(bemasc): Remove this once callers transition to OnIceGatheringChange.
@@ -155,13 +155,13 @@ void CRTCPeerConnectionObserver::OnSuccess(webrtc::SessionDescriptionInterface* 
         m_pc->Put_remoteDescription(desp);
     }
 #endif
-    event_process1(onsuccess, rtcDesc);
+    event_process1(m_pc, onsuccess, rtcDesc);
 }
 
 void CRTCPeerConnectionObserver::OnFailure(const std::string& error)
 {
     LOGD("ok");
-    event_process1(onfailure, error);
+    event_process1(m_pc, onfailure, error);
 }
 
 }

@@ -110,10 +110,9 @@ virtual long GetUserMedia() {
 virtual long CreatePeerConnection() {
     returnv_assert (_pc_factory.get(), UBASE_E_INVALIDPTR);
     m_pc = xrtc::CreatePeerConnection(_pc_factory);
-    if (m_pc.get()) {
-        m_pc->Put_EventHandler((xrtc::RTCPeerConnectionEventHandler *)this);
-    }
-    return (m_pc.get() != NULL) ? UBASE_S_OK : UBASE_E_FAIL;
+    returnv_assert (m_pc.get(), UBASE_E_FAIL);
+    m_pc->Put_EventHandler((xrtc::RTCPeerConnectionEventHandler *)this);
+    return UBASE_S_OK;
 }
 
 virtual long AddLocalStream() { // local stream

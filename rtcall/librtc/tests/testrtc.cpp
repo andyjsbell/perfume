@@ -7,8 +7,6 @@ static std::string kServIp = "127.0.0.1";
 static int kServPort = 8888;
 static std::string kPeerName = "peer";
 
-
-
 class CRtcRender : public IRtcRender {
 private:
     std::string m_tag;
@@ -99,18 +97,20 @@ public:
 enum {
     ON_NONE,
     ON_INIT,
+    ON_UNINIT,
     ON_LOGIN,
     ON_CREATE_PC,
     ON_GET_MEDIA,
     ON_SETUP_CALL,
 };
 
-class CustomSocketServer : public talk_base::PhysicalSocketServer {
+class CEventServer : public talk_base::PhysicalSocketServer {
 public:
-    CustomSocketServer(talk_base::Thread* thread)
+    CEventServer(talk_base::Thread* thread)
         : thread_(thread), init_(false) {}
-    virtual ~CustomSocketServer() {}
+    virtual ~CEventServer() {}
     bool Init() {
+        if (init_) return true;
         xrtc_init();
         xrtc_create(rtc_);
 
@@ -122,8 +122,15 @@ public:
         app_->SetClient(client_);
         init_ = true;
     }
+    void Uninit() {
+        init_ = false;
+        rtc_->Close();
+        delete client_;
+        delete app_;
+        xrtc_destroy(rtc_);
+        xrtc_uninit();
+    }
     void PostMsg(int msg) { ubase::ScopedLock lock(mtx_); msgs_.push(msg);}
-    void GetUserMedia() { if(init_) rtc_->SetupCall();}
 
     // Override so that we can also pump the GTK message loop.
     virtual bool Wait(int cms, bool process_io) {
@@ -135,15 +142,19 @@ public:
             switch(msg) {
             case ON_INIT:
                 if (!init_) Init(); break;
+            case ON_UNINIT:
+                if (init_) Uninit(); break;
             case ON_LOGIN:
                 if (init_) client_->OnMessage(NULL);
                 break;
             case ON_CREATE_PC:
                 if (init_) rtc_->CreatePeerConnection();
                 break;
-            case ON_GET_MEDIA:
+            case ON_GET_MEDIA: {
+                talk_base::AutoThread auto_thread;
                 if(init_) rtc_->GetUserMedia();           
                 break;
+            }
             case ON_SETUP_CALL:
                 if(init_) rtc_->SetupCall();
                 break;
@@ -155,11 +166,13 @@ public:
     }
 
 protected:
+public:
     talk_base::Thread* thread_;
     PeerConnectionClient* client_;
     IRtcCenter* rtc_;
     CApplication* app_;
 
+protected:
     bool init_;
     ubase::Mutex mtx_;
     std::queue<int> msgs_;
@@ -181,7 +194,7 @@ void usage() {
 int main(int argc, char *argv[]) {
 
     talk_base::Thread* thread = new talk_base::Thread();
-    CustomSocketServer* event = new CustomSocketServer(thread);
+    CEventServer* event = new CEventServer(thread);
     thread->set_socketserver(event);
     thread->Start();
 
@@ -193,8 +206,8 @@ int main(int argc, char *argv[]) {
         case 'h': usage(); break;
         case 'i': event->PostMsg(ON_INIT); break;
         case 'c': event->PostMsg(ON_CREATE_PC); break;
-        //case 'g': event->PostMsg(ON_GET_MEDIA); break;
-        case 'g': event->GetUserMedia(); break;
+        case 'g': event->PostMsg(ON_GET_MEDIA); break;
+        //case 'g': event->rtc_->GetUserMedia(); break;
         case 'l': {
             LOGD("login server ...");
             //std::cout<<"IP: "; std::cin>>kServIp;
@@ -208,12 +221,14 @@ int main(int argc, char *argv[]) {
         }
     }while(!quit);
 
+    LOGD("quit thread");
     if (thread) {
         thread->Stop();
         thread->Quit();
         thread->set_socketserver(NULL);
     }
-    xrtc_uninit();
+    LOGD("uninit event");
+    event->PostMsg(ON_UNINIT);
     return 0;
 }
 
