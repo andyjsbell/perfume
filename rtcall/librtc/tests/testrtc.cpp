@@ -3,9 +3,17 @@
 #include "pclient.h"
 #include "mutex.h"
 
+#include <sstream>
+
 static std::string kServIp = "127.0.0.1";
 static int kServPort = 8888;
-static std::string kPeerName = "peer";
+
+struct Node{
+    std::string name;
+    int id;
+};
+static Node kMyNode = {"myself", -1};
+static Node kPeerNode = {"peer", -1};
 
 class CRtcRender : public IRtcRender {
 private:
@@ -29,6 +37,7 @@ private:
     IRtcCenter *m_rtc;
     PeerConnectionClient *m_client;
     IRtcRender *m_rrender;
+    int m_peerid;
 
 public:
     explicit CApplication(IRtcCenter *rtc) : m_rtc(rtc) {
@@ -41,9 +50,25 @@ public:
 
     virtual void OnSessionDescription(const std::string &type, const std::string &sdp) {
         LOGI("type="<<type<<",\nsdp="<<sdp);
+        m_rtc->SetLocalDescription(type, sdp);
+
+        std::stringstream stream;
+        stream << "type: " << type;
+        stream << "sdp: " << sdp;
+        std::string msg; 
+        stream >> msg;
+        m_client->SendToPeer(kPeerNode.id, msg);
     }
     virtual void OnIceCandidate(const std::string &candidate, const std::string &sdpMid, int sdpMLineIndex) {
         LOGI("candidate="<<candidate<<",\nsdpMid="<<sdpMid<<",\nsdpMLineIndex"<<sdpMLineIndex);
+
+        std::stringstream stream;
+        stream << "sdpMid: " << sdpMid;
+        stream << "sdpMlineIndex: " << sdpMLineIndex;
+        stream << "candidate: " << candidate;
+        std::string msg; 
+        stream >> msg;
+        m_client->SendToPeer(kPeerNode.id, msg);
     }
     //> action: refer to action_t
     virtual void OnRemoteStream(int action) {
@@ -56,7 +81,7 @@ public:
         LOGI("msg="<<errstr);
     }
     virtual void OnSignedIn() {
-        LOGD("ok");
+        LOGD("ok online peers ...");
     }
     virtual void OnDisconnected() {
         LOGD("ok");
@@ -69,6 +94,26 @@ public:
     }
     virtual void OnMessageFromPeer(int peer_id, const std::string& message) {
         LOGD("peer_id="<<peer_id<<", message="<<message);
+        if (m_peerid == -1)
+            m_peerid = peer_id;
+
+        std::string type;
+
+        
+        if (!type.empty()) {
+            std::string sdp;
+            m_rtc->SetRemoteDescription(type, sdp);
+            if (type == "offer") {
+                m_rtc->AnswerCall();
+            }
+        } else {
+            std::string sdp_mid;
+            int sdp_mlineindex = 0;
+            std::string sdp;
+            if (!m_rtc->AddIceCandidate(sdp, sdp_mid, sdp_mlineindex)) {
+                return;
+            }
+        }
     }
     virtual void OnMessageSent(int err) {
         LOGD("err="<<err);
@@ -197,11 +242,13 @@ int main(int argc, char *argv[]) {
             LOGD("login server ...");
             //std::cout<<"IP: "; std::cin>>kServIp;
             //std::cout<<"Port: "; std::cin>>kServPort;
-            std::cout<<"Peer Name: "; std::cin>>kPeerName;
+            std::cout<<"My Name: "; std::cin>>kMyNode.name;
             event->PostMsg(ON_LOGIN);
             break;
         }
         case 's': 
+            LOGD("call peer ...");
+            std::cout<<"Peer Id: "; std::cin>>kPeerNode.id;
             rtc->AddLocalStream();
             rtc->SetLocalRender(lrender, ADD_ACTION);
             rtc->SetupCall();
