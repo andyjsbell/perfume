@@ -7,7 +7,7 @@ ROOT=`pwd`
 HOST=`uname`
 WEBRTC_URL=http://webrtc.googlecode.com/svn/trunk
 WEBRTC_REV=5301
-
+OUT=out
 
 echox() {
     if [ $# -ge 2 ]; then
@@ -46,6 +46,16 @@ detect_env() {
         exit 1
     fi
 
+    if [ "#$BUILD_TYPE" = "#" ]; then
+        BUILD_TYPE=Release
+    fi
+
+    if [ $BUILD_TYPE != "Release" ] && [ $BUILD_TYPE != "Debug" ]; then
+        echor "[Err] only support build types: Release, Debug"
+        exit 1
+    fi
+
+    OUT=$OUT_DIR/$BUILD_TYPE
     if [ $TARGET = "UNIX" ]; then
         AR=ar
         CC=gcc
@@ -65,21 +75,17 @@ detect_env() {
         SYSROOT=$ANDROID_NDK_HOME/toolchains/arm-linux-androideabi-4.6/prebuilt/
         AR=`$ANDROID_NDK_HOME/ndk-which ar`
         CC=`$ANDROID_NDK_HOME/ndk-which gcc` --sysroot=$SYSROOT
-    elif [ $TARGET = "MAC" ] || [ $TARGET = "IOS" ] || [ $TARGET = "IOS-SIM" ]; then
+    elif [ $TARGET = "MAC" ]; then
+        :
+    elif [ $TARGET = "IOS" ]; then
+        OUT=$OUT_DIR/$BUILD_TYPE-iphoneos
+    elif [ $TARGET = "IOS-SIM" ]; then
         :
     else
         echor "[Err] only support targets: UNIX, MAC, ANDROID, IOS and IOS-SIM"
         exit 1
     fi
 
-    if [ "#$BUILD_TYPE" = "#" ]; then
-        BUILD_TYPE=Release
-    fi
-
-    if [ $BUILD_TYPE != "Release" ] && [ $BUILD_TYPE != "Debug" ]; then
-        echor "[Err] only support build types: Release, Debug"
-        exit 1
-    fi
 }
 
 
@@ -96,13 +102,15 @@ config_webrtc() {
         check_err "fail to get webrtc with force from svn!"
     fi
 
+    # ./third_party/webrtc/trunk/talk/app/webrtc/objc/README
     if [ $TARGET = "IOS" ] || [ $TARGET = "IOS-SIM" ] || [ $TARGET = "MAC" ]; then
         echo "target_os = ['ios', 'mac']" >> .gclient
+        #gclient sync -r $WEBRTC_REV >/tmp/svn_webrtc.log 2>&1
         gclient runhooks >/tmp/svn_webrtc.log 2>&1
         check_err "fail to get webrtc with hook from svn!"
     elif [ $TARGET = "ANDROID" ]; then
         echo "target_os = ['android', 'unix']" >> .gclient
-        gclient sync --nohooks
+        gclient sync -r $WEBRTC_REV --nohooks
         check_err "fail to get webrtc with hook from svn!"
 
         pushd $obj_path/trunk
@@ -121,9 +129,9 @@ build_webrtc() {
     echog "[+] Building webrtc in $obj_path/trunk for $TARGET for $BUILD_TYPE ..."
 
     pushd $obj_path/trunk
-    mkdir -p $OUT_DIR/$BUILD_TYPE
-    ninja -C $OUT_DIR/$BUILD_TYPE
-    ninja -C $OUT_DIR/$BUILD_TYPE -j 1 # build again to avoid failed before
+    mkdir -p $OUT
+    ninja -C $OUT
+    ninja -C $OUT -j 1 # build again to avoid failed before
     check_err "fail to build webrtc $TARGET"
     popd
 }
@@ -172,8 +180,8 @@ make_so () {
 
 pack_webrtc() {
     obj_path=$ROOT/third_party/webrtc
-    echog "[+] To package webrtc libs $OUT_DIR/$BUILD_TYPE ..."
-    local_root=$obj_path/trunk/$OUT_DIR/$BUILD_TYPE
+    echog "[+] To package webrtc libs $OUT ..."
+    local_root=$obj_path/trunk/$OUT
     if [ -e $local_root ]; then
         cd $local_root
         target=webrtc_$BUILD_TYPE
@@ -204,15 +212,15 @@ test_webrtc() {
 
         echog "[-] lanuching AppRTCDemo.app ..."
         if [ -f $obj_path/iphonesim/build/Release/iphonesim ]; then
-            $obj_path/iphonesim/build/Release/iphonesim launch $obj_path/webrtc/trunk/$OUT_DIR/$BUILD_TYPE/AppRTCDemo.app &
+            $obj_path/iphonesim/build/Release/iphonesim launch $obj_path/webrtc/trunk/$OUT/AppRTCDemo.app &
         fi
     fi
 }
 
 clean_webrtc() {
     obj_path=$ROOT/third_party/webrtc
-    local_root=$obj_path/trunk/$OUT_DIR/$BUILD_TYPE
-    echog "[+] To clean webrtc of $OUT_DIR/$BUILD_TYPE ..."
+    local_root=$obj_path/trunk/$OUT
+    echog "[+] To clean webrtc of $OUT ..."
     if [ -e $local_root ]; then
         rm -rf $local_root
     fi
