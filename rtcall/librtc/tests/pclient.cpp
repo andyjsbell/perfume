@@ -189,6 +189,11 @@ bool PeerConnectionClient::SendToPeer(int peer_id, const std::string& message) {
       my_id_, peer_id, message.length());
   onconnect_data_ = headers;
   onconnect_data_ += message;
+#if 1
+  control_socket_.reset(CreateClientSocket(server_address_.ipaddr().family()));
+  hanging_get_.reset(CreateClientSocket(server_address_.ipaddr().family()));
+  InitSocketSignals();
+#endif
   return ConnectControlSocket();
 }
 

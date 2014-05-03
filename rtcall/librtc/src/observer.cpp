@@ -36,7 +36,7 @@ void CRTCPeerConnectionObserver::OnError()
 void CRTCPeerConnectionObserver::OnSignalingChange(
         webrtc::PeerConnectionInterface::SignalingState new_state) 
 {
-    LOGD("ok");
+    //LOGD("ok");
     int state = (int)new_state;
     event_process1(m_pc, onsignalingstatechange, state);
     m_pc->Put_signalingState((xrtc::RTCSignalingState)state);
@@ -46,7 +46,7 @@ void CRTCPeerConnectionObserver::OnSignalingChange(
 // TODO(bemasc): Remove once callers transition to OnSignalingChange.
 void CRTCPeerConnectionObserver::OnStateChange(webrtc::PeerConnectionObserver::StateType state_changed) 
 {
-    LOGD("ok");
+    //LOGD("ok");
 }
 
 // Triggered when media is received on a new stream from remote peer.
@@ -95,7 +95,7 @@ void CRTCPeerConnectionObserver::OnIceConnectionChange(
 void CRTCPeerConnectionObserver::OnIceGatheringChange(
         webrtc::PeerConnectionInterface::IceGatheringState new_state) 
 {
-    LOGD("ok");
+    //LOGD("ok");
     int state = (int)new_state;
     m_pc->Put_iceGatheringState((RTCIceGatheringState)state);
 }
@@ -103,7 +103,7 @@ void CRTCPeerConnectionObserver::OnIceGatheringChange(
 // New Ice candidate have been found.
 void CRTCPeerConnectionObserver::OnIceCandidate(const webrtc::IceCandidateInterface* candidate) 
 {
-    LOGD("ok");
+    //LOGD("ok");
     if (!candidate)   return;
     std::string sdp;
     if (!candidate->ToString(&sdp)) {
@@ -120,7 +120,7 @@ void CRTCPeerConnectionObserver::OnIceCandidate(const webrtc::IceCandidateInterf
 // TODO(bemasc): Remove this once callers transition to OnIceGatheringChange.
 // All Ice candidates have been found.
 void CRTCPeerConnectionObserver::OnIceComplete() {
-    LOGD("ok");
+    //LOGD("ok");
 }
 
 ///

@@ -283,7 +283,7 @@ virtual void onerror() {
 bool xrtc_init()
 {
     talk_base::LogMessage::SetDiagnosticMode(true);
-    talk_base::LogMessage::LogToDebug(talk_base::LS_VERBOSE);
+    //talk_base::LogMessage::LogToDebug(talk_base::LS_INFO);
     return true;
 }
 

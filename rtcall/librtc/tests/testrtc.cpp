@@ -15,112 +15,10 @@ struct Node{
 static Node kMyNode = {"myself", -1};
 static Node kPeerNode = {"peer", -1};
 
-class CRtcRender : public IRtcRender {
-private:
-    std::string m_tag;
-
-public:
-    explicit CRtcRender(std::string tag) {
-        m_tag = "[" + tag + "]";
-    }
-    virtual ~CRtcRender() {}
-    virtual void OnSize(int width, int height) {
-        LOGI(m_tag<<" width="<<width<<", height="<<height);
-    }
-    virtual void OnFrame(const video_frame_t *frame) {
-        LOGI(m_tag<<" length="<<frame->length);
-    }
-};
-
-class CApplication : public IRtcSink, public PeerConnectionClientObserver {
-private:
-    IRtcCenter *m_rtc;
-    PeerConnectionClient *m_client;
-    IRtcRender *m_rrender;
-    int m_peerid;
-
-public:
-    explicit CApplication(IRtcCenter *rtc) : m_rtc(rtc) {
-        m_rrender = new CRtcRender("remote render");
-    }
-    virtual ~CApplication() {
-        delete m_rrender;
-    }
-    void SetClient(PeerConnectionClient *client) {m_client=client;}
-
-    virtual void OnSessionDescription(const std::string &type, const std::string &sdp) {
-        LOGI("type="<<type<<",\nsdp="<<sdp);
-        m_rtc->SetLocalDescription(type, sdp);
-
-        std::stringstream stream;
-        stream << "type: " << type;
-        stream << "sdp: " << sdp;
-        std::string msg; 
-        stream >> msg;
-        m_client->SendToPeer(kPeerNode.id, msg);
-    }
-    virtual void OnIceCandidate(const std::string &candidate, const std::string &sdpMid, int sdpMLineIndex) {
-        LOGI("candidate="<<candidate<<",\nsdpMid="<<sdpMid<<",\nsdpMLineIndex"<<sdpMLineIndex);
-
-        std::stringstream stream;
-        stream << "sdpMid: " << sdpMid;
-        stream << "sdpMlineIndex: " << sdpMLineIndex;
-        stream << "candidate: " << candidate;
-        std::string msg; 
-        stream >> msg;
-        m_client->SendToPeer(kPeerNode.id, msg);
-    }
-    //> action: refer to action_t
-    virtual void OnRemoteStream(int action) {
-        m_rtc->SetRemoteRender(m_rrender, action);
-    }
-    virtual void OnGetUserMedia(int error, std::string errstr) {
-        LOGI("error="<<error<<", errstr="<<errstr);
-    }
-    virtual void OnFailureMesssage(std::string errstr) {
-        LOGI("msg="<<errstr);
-    }
-    virtual void OnSignedIn() {
-        LOGD("ok online peers ...");
-    }
-    virtual void OnDisconnected() {
-        LOGD("ok");
-    }
-    virtual void OnPeerConnected(int id, const std::string& name) {
-        LOGD("id="<<id<<", name="<<name);
-    }
-    virtual void OnPeerDisconnected(int peer_id) {
-        LOGD("peer_id="<<peer_id);
-    }
-    virtual void OnMessageFromPeer(int peer_id, const std::string& message) {
-        LOGD("peer_id="<<peer_id<<", message="<<message);
-        if (m_peerid == -1)
-            m_peerid = peer_id;
-
-        std::string type;
-
-        
-        if (!type.empty()) {
-            std::string sdp;
-            m_rtc->SetRemoteDescription(type, sdp);
-            if (type == "offer") {
-                m_rtc->AnswerCall();
-            }
-        } else {
-            std::string sdp_mid;
-            int sdp_mlineindex = 0;
-            std::string sdp;
-            if (!m_rtc->AddIceCandidate(sdp, sdp_mid, sdp_mlineindex)) {
-                return;
-            }
-        }
-    }
-    virtual void OnMessageSent(int err) {
-        LOGD("err="<<err);
-    }
-    virtual void OnServerConnectionFailure() {
-        LOGD("ok");
-    }
+enum {
+    ON_NONE,
+    ON_LOGIN,
+    ON_SEND,
 };
 
 class CustomThread {
@@ -148,66 +46,187 @@ protected:
     bool quit_;
 };
 
-enum {
-    ON_NONE,
-    ON_LOGIN,
-};
-class CEventServer : public CustomThread {
+class CRtcRender : public IRtcRender {
+private:
+    std::string m_tag;
+
 public:
-    CEventServer() : init_(false) {}
+    explicit CRtcRender(std::string tag) {
+        m_tag = "[" + tag + "]";
+    }
+    virtual ~CRtcRender() {}
+    virtual void OnSize(int width, int height) {
+        LOGI(m_tag<<" width="<<width<<", height="<<height);
+    }
+    virtual void OnFrame(const video_frame_t *frame) {
+        LOGI(m_tag<<" length="<<frame->length);
+    }
+};
+
+class CEventServer : public talk_base::PhysicalSocketServer {
+public:
+    CEventServer(talk_base::Thread* thread, PeerConnectionClient *client) : client_(client), init_(false) {Init();}
     virtual ~CEventServer() {Uninit();}
     bool Init() {
         if (init_) return true;
-        app_ = new CApplication(rtc_);
-        rtc_->SetSink((IRtcSink *)app_);
-
-        client_ = new PeerConnectionClient();
-        client_->RegisterObserver((PeerConnectionClientObserver*)app_);
-        app_->SetClient(client_);
         init_ = true;
+        return true;
     }
     void Uninit() {
         if (!init_) return;
         init_ = false;
-        rtc_->Close();
-        delete client_;
-        delete app_;
     }
-    void PostMsg(int msg) { ubase::ScopedLock lock(mtx_); msgs_.push(msg);}
-    void SetRtc(IRtcCenter *rtc) {rtc_ = rtc;}
+    void PostMsg(int id, std::string msg) { 
+        ubase::ScopedLock lock(mtx_); 
+        msgs_.push(std::pair<int, std::string>(id, msg));
+    }
 
     // Override so that we can also pump the GTK message loop.
     virtual bool Wait(int cms, bool process_io) {
         do {
             ubase::ScopedLock lock(mtx_);
             if (msgs_.empty()) break;
-            int &msg = msgs_.front();
-            switch(msg) {
+            std::pair<int, std::string> &msg = msgs_.front();
+            switch(msg.first) {
             case ON_LOGIN:
+                client_->Connect(kServIp, kServPort, kMyNode.name);
                 client_->OnMessage(NULL);
+                break;
+            case ON_SEND:
+                client_->SendToPeer(kPeerNode.id, msg.second);
                 break;
             }
             msgs_.pop();
         }while(false);
         usleep(100*1000);
+        return talk_base::PhysicalSocketServer::Wait(0, process_io);
     }
 
 protected:
+    talk_base::Thread* thread_;
     PeerConnectionClient* client_;
-    IRtcCenter* rtc_;
-    CApplication* app_;
-
     bool init_;
     ubase::Mutex mtx_;
-    std::queue<int> msgs_;
+    std::queue<std::pair<int, std::string> > msgs_;
+};
+
+class CApplication : public IRtcSink, public PeerConnectionClientObserver {
+private:
+    IRtcCenter *m_rtc;
+    CEventServer *m_event;
+    IRtcRender *m_rrender;
+    int m_peerid;
+
+public:
+    CApplication(IRtcCenter *rtc) : m_rtc(rtc) {
+        m_rrender = new CRtcRender("remote render");
+        m_peerid = -1;
+    }
+    virtual ~CApplication() {
+        delete m_rrender;
+    }
+    void SetEvent(CEventServer *event) {m_event=event;}
+
+    virtual void OnSessionDescription(const std::string &type, const std::string &sdp) {
+        LOGI("type="<<type<<",sdp=...");
+        m_rtc->SetLocalDescription(type, sdp);
+
+        std::stringstream stream;
+        stream << "type: " << type << "||";
+        stream << "sdp: " << sdp << "||";
+        //LOGI("msg="<<stream.str());
+        m_event->PostMsg(ON_SEND, stream.str());
+    }
+    virtual void OnIceCandidate(const std::string &candidate, const std::string &sdpMid, int sdpMLineIndex) {
+        LOGI("candidate="<<candidate<<",sdpMid="<<sdpMid<<",sdpMLineIndex="<<sdpMLineIndex);
+
+        std::stringstream stream;
+        stream << "sdpMid: " << sdpMid << "||";
+        stream << "sdpMlineIndex: " << sdpMLineIndex << "||";
+        stream << "candidate: " << candidate << "||";
+        //LOGI("msg="<<stream.str());
+        m_event->PostMsg(ON_SEND, stream.str());
+    }
+    //> action: refer to action_t
+    virtual void OnRemoteStream(int action) {
+        m_rtc->SetRemoteRender(m_rrender, action);
+    }
+    virtual void OnGetUserMedia(int error, std::string errstr) {
+        LOGI("error="<<error<<", errstr="<<errstr);
+    }
+    virtual void OnFailureMesssage(std::string errstr) {
+        LOGI("msg="<<errstr);
+    }
+    virtual void OnSignedIn() {
+        LOGD("ok");
+    }
+    virtual void OnDisconnected() {
+        LOGD("ok");
+    }
+    virtual void OnPeerConnected(int id, const std::string& name) {
+        LOGD("id="<<id<<", name="<<name);
+    }
+    virtual void OnPeerDisconnected(int peer_id) {
+        LOGD("peer_id="<<peer_id);
+    }
+    virtual void OnMessageFromPeer(int peer_id, const std::string& message) {
+        LOGD("peer_id="<<peer_id<<", message="<<message);
+        if (m_peerid == -1)
+            m_peerid = peer_id;
+
+        std::string type;
+        int pos1 = message.find("type: ");
+        int pos2 = message.find("||", pos1+6);
+        if (pos1 != -1 && pos2 != -1) {
+            type = message.substr(pos1+6, pos2);
+        }
+        
+        if (!type.empty()) {
+            std::string sdp;
+            pos1 = message.find("sdp: ");
+            pos2 = message.find("||", pos1+5);
+            if (pos1 == -1 || pos2 == -1) return;
+            sdp = message.substr(pos1+5, pos2);
+
+            m_rtc->SetRemoteDescription(type, sdp);
+            if (type == "offer") {
+                m_rtc->AnswerCall();
+            }
+        } else {
+            std::string sdp_mid;
+            int sdp_mlineindex = 0;
+            std::string sdp;
+
+            pos1 = message.find("sdpMid: ");
+            pos2 = message.find("||", pos1+8);
+            if (pos1 == -1 || pos2 == -1) return;
+            sdp_mid = message.substr(pos1+8, pos2);
+            pos1 = message.find("sdpMLineIndex: ");
+            pos2 = message.find("||", pos1+15);
+            if (pos1 == -1 || pos2 == -1) return;
+            sdp_mid = atoi(message.substr(pos1+15, pos2).c_str());
+            pos1 = message.find("candidate: ");
+            pos2 = message.find("||", pos1+11);
+            if (pos1 == -1 || pos2 == -1) return;
+            sdp = message.substr(pos1+11, pos2);
+                
+            m_rtc->AddIceCandidate(sdp, sdp_mid, sdp_mlineindex);
+        }
+    }
+    virtual void OnMessageSent(int err) {
+        LOGD("err="<<err);
+    }
+    virtual void OnServerConnectionFailure() {
+        LOGD("ok");
+    }
 };
 
 void usage() {
     const char *kUsage =
         "h: help\n"
-        "c: CreatePeerConnection\n"
-        "g: GetUserMedia\n"
         "l: login\n"
+        "g: GetUserMedia\n"
+        "c: CreatePeerConnection\n"
         "s: SetupCall\n" 
         "q: quit\n"
     ;
@@ -216,13 +235,21 @@ void usage() {
 
 int main(int argc, char *argv[]) {
     xrtc_init();
+
     IRtcCenter *rtc = NULL;
     xrtc_create(rtc);
 
-    CEventServer* event = new CEventServer();
-    event->SetRtc(rtc);
-    event->Init();
-    event->Start();
+    CApplication *app = new CApplication(rtc);
+    rtc->SetSink((IRtcSink *)app);
+
+    PeerConnectionClient *client = new PeerConnectionClient();
+    client->RegisterObserver((PeerConnectionClientObserver*)app);
+
+    talk_base::Thread* thread = new talk_base::Thread();
+    CEventServer* event = new CEventServer(thread, client);
+    app->SetEvent(event);
+    thread->set_socketserver(event);
+    thread->Start();
 
     IRtcRender *lrender = new CRtcRender("local render");
 
@@ -232,20 +259,19 @@ int main(int argc, char *argv[]) {
         char ch = getchar();
         switch(ch) {
         case 'h': usage(); break;
+        case 'l':
+            LOGD("login server ...");
+            //std::cout<<"IP: "; std::cin>>kServIp;
+            //std::cout<<"Port: "; std::cin>>kServPort;
+            std::cout<<"My Name: "; std::cin>>kMyNode.name;
+            event->PostMsg(ON_LOGIN, "");
+            break;
         case 'c': 
             rtc->CreatePeerConnection();
             break;
         case 'g': 
             rtc->GetUserMedia();
             break;
-        case 'l': {
-            LOGD("login server ...");
-            //std::cout<<"IP: "; std::cin>>kServIp;
-            //std::cout<<"Port: "; std::cin>>kServPort;
-            std::cout<<"My Name: "; std::cin>>kMyNode.name;
-            event->PostMsg(ON_LOGIN);
-            break;
-        }
         case 's': 
             LOGD("call peer ...");
             std::cout<<"Peer Id: "; std::cin>>kPeerNode.id;
@@ -257,6 +283,9 @@ int main(int argc, char *argv[]) {
         }
     }while(!quit);
 
+    thread->Quit();
+    delete app;
+    delete client;
     xrtc_destroy(rtc);
     xrtc_uninit();
     return 0;
