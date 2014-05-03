@@ -3,7 +3,6 @@
 #include "webrtc.h"
 #include "error.h"
 
-talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> _pc_factory = NULL;
 
 class WebrtcRender : public webrtc::VideoRendererInterface {
 private:
@@ -68,6 +67,7 @@ class CRtcCenter : public IRtcCenter,
     public xrtc::RTCPeerConnectionEventHandler
 {
 private:
+    talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> m_pc_factory;
     ubase::zeroptr<xrtc::RTCPeerConnection> m_pc;
     ubase::zeroptr<xrtc::MediaStream> m_local_stream;
     IRtcSink *m_sink;
@@ -87,6 +87,7 @@ CRtcCenter() {
     m_sink = NULL;
     m_local_render = NULL;
     m_remote_render = NULL;       
+    m_pc_factory = NULL;
 }
 
 virtual ~CRtcCenter() {
@@ -99,17 +100,21 @@ virtual void SetSink(IRtcSink *sink) {
 }
 
 virtual long GetUserMedia() {
-    returnv_assert (_pc_factory.get(), UBASE_E_INVALIDPTR);
     xrtc::MediaStreamConstraints constraints;
     constraints.audio = true;
     constraints.video = true;
-    xrtc::GetUserMedia(constraints, (xrtc::NavigatorUserMediaCallback *)this, _pc_factory);
+    talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory = NULL;
+    talk_base::Thread *worker_thread = talk_base::Thread::Current();
+    talk_base::Thread *signal_thread = talk_base::Thread::Current(); 
+    pc_factory = webrtc::CreatePeerConnectionFactory(worker_thread, signal_thread, NULL, NULL, NULL);
+    xrtc::GetUserMedia(constraints, (xrtc::NavigatorUserMediaCallback *)this, pc_factory);
     return UBASE_S_OK;
 }
 
 virtual long CreatePeerConnection() {
-    returnv_assert (_pc_factory.get(), UBASE_E_INVALIDPTR);
-    m_pc = xrtc::CreatePeerConnection(_pc_factory);
+    m_pc_factory = webrtc::CreatePeerConnectionFactory();
+    returnv_assert (m_pc_factory.get(), UBASE_E_FAIL);
+    m_pc = xrtc::CreatePeerConnection(m_pc_factory);
     returnv_assert (m_pc.get(), UBASE_E_FAIL);
     m_pc->Put_EventHandler((xrtc::RTCPeerConnectionEventHandler *)this);
     return UBASE_S_OK;
@@ -277,26 +282,18 @@ virtual void onerror() {
 
 bool xrtc_init()
 {
-    //talk_base::LogMessage::SetDiagnosticMode(true);
+    talk_base::LogMessage::SetDiagnosticMode(true);
     talk_base::LogMessage::LogToDebug(talk_base::LS_VERBOSE);
-
-    talk_base::Thread *worker_thread = talk_base::Thread::Current();
-    talk_base::Thread *signal_thread = talk_base::Thread::Current(); 
-    _pc_factory = webrtc::CreatePeerConnectionFactory(worker_thread, signal_thread, NULL, NULL, NULL);
-    returnb_assert (_pc_factory.get());
     return true;
 }
 
 void xrtc_uninit()
 {
-    _pc_factory = NULL;
 }
 
 bool xrtc_create(IRtcCenter * &rtc)
 {
     rtc = NULL;
-    returnv_assert (_pc_factory.get(), UBASE_E_FAIL);
-
     CRtcCenter *pRtc = new CRtcCenter();
     if (!pRtc->Init()) {
         delete pRtc;

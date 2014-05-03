@@ -16,14 +16,10 @@ public:
         m_tag = "[" + tag + "]";
     }
     virtual ~CRtcRender() {}
-
-    virtual void OnSize(int width, int height)
-    {
+    virtual void OnSize(int width, int height) {
         LOGI(m_tag<<" width="<<width<<", height="<<height);
     }
-
-    virtual void OnFrame(const video_frame_t *frame)
-    {
+    virtual void OnFrame(const video_frame_t *frame) {
         LOGI(m_tag<<" length="<<frame->length);
     }
 };
@@ -33,44 +29,32 @@ private:
     IRtcCenter *m_rtc;
     PeerConnectionClient *m_client;
     IRtcRender *m_rrender;
-    CRtcRender *m_lrender;
 
 public:
     explicit CApplication(IRtcCenter *rtc) : m_rtc(rtc) {
         m_rrender = new CRtcRender("remote render");
-        m_lrender = new CRtcRender("local render");
     }
-    void SetClient(PeerConnectionClient *client) {m_client=client;}
     virtual ~CApplication() {
-        delete m_lrender;
         delete m_rrender;
     }
+    void SetClient(PeerConnectionClient *client) {m_client=client;}
 
     virtual void OnSessionDescription(const std::string &type, const std::string &sdp) {
         LOGI("type="<<type<<",\nsdp="<<sdp);
     }
-
     virtual void OnIceCandidate(const std::string &candidate, const std::string &sdpMid, int sdpMLineIndex) {
         LOGI("candidate="<<candidate<<",\nsdpMid="<<sdpMid<<",\nsdpMLineIndex"<<sdpMLineIndex);
     }
-
     //> action: refer to action_t
     virtual void OnRemoteStream(int action) {
         m_rtc->SetRemoteRender(m_rrender, action);
     }
-
     virtual void OnGetUserMedia(int error, std::string errstr) {
         LOGI("error="<<error<<", errstr="<<errstr);
-        if (error == 0) {
-            m_rtc->AddLocalStream();
-            m_rtc->SetLocalRender(m_lrender, ADD_ACTION);
-        }
     }
-
     virtual void OnFailureMesssage(std::string errstr) {
         LOGI("msg="<<errstr);
     }
-
     virtual void OnSignedIn() {
         LOGD("ok");
     }
@@ -94,26 +78,41 @@ public:
     }
 };
 
-enum {
-    ON_NONE,
-    ON_INIT,
-    ON_UNINIT,
-    ON_LOGIN,
-    ON_CREATE_PC,
-    ON_GET_MEDIA,
-    ON_SETUP_CALL,
+class CustomThread {
+public:
+    CustomThread() : quit_(false) {}
+    virtual ~CustomThread() {quit_=true;}
+    void Start() {
+        pthread_t tid;
+        quit_ = false;
+        pthread_create(&tid, NULL, CustomThread::Entry, (void *)this);
+    }
+    void Stop() { quit_ = true; usleep(1000);}
+    virtual bool Wait(int cms, bool process_io) = 0;
+
+protected:
+    static void * Entry(void *param) {
+        CustomThread *thiz = (CustomThread *)param;
+        if (!thiz) return NULL;
+        thiz->Run();
+        return NULL;
+    }
+    void Run() {
+        do { Wait(100, false); }while(!quit_); 
+    }
+    bool quit_;
 };
 
-class CEventServer : public talk_base::PhysicalSocketServer {
+enum {
+    ON_NONE,
+    ON_LOGIN,
+};
+class CEventServer : public CustomThread {
 public:
-    CEventServer(talk_base::Thread* thread)
-        : thread_(thread), init_(false) {}
-    virtual ~CEventServer() {}
+    CEventServer() : init_(false) {}
+    virtual ~CEventServer() {Uninit();}
     bool Init() {
         if (init_) return true;
-        xrtc_init();
-        xrtc_create(rtc_);
-
         app_ = new CApplication(rtc_);
         rtc_->SetSink((IRtcSink *)app_);
 
@@ -123,56 +122,36 @@ public:
         init_ = true;
     }
     void Uninit() {
+        if (!init_) return;
         init_ = false;
         rtc_->Close();
         delete client_;
         delete app_;
-        xrtc_destroy(rtc_);
-        xrtc_uninit();
     }
     void PostMsg(int msg) { ubase::ScopedLock lock(mtx_); msgs_.push(msg);}
+    void SetRtc(IRtcCenter *rtc) {rtc_ = rtc;}
 
     // Override so that we can also pump the GTK message loop.
     virtual bool Wait(int cms, bool process_io) {
         do {
             ubase::ScopedLock lock(mtx_);
             if (msgs_.empty()) break;
-
             int &msg = msgs_.front();
             switch(msg) {
-            case ON_INIT:
-                if (!init_) Init(); break;
-            case ON_UNINIT:
-                if (init_) Uninit(); break;
             case ON_LOGIN:
-                if (init_) client_->OnMessage(NULL);
-                break;
-            case ON_CREATE_PC:
-                if (init_) rtc_->CreatePeerConnection();
-                break;
-            case ON_GET_MEDIA: {
-                talk_base::AutoThread auto_thread;
-                if(init_) rtc_->GetUserMedia();           
-                break;
-            }
-            case ON_SETUP_CALL:
-                if(init_) rtc_->SetupCall();
+                client_->OnMessage(NULL);
                 break;
             }
             msgs_.pop();
         }while(false);
-
-        return talk_base::PhysicalSocketServer::Wait(100, process_io);
+        usleep(100*1000);
     }
 
 protected:
-public:
-    talk_base::Thread* thread_;
     PeerConnectionClient* client_;
     IRtcCenter* rtc_;
     CApplication* app_;
 
-protected:
     bool init_;
     ubase::Mutex mtx_;
     std::queue<int> msgs_;
@@ -181,7 +160,6 @@ protected:
 void usage() {
     const char *kUsage =
         "h: help\n"
-        "i: init\n"
         "c: CreatePeerConnection\n"
         "g: GetUserMedia\n"
         "l: login\n"
@@ -192,11 +170,16 @@ void usage() {
 }
 
 int main(int argc, char *argv[]) {
+    xrtc_init();
+    IRtcCenter *rtc = NULL;
+    xrtc_create(rtc);
 
-    talk_base::Thread* thread = new talk_base::Thread();
-    CEventServer* event = new CEventServer(thread);
-    thread->set_socketserver(event);
-    thread->Start();
+    CEventServer* event = new CEventServer();
+    event->SetRtc(rtc);
+    event->Init();
+    event->Start();
+
+    IRtcRender *lrender = new CRtcRender("local render");
 
     bool quit = false;
     do {
@@ -204,10 +187,12 @@ int main(int argc, char *argv[]) {
         char ch = getchar();
         switch(ch) {
         case 'h': usage(); break;
-        case 'i': event->PostMsg(ON_INIT); break;
-        case 'c': event->PostMsg(ON_CREATE_PC); break;
-        case 'g': event->PostMsg(ON_GET_MEDIA); break;
-        //case 'g': event->rtc_->GetUserMedia(); break;
+        case 'c': 
+            rtc->CreatePeerConnection();
+            break;
+        case 'g': 
+            rtc->GetUserMedia();
+            break;
         case 'l': {
             LOGD("login server ...");
             //std::cout<<"IP: "; std::cin>>kServIp;
@@ -216,19 +201,17 @@ int main(int argc, char *argv[]) {
             event->PostMsg(ON_LOGIN);
             break;
         }
-        case 's': event->PostMsg(ON_SETUP_CALL); break;
+        case 's': 
+            rtc->AddLocalStream();
+            rtc->SetLocalRender(lrender, ADD_ACTION);
+            rtc->SetupCall();
+            break;
         case 'q': quit=true; break;
         }
     }while(!quit);
 
-    LOGD("quit thread");
-    if (thread) {
-        thread->Stop();
-        thread->Quit();
-        thread->set_socketserver(NULL);
-    }
-    LOGD("uninit event");
-    event->PostMsg(ON_UNINIT);
+    xrtc_destroy(rtc);
+    xrtc_uninit();
     return 0;
 }
 
