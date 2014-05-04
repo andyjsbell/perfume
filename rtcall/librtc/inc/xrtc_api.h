@@ -107,64 +107,6 @@ bool        xrtc_create(IRtcCenter * &rtc);
 void        xrtc_destroy(IRtcCenter * rtc);
 }
 
-//> setup one call
-/**
- * xrtc_init():                 create peer connection factory
- * xrtc_create():               create rtc center
- *                              call SetSink()
- *
- * GetUserMedia():              get local stream(audio/video track)
- * CreatePeerConnection():      create peer connection
- * AddLocalStream():            add local stream into peer connection
- * SetLocalRender(ADD):         add render to local stream
- *
- *
- * SetupCall():                         create offer
- * IRtcSink::OnSessionDescription():    call SetLocalDescription() of offer
- *                                      app=>Send sdp(offer) to remote peer
- * IRtcSink::OnIceCandidate:            app=>send candidate to remote peer
- *
- *
- * =>Recv sdp(answer) from SIP:         call SetRemoteDescription() of answer
- * =>Recv candidate from SIP:           call AddIceCandidate()
- * IRtcSink::OnRemotetream():           call SetRemoteRender(ADD)
- *
- */
-
-//> receive one call
-/**
- * xrtc_init():                 create peer connection factory
- * xrtc_create():               create rtc center
- *                              call SetSink()
- *
- * GetUserMedia():              get local stream(audio/video track)
- * CreatePeerConnection():      create peer connection
- * AddLocalStream():            add local stream into peer connection
- * SetLocalRender(ADD):         add render to local stream
- *
- *
- * App=>Recv sdp(offer) from SIP:                
- * SetRemoteDescription():      with received offer.
- * AnswerCall():                        create answer
- * IRtcSink::OnSessionDescription():    call SetLocalDescription() of answer; 
- *                                      app=>Send sdp(answer) to remote peer over SIP.
- * IRtcSink::OnIceCandidate():          app=>Send candidate to remote peer over SIP.
- *
- *
- * app=>Recv candidate from SIP:        call AddIceCandidate(),
- * IRtcSink::OnRemoteStream(ADD):       call SetRemoteRender(ADD)
- *
- */
-
-//> close one call
-/**
- * Close():                 
- * SetLocalRender(REMOVE):
- * SetRemoteRender(REMOVE):
- * xrtc_destroy():
- * xrtc_uninit():
- *
- */
 
 #endif // _XRTC_API_H_
 
