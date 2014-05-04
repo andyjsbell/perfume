@@ -1,3 +1,20 @@
+1. Building for different targets
+==================================
+
+1). only support building in Mac OSX
+
+2). default by Release mode; if Debug
+    $>export BUILD_TYPE=Debug
+
+3). For ios platform
+    $>source scripts/env_ninja.sh
+    $>wrios && sh run_cfg.sh build
+    $>wrios && sh run_cfg.sh librtc
+
+
+
+2. How to call api from xrtc_api.h
+==================================
 
 //> setup one call
 /**

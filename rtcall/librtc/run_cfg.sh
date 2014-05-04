@@ -234,7 +234,10 @@ build_librtc() {
         cmake -D MAC=1 -D CMAKE_BUILD_TYPE=$BUILD_TYPE -G Xcode ..
         xcodebuild -target ubase_static -target rtc_static -target testrtc -configuration $BUILD_TYPE
     elif [ $TARGET = "IOS" ]; then
-        cmake -D IOS=1 -D CMAKE_BUILD_TYPE=$BUILD_TYPE -G Xcode ..
+        cmake -D TARGET=$TARGET -D IOS=1 -D CMAKE_BUILD_TYPE=$BUILD_TYPE -G Xcode ..
+        xcodebuild -target ubase_static -target rtc_static -target testrtc -configuration $BUILD_TYPE
+    elif [ $TARGET = "IOS-SIM" ]; then
+        cmake -D TARGET=$TARGET -D IOS=1 -D CMAKE_BUILD_TYPE=$BUILD_TYPE -G Xcode ..
         xcodebuild -target ubase_static -target rtc_static -target testrtc -configuration $BUILD_TYPE
     elif [ $TARGET = "UNIX" ]; then
         cmake -D CMAKE_BUILD_TYPE=$BUILD_TYPE UNIX=1 ..
