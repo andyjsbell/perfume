@@ -115,12 +115,10 @@ private:
     IRtcCenter *m_rtc;
     CEventServer *m_event;
     IRtcRender *m_rrender;
-    int m_peerid;
 
 public:
     CApplication(IRtcCenter *rtc) : m_rtc(rtc) {
         m_rrender = new CRtcRender("remote render");
-        m_peerid = -1;
     }
     virtual ~CApplication() {
         delete m_rrender;
@@ -142,7 +140,7 @@ public:
 
         std::stringstream stream;
         stream << "sdpMid: " << sdpMid << "||";
-        stream << "sdpMlineIndex: " << sdpMLineIndex << "||";
+        stream << "sdpMLineIndex: " << sdpMLineIndex << "||";
         stream << "candidate: " << candidate << "||";
         //LOGI("msg="<<stream.str());
         m_event->PostMsg(ON_SEND, stream.str());
@@ -170,15 +168,14 @@ public:
         LOGD("peer_id="<<peer_id);
     }
     virtual void OnMessageFromPeer(int peer_id, const std::string& message) {
-        LOGD("peer_id="<<peer_id<<", message="<<message);
-        if (m_peerid == -1)
-            m_peerid = peer_id;
+        LOGD("peer_id="<<peer_id); //<<", message="<<message);
+        kPeerNode.id = peer_id;
 
         std::string type;
         int pos1 = message.find("type: ");
         int pos2 = message.find("||", pos1+6);
         if (pos1 != -1 && pos2 != -1) {
-            type = message.substr(pos1+6, pos2);
+            type = message.substr(pos1+6, pos2-pos1-6);
         }
         
         if (!type.empty()) {
@@ -186,8 +183,9 @@ public:
             pos1 = message.find("sdp: ");
             pos2 = message.find("||", pos1+5);
             if (pos1 == -1 || pos2 == -1) return;
-            sdp = message.substr(pos1+5, pos2);
+            sdp = message.substr(pos1+5, pos2-pos1-5);
 
+            LOGD("type="<<type<<", if offer will do CreateAnswer");
             m_rtc->SetRemoteDescription(type, sdp);
             if (type == "offer") {
                 m_rtc->AnswerCall();
@@ -196,20 +194,21 @@ public:
             std::string sdp_mid;
             int sdp_mlineindex = 0;
             std::string sdp;
-
+            
             pos1 = message.find("sdpMid: ");
             pos2 = message.find("||", pos1+8);
             if (pos1 == -1 || pos2 == -1) return;
-            sdp_mid = message.substr(pos1+8, pos2);
+            sdp_mid = message.substr(pos1+8, pos2-pos1-8);
             pos1 = message.find("sdpMLineIndex: ");
             pos2 = message.find("||", pos1+15);
             if (pos1 == -1 || pos2 == -1) return;
-            sdp_mid = atoi(message.substr(pos1+15, pos2).c_str());
+            sdp_mlineindex = atoi(message.substr(pos1+15, pos2-pos1-15).c_str());
             pos1 = message.find("candidate: ");
             pos2 = message.find("||", pos1+11);
             if (pos1 == -1 || pos2 == -1) return;
-            sdp = message.substr(pos1+11, pos2);
+            sdp = message.substr(pos1+11, pos2-pos1-11);
                 
+            LOGD("sdp_mid="<<sdp_mid<<", sdp_mlineindex="<<sdp_mlineindex);
             m_rtc->AddIceCandidate(sdp, sdp_mid, sdp_mlineindex);
         }
     }

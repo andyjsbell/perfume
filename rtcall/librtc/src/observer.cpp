@@ -77,7 +77,7 @@ void CRTCPeerConnectionObserver::OnDataChannel(webrtc::DataChannelInterface* dat
 // Triggered when renegotation is needed, for example the ICE has restarted.
 void CRTCPeerConnectionObserver::OnRenegotiationNeeded() 
 {
-    LOGD("ok");
+    //LOGD("ok");
     event_process0(m_pc, onnegotiationneeded);
 }
 
@@ -85,7 +85,7 @@ void CRTCPeerConnectionObserver::OnRenegotiationNeeded()
 void CRTCPeerConnectionObserver::OnIceConnectionChange(
         webrtc::PeerConnectionInterface::IceConnectionState new_state) 
 {
-    LOGD("ok");
+    //LOGD("ok");
     int state = (int)new_state;
     m_pc->Put_iceConnectionState((RTCIceConnectionState)state);
     event_process1(m_pc, oniceconnectionstatechange, state);

@@ -241,12 +241,14 @@ virtual void ErrorCallback(xrtc::NavigatorUserMediaError &error)  {
 
 ///>For xrtc::RTCPeerConnectionEventHandler
 virtual void onnegotiationneeded() {
+    return_assert(m_sink);
 }
 virtual void onicecandidate(xrtc::RTCIceCandidate & ice) {
     return_assert(m_sink);
     m_sink->OnIceCandidate(ice.candidate, ice.sdpMid, ice.sdpMLineIndex);
 }
 virtual void onsignalingstatechange(int state) {
+    return_assert(m_sink);
 }
 virtual void onaddstream(xrtc::MediaStreamPtr stream) { // remote stream
     return_assert(m_pc.get());
@@ -260,6 +262,7 @@ virtual void onremovestream(xrtc::MediaStreamPtr stream) {
     m_sink->OnRemoteStream(REMOVE_ACTION);
 }
 virtual void oniceconnectionstatechange(int state)  {
+    return_assert(m_pc.get());
 }
 virtual void onsuccess(xrtc::RTCSessionDescription &desc) {
     return_assert(m_sink);

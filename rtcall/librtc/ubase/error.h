@@ -23,7 +23,7 @@
 #ifndef _LOG
 #define _LOG(pp)                        {   std::cout << CXX_FUNC_TAG << " " \
                                             << pp << " " << \
-                                            CXX_INFO_TAG << std::endl;}
+                                            std::endl;}
 #define LOGD _LOG
 #define LOGI _LOG
 #define LOGW _LOG
