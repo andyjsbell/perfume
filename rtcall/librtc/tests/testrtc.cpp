@@ -269,7 +269,7 @@ int main(int argc, char *argv[]) {
             rtc->CreatePeerConnection();
             break;
         case 'g': 
-            rtc->GetUserMedia();
+            rtc->GetUserMedia(true, true);
             break;
         case 's': 
             LOGD("call peer ...");
