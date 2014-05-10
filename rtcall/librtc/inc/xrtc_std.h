@@ -25,45 +25,12 @@
 #ifndef _XRTC_STD_H_
 #define _XRTC_STD_H_
 
-#include <string>
-#include <vector>
-#include <map>
-
+#include "xrtc_common.h"
 #include "refcount.h"
 #include "zeroptr.h"
 
 namespace xrtc {
 
-
-typedef bool boolean;
-typedef std::string DOMString;
-#ifdef sequence
-#undef sequence
-#endif
-#define sequence std::vector
-
-typedef sequence<DOMString> CapabilityList;
-typedef std::map<DOMString, DOMString> MediaTrackConstraintSet;
-typedef std::pair<DOMString, DOMString> MediaTrackConstraint;
-typedef std::map<DOMString, DOMString> MediaConstraints;
-
-
-struct MediaTrackConstraints {
-    MediaTrackConstraintSet mandatory;
-    sequence<MediaTrackConstraint> optional;
-};
-
-struct MediaStreamConstraints {
-    boolean video;
-    MediaTrackConstraints videoConstraints;
-    boolean audio;
-    MediaTrackConstraints audioConstraints;
-};
-
-struct DOMError {
-    int errno;
-    DOMString errstr;
-};
 
 class EventTarget : public ubase::RefCount {
 public:
@@ -81,79 +48,8 @@ public:
 #define event_process2(h, f, a, b)      if(h && (h)->Get_EventHandler()) { (h)->Get_EventHandler()->f((a), (b)); }
 
 
-enum media_t {
-    XRTC_UNKNOWN,
-    XRTC_AUDIO,
-    XRTC_VIDEO,
-};
-const DOMString kUnknownKind = "unknown";
-const DOMString kAudioKind = "audio";
-const DOMString kVideoKind = "video";
-//const DOMString kStreamLabel = "stream";
-
-
-///
-/// ==============================
-enum MediaStreamTrackState {
-    TRACK_NEW,            //"new",
-    TRACK_LIVE,           //"live",
-    TRACK_ENDED,          //"ended"
-};
-
-enum VideoFacingModeEnum {
-    FACING_USER,           //"user",
-    FACING_ENVIRONMENT,    //"environment",
-    FACING_LEFT,           //"left",
-    FACING_RIGHT,          //"right"
-};
-
-enum SourceTypeEnum {
-    SOURCE_NONE,           //"none",
-    SOURCE_CAMERA,         //"camera",
-    SOURCE_MICROPHONE,     //"microphone"
-};
-
-struct SourceInfo {
-    DOMString sourceId;
-    DOMString kind;
-    DOMString label;
-};
-
-struct MediaSourceStates {
-    SourceTypeEnum      sourceType;
-    DOMString           sourceId;
-    unsigned long       width;
-    unsigned long       height;
-    float               frameRate;
-    float               aspectRatio;
-    VideoFacingModeEnum facingMode;
-    unsigned long       volume;
-};
-
-struct CapabilityRange {
-    float     max;
-    float     min;
-    boolean supported;
-};
-
-struct AllMediaCapabilities{
-    DOMString mediaType; // "none", "audio", "video", or "text"
-};
-
-struct AllVideoCapabilities : public AllMediaCapabilities {
-    CapabilityList  sourceType;
-    CapabilityList  sourceId;
-    CapabilityRange width;
-    CapabilityRange height;
-    CapabilityRange frameRate;
-    CapabilityRange aspectRatio;
-    CapabilityList  facingMode;
-};
-
-struct AllAudioCapabilities : public AllMediaCapabilities {
-    CapabilityRange volume;
-};
-
+//
+// For Media Stream Track
 class MediaStreamTrackEventHandler {
 public:
     virtual void onmute()       {}
@@ -200,8 +96,8 @@ public:
 };
 
 
-///
-/// ==============================
+//
+// For Media Stream
 class MediaStreamEventHandler {
 public:
     virtual void onended()          {}
@@ -229,12 +125,8 @@ public:
 typedef ubase::zeroptr<MediaStream> MediaStreamPtr;
 
 
-///
-/// ==============================
-struct NavigatorUserMediaError : public DOMError {
-    DOMString constraintName;
-};
-
+//
+// For Local Stream of a/v device
 class NavigatorUserMediaCallback {
 public:
     virtual void SuccessCallback(MediaStreamPtr stream)         {};
@@ -247,72 +139,8 @@ public:
 };
 
 
-///
-/// ==============================
-const DOMString kRTCSdpType[] = {
-    "offer",
-    "pranswer",
-    "answer",
-};
-
-struct RTCSessionDescription {
-    DOMString type; // kRTCSdpType
-    DOMString sdp;
-};
-
-struct RTCIceCandidate {
-    DOMString      candidate;
-    DOMString      sdpMid;
-    unsigned short sdpMLineIndex;
-};
-
-struct RTCIceServer {
-    sequence<DOMString>     urls;
-    DOMString               username;
-    DOMString               credential;
-};
-
-struct RTCConfiguration {
-    sequence<RTCIceServer> iceServers;
-};
-
-struct RTCSdpError : public DOMError {
-    long sdpLineNumber;
-};
-
-
-///
-/// ==============================
-const DOMString kDefaultIceServer = "stun:stun.l.google.com:19302";
-
-enum RTCSignalingState {
-    SIGNALING_STABLE,       //"stable",
-    HAVE_LOCAL_OFFER,       //"have-local-offer",
-    HAVE_REMOTE_OFFER,      //"have-remote-offer",
-    HAVE_LOCAL_PRANSWER,    //"have-local-pranswer",
-    HAVE_REMOTE_PRANSWER,   //"have-remote-pranswer",
-    SIGNALING_CLOSED,       //"closed"
-};
-
-enum RTCIceGatheringState {
-    ICE_NEW,            //"new",
-    ICE_GATHERING,      //"gathering",
-    ICE_COMPLETE,       //"complete"
-};
-
-enum RTCIceConnectionState {
-    CONN_NEW,       //"new",
-    CHECKING,       //"checking",
-    CONNECTED,      //"connected",
-    COMPLETED,      //"completed",
-    FAILED,         //"failed",
-    DISCONNECTED,   //"disconnected",
-    CONN_CLOSED,    //"closed"
-};
-
 //
-//> return EVENT_OK it will continue with defalut action
-//> else stop at this callback
+// For Peer Connection
 class RTCPeerConnectionEventHandler {
 public:
     virtual void onnegotiationneeded()                  {}
