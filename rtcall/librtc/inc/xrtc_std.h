@@ -71,8 +71,8 @@ public:
     virtual void * getptr()         {return NULL;}
 };
 
-#define readonly_attribute(t, n)        protected: virtual void Put_##n(t value) { m_##n = value; } public: virtual t Get_##n() { return m_##n; } protected: t m_##n;
-#define readwrite_attribute(t, n)       public:    virtual void Put_##n(t value) { m_##n = value; } public: virtual t Get_##n() { return m_##n; } protected: t m_##n;
+#define readonly_attribute(t, n)        protected: public: virtual t n() = 0;
+#define readwrite_attribute(t, n)       public:    virtual void Put_##n(t value) = 0; public: virtual t n() = 0;
 #define eventhandler_attribute(c)       public: virtual void Put_EventHandler(c##EventHandler *handler) { m_pEventHandler = handler; } \
                                         protected: virtual c##EventHandler * Get_EventHandler() {return m_pEventHandler; } \
                                         protected: c##EventHandler *m_pEventHandler;
@@ -169,26 +169,15 @@ class MediaStreamTrack : public EventTarget {
     readonly_attribute (DOMString,             label);
     readwrite_attribute (boolean,              enabled);
     readonly_attribute (boolean,               muted);
-    readonly_attribute (boolean,               readonly);
-    readonly_attribute (boolean,               remote);
+    //readonly_attribute (boolean,               readonly);
+    //readonly_attribute (boolean,               remote);
     readonly_attribute (MediaStreamTrackState, readyState);
 
     eventhandler_attribute (MediaStreamTrack);
 
 public:
-    explicit MediaStreamTrack() {reset();}
+    explicit MediaStreamTrack() {m_pEventHandler = NULL;}
     virtual ~MediaStreamTrack() {}
-    void reset() {
-        m_kind = kUnknownKind;
-        m_id = "";
-        m_label = "Unknown Track";
-        m_enabled = false;
-        m_muted = false;
-        m_readonly = false;
-        m_remote = false;
-        m_readyState = TRACK_ENDED;
-        m_pEventHandler = NULL;
-    }
 
     virtual MediaTrackConstraints   constraints ()      = 0;
     virtual MediaSourceStates       states ()           = 0;
@@ -227,16 +216,11 @@ class MediaStream : public EventTarget {
     eventhandler_attribute (MediaStream);
 
 public:
-    explicit MediaStream () {reset();}
+    explicit MediaStream () {m_pEventHandler = NULL;}
     virtual ~MediaStream () {}
-    void reset() {
-        m_id = "";
-        m_ended = false;
-        m_pEventHandler = NULL;
-    }
 
-    virtual sequence<MediaStreamTrackPtr> & getAudioTracks ()           = 0;
-    virtual sequence<MediaStreamTrackPtr> & getVideoTracks ()           = 0;
+    virtual sequence<MediaStreamTrackPtr> getAudioTracks ()           = 0;
+    virtual sequence<MediaStreamTrackPtr> getVideoTracks ()           = 0;
     virtual MediaStreamTrackPtr      getTrackById (DOMString trackId)   = 0;
     virtual void                     addTrack (MediaStreamTrackPtr track) {}
     virtual void                     removeTrack (MediaStreamTrackPtr track) {}
@@ -353,16 +337,8 @@ class RTCPeerConnection : public EventTarget  {
     eventhandler_attribute (RTCPeerConnection);
 
 public:
-    explicit RTCPeerConnection () {reset();}
+    explicit RTCPeerConnection () {m_pEventHandler=NULL;}
     virtual ~RTCPeerConnection () {}
-    void reset() {
-        //m_localDescription = "";
-        //m_remoteDescription = "";
-        m_signalingState = SIGNALING_STABLE;
-        m_iceGatheringState = ICE_NEW;
-        m_iceConnectionState = CONN_NEW;
-        m_pEventHandler = NULL;
-    }
 
     virtual void setParams (const RTCConfiguration & configuration, const MediaConstraints & constraints) {}
     virtual void createOffer (const MediaConstraints & constraints) = 0;
@@ -373,9 +349,9 @@ public:
     virtual void updateIce (const RTCConfiguration & configuration, const MediaConstraints & constraints) {}
     virtual void addIceCandidate (const RTCIceCandidate & candidate) = 0;
 
-    virtual sequence<MediaStreamPtr> & getLocalStreams ()               = 0;
-    virtual sequence<MediaStreamPtr> & getRemoteStreams ()              = 0;
-    virtual MediaStreamPtr        getStreamById (DOMString streamId)    = 0;
+    virtual sequence<MediaStreamPtr> getLocalStreams ()         = 0;
+    virtual sequence<MediaStreamPtr> getRemoteStreams ()        = 0;
+    virtual MediaStreamPtr getStreamById (DOMString streamId)   = 0;
 
     virtual void addStream (MediaStreamPtr stream, const MediaConstraints & constraints) = 0;
     virtual void removeStream (MediaStreamPtr stream) = 0;

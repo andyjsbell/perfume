@@ -37,16 +37,18 @@ private:
     talk_base::scoped_refptr<CRTCPeerConnectionObserver> m_observer;
     talk_base::scoped_refptr<webrtc::PeerConnectionInterface> m_conn;
 
-protected:
-    sequence<MediaStreamPtr> m_local_streams;
-    sequence<MediaStreamPtr> m_remote_streams;
-
 public:
     bool Init(talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory);
 
     explicit CRTCPeerConnection ();
     virtual ~CRTCPeerConnection ();
     virtual void * getptr();
+
+    RTCSessionDescription localDescription();
+    RTCSessionDescription remoteDescription();
+    RTCSignalingState signalingState();
+    RTCIceGatheringState iceGatheringState();
+    RTCIceConnectionState iceConnectionState();
 
     virtual void setParams (const RTCConfiguration & configuration, const MediaConstraints & constraints);
     virtual void createOffer (const MediaConstraints & constraints);
@@ -56,8 +58,8 @@ public:
     virtual void updateIce (const RTCConfiguration & configuration, const MediaConstraints & constraints);
     virtual void addIceCandidate (const RTCIceCandidate & candidate);
 
-    virtual sequence<MediaStreamPtr> & getLocalStreams ();
-    virtual sequence<MediaStreamPtr> & getRemoteStreams ();
+    virtual sequence<MediaStreamPtr> getLocalStreams ();
+    virtual sequence<MediaStreamPtr> getRemoteStreams ();
     virtual MediaStreamPtr getStreamById (DOMString streamId);
 
     virtual void addStream (MediaStreamPtr stream, const MediaConstraints & constraints);

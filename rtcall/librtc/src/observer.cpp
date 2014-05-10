@@ -39,7 +39,6 @@ void CRTCPeerConnectionObserver::OnSignalingChange(
     //LOGD("ok");
     int state = (int)new_state;
     event_process1(m_pc, onsignalingstatechange, state);
-    m_pc->Put_signalingState((xrtc::RTCSignalingState)state);
 }
 
 // Triggered when SignalingState or IceState have changed.
@@ -53,9 +52,8 @@ void CRTCPeerConnectionObserver::OnStateChange(webrtc::PeerConnectionObserver::S
 void CRTCPeerConnectionObserver::OnAddStream(webrtc::MediaStreamInterface* stream) 
 {
     LOGD("ok");
-    if (!stream)    return;
-    MediaStreamPtr mstream = CreateMediaStream("remote_stream", NULL, stream);
-    m_pc->m_remote_streams.push_back(mstream);
+    return_assert(stream);
+    MediaStreamPtr mstream = CreateMediaStream("", NULL, stream);
     event_process1(m_pc, onaddstream, mstream);
 }
 
@@ -63,10 +61,9 @@ void CRTCPeerConnectionObserver::OnAddStream(webrtc::MediaStreamInterface* strea
 void CRTCPeerConnectionObserver::OnRemoveStream(webrtc::MediaStreamInterface* stream) 
 {
     LOGD("ok");
-    if (!stream)    return;
-    MediaStreamPtr mstream = CreateMediaStream("remote_stream", NULL, stream);
+    return_assert(stream);
+    MediaStreamPtr mstream = CreateMediaStream("", NULL, stream);
     event_process1(m_pc, onremovestream, mstream);
-    m_pc->m_remote_streams.clear(); //TODO: only support one remote stream
 }
 
 // Triggered when a remote peer open a data channel.
@@ -87,7 +84,6 @@ void CRTCPeerConnectionObserver::OnIceConnectionChange(
 {
     //LOGD("ok");
     int state = (int)new_state;
-    m_pc->Put_iceConnectionState((RTCIceConnectionState)state);
     event_process1(m_pc, oniceconnectionstatechange, state);
 }
 
@@ -96,15 +92,13 @@ void CRTCPeerConnectionObserver::OnIceGatheringChange(
         webrtc::PeerConnectionInterface::IceGatheringState new_state) 
 {
     //LOGD("ok");
-    int state = (int)new_state;
-    m_pc->Put_iceGatheringState((RTCIceGatheringState)state);
 }
 
 // New Ice candidate have been found.
 void CRTCPeerConnectionObserver::OnIceCandidate(const webrtc::IceCandidateInterface* candidate) 
 {
     //LOGD("ok");
-    if (!candidate)   return;
+    return_assert (candidate);
     std::string sdp;
     if (!candidate->ToString(&sdp)) {
         return;
@@ -128,34 +122,11 @@ void CRTCPeerConnectionObserver::OnIceComplete() {
 void CRTCPeerConnectionObserver::OnSuccess(webrtc::SessionDescriptionInterface* desc) 
 {
     LOGD("ok");
-    return_assert(desc != NULL);
-    RTCSessionDescription rtcDesc;
-    rtcDesc.type = desc->type();
-
-    std::string sdp;
-    desc->ToString(&sdp);
-    rtcDesc.sdp = sdp;
-
-#if 1
-    const webrtc::SessionDescriptionInterface* ldesc = m_conn->local_description();
-    if (ldesc) {
-        ldesc->ToString(&sdp);
-        RTCSessionDescription desp;
-        desp.sdp = sdp;
-        desp.type = ldesc->type();
-        m_pc->Put_localDescription(desp);
-    }
-
-    const webrtc::SessionDescriptionInterface* rdesc = m_conn->local_description();
-    if (rdesc) {
-        rdesc->ToString(&sdp);
-        RTCSessionDescription desp;
-        desp.sdp = sdp;
-        desp.type = rdesc->type();
-        m_pc->Put_remoteDescription(desp);
-    }
-#endif
-    event_process1(m_pc, onsuccess, rtcDesc);
+    return_assert(desc);
+    RTCSessionDescription rtcdesc;
+    rtcdesc.type = desc->type();
+    desc->ToString(&rtcdesc.sdp);
+    event_process1(m_pc, onsuccess, rtcdesc);
 }
 
 void CRTCPeerConnectionObserver::OnFailure(const std::string& error)

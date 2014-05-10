@@ -41,55 +41,61 @@ private:
     AllMediaCapabilities *m_capabilities;
 
 public:
-bool Init(talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory,
+bool Init(
+        const std::string kind, 
+        const std::string label,
+        talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory,
         talk_base::scoped_refptr<webrtc::MediaStreamTrackInterface> track)
 {
     m_track = track;
-    if (m_track == NULL && pc_factory != NULL) {
-        if (m_kind == kAudioKind) {
-            if (!m_source.get())
-                m_source = pc_factory->CreateAudioSource(NULL);
-            m_track = pc_factory->CreateAudioTrack(m_label, (webrtc::AudioSourceInterface *)(m_source.get()));
-        }else if (m_kind == kVideoKind) {
-            if (!m_source.get()) {
-                std::string vname = "";
-                sequence<MediaTrackConstraint>::iterator iter;
-                for (iter=m_constraints.optional.begin(); iter != m_constraints.optional.end(); iter++) {
-                    if (iter->first == "sourceId") {
-                        sequence<SourceInfo>::iterator iter2;
-                        for (iter2=_video_sources.begin(); iter2 != _video_sources.end(); iter2++) {
-                            if (iter2->sourceId == iter->second) {
-                                vname = iter2->label;
-                                break;
-                            }
-                        }
+    if (m_track != NULL) {
+        if (kind == kAudioKind)
+            m_source = ((webrtc::AudioTrackInterface *)m_track.get())->GetSource();
+        else
+            m_source = ((webrtc::VideoTrackInterface *)m_track.get())->GetSource();
+        return true;
+    }
+
+    returnv_assert(pc_factory.get(), false);
+    if (kind == kAudioKind) {
+        if (!m_source.get())
+            m_source = pc_factory->CreateAudioSource(NULL);
+        m_track = pc_factory->CreateAudioTrack(label, (webrtc::AudioSourceInterface *)(m_source.get()));
+    }else if (kind == kVideoKind) {
+        if (!m_source.get()) {
+            std::string vname = "";
+            sequence<MediaTrackConstraint>::iterator iter;
+            for (iter=m_constraints.optional.begin(); iter != m_constraints.optional.end(); iter++) {
+                if (iter->first != "sourceId") 
+                    continue;
+                sequence<SourceInfo>::iterator iter2;
+                for (iter2=_video_sources.begin(); iter2 != _video_sources.end(); iter2++) {
+                    if (iter2->sourceId == iter->second) {
+                        vname = iter2->label;
                         break;
                     }
                 }
-
-                // if vname empty, select default device
-                LOGI("vname="<<vname);
-                cricket::VideoCapturer* capturer = OpenVideoCaptureDevice(vname);
-                if (capturer) {
-                    m_source = pc_factory->CreateVideoSource(capturer, NULL);
-                }
+                break;
             }
 
-            LOGD("create video track by source");
-            if (m_source) {
-                m_track = pc_factory->CreateVideoTrack(m_label, (webrtc::VideoSourceInterface *)(m_source.get()));
+            // if vname empty, select default device
+            LOGI("vname="<<vname);
+            cricket::VideoCapturer* capturer = OpenVideoCaptureDevice(vname);
+            if (capturer) {
+                m_source = pc_factory->CreateVideoSource(capturer, NULL);
             }
+        }
+
+        LOGD("create video track by source");
+        if (m_source) {
+            m_track = pc_factory->CreateVideoTrack(label, (webrtc::VideoSourceInterface *)(m_source.get()));
         }
     }
     return (m_track != NULL);
 }
 
-explicit CMediaStreamTrack(std::string kind, std::string id, std::string label, MediaTrackConstraints *constraints)
+explicit CMediaStreamTrack(MediaTrackConstraints *constraints)
 {
-    m_kind = kind;
-    m_id = id;
-    m_label = label;
-
     if (constraints) {
         m_constraints.mandatory = constraints->mandatory;
         m_constraints.optional = constraints->optional;
@@ -98,7 +104,6 @@ explicit CMediaStreamTrack(std::string kind, std::string id, std::string label, 
 
 virtual ~CMediaStreamTrack()
 {
-    reset();
     m_source.release();
     m_track.release();
 }
@@ -106,6 +111,53 @@ virtual ~CMediaStreamTrack()
 void * getptr()
 {
     return m_track.get();
+}
+
+//
+// For attribute of MediaSteamTrack
+DOMString id() {
+    returnv_assert(m_track.get(), "");
+    return m_track->id();
+}
+DOMString kind() {
+    returnv_assert(m_track.get(), "");
+    return m_track->kind();
+}
+DOMString label() {
+    returnv_assert(m_track.get(), "");
+    return m_track->id();
+}
+boolean enabled() {
+    returnv_assert(m_track.get(), false);
+    return m_track->enabled();
+}
+void Put_enabled(boolean enable) {
+    return_assert(m_track.get());
+    m_track->set_enabled(enable);
+}
+boolean muted() {
+    returnv_assert(m_source.get(), false);
+    webrtc::MediaSourceInterface::SourceState state = m_source->state();
+    return (state == webrtc::MediaSourceInterface::kMuted);
+}
+MediaStreamTrackState readyState() {
+    returnv_assert(m_track.get(), TRACK_ENDED);
+
+    MediaStreamTrackState state = TRACK_ENDED;
+    webrtc::MediaStreamTrackInterface::TrackState tstate = m_track->state();
+    switch (tstate) {
+    case webrtc::MediaStreamTrackInterface::kInitializing: 
+        state = TRACK_NEW; 
+        break;
+    case webrtc::MediaStreamTrackInterface::kLive: 
+        state = TRACK_LIVE; 
+        break;
+    case webrtc::MediaStreamTrackInterface::kEnded: 
+    case webrtc::MediaStreamTrackInterface::kFailed: 
+        state = TRACK_ENDED; 
+        break;
+    }
+    return state;
 }
 
 MediaTrackConstraints constraints()
@@ -240,22 +292,15 @@ ubase::zeroptr<MediaStreamTrack> CreateMediaStreamTrack(
         talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory, 
         talk_base::scoped_refptr<webrtc::MediaStreamTrackInterface> ptrack)
 {
-    std::string kind, id;
+    std::string kind;
     switch(mtype) {
-    case XRTC_AUDIO:
-        kind = kAudioKind;
-        id = "audio_unqieu_id";
-        break;
-    case XRTC_VIDEO:
-        kind = kVideoKind;
-        id = "video_unqieu_id";
-        break;
-    default:
-        return NULL;
+    case XRTC_AUDIO: kind = kAudioKind; break;
+    case XRTC_VIDEO: kind = kVideoKind; break;
+    default: return NULL;
     }
 
-    ubase::zeroptr<CMediaStreamTrack> track = new ubase::RefCounted<CMediaStreamTrack>(kind, id, label, constraints);
-    if (!track->Init(pc_factory, ptrack)) {
+    ubase::zeroptr<CMediaStreamTrack> track = new ubase::RefCounted<CMediaStreamTrack>(constraints);
+    if (!track->Init(kind, label, pc_factory, ptrack)) {
         track = NULL;
     }
     return track;

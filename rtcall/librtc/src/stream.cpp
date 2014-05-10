@@ -32,13 +32,12 @@ class CMediaStream : public MediaStream {
 private:
     talk_base::scoped_refptr<webrtc::MediaStreamInterface> m_stream;
 
-    sequence<MediaStreamTrackPtr> m_audio_tracks;
-    sequence<MediaStreamTrackPtr> m_video_tracks;
-
 public:
-bool Init(talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory, 
+bool Init(
         const std::string label, 
-        talk_base::scoped_refptr<webrtc::MediaStreamInterface> stream) {
+        talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory, 
+        talk_base::scoped_refptr<webrtc::MediaStreamInterface> stream) 
+{
     m_stream = stream;
     if (!m_stream) {
         if (pc_factory) {
@@ -48,17 +47,14 @@ bool Init(talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_fa
     return (m_stream != NULL);
 }
 
-explicit CMediaStream (std::string id)
+explicit CMediaStream ()
 {
-    m_id = id;
     m_stream = NULL;
 }
 
 virtual ~CMediaStream()
 {
     m_stream = NULL;
-    m_audio_tracks.clear();
-    m_video_tracks.clear();
 }
 
 void * getptr() 
@@ -66,83 +62,85 @@ void * getptr()
     return m_stream.get();
 }
 
-sequence<MediaStreamTrackPtr> & getAudioTracks ()
-{
-    return m_audio_tracks;
+DOMString id() {
+    returnv_assert(m_stream.get(), "")
+    return m_stream->label();
 }
 
-sequence<MediaStreamTrackPtr> & getVideoTracks ()
+boolean ended() {
+    returnv_assert(m_stream.get(), true)
+    return false;
+}
+
+sequence<MediaStreamTrackPtr> getAudioTracks ()
 {
-    return m_video_tracks;
+    sequence<MediaStreamTrackPtr> tracks;
+    returnv_assert(m_stream.get(), tracks);
+
+    webrtc::AudioTrackVector atracks = m_stream->GetAudioTracks();
+    webrtc::AudioTrackVector::iterator iter = atracks.begin();
+    for (; iter != atracks.end(); iter++) {
+        MediaStreamTrackPtr track = CreateMediaStreamTrack(XRTC_AUDIO, "", NULL, NULL, (*iter));
+        tracks.push_back(track);
+    }
+    return tracks;
+}
+
+sequence<MediaStreamTrackPtr> getVideoTracks ()
+{
+    sequence<MediaStreamTrackPtr> tracks;
+    returnv_assert(m_stream.get(), tracks);
+
+    webrtc::VideoTrackVector vtracks = m_stream->GetVideoTracks();
+    webrtc::VideoTrackVector::iterator iter = vtracks.begin();
+    for (; iter != vtracks.end(); iter++) {
+        MediaStreamTrackPtr track = CreateMediaStreamTrack(XRTC_VIDEO, "", NULL, NULL, (*iter));
+        tracks.push_back(track);
+    }
+    return tracks;
 }
 
 MediaStreamTrackPtr getTrackById (DOMString trackId)
 {
-    sequence<MediaStreamTrackPtr>::iterator iter;
-    for(iter=m_audio_tracks.begin(); iter != m_audio_tracks.end(); iter++) {
-        if((*iter)->Get_id() == trackId) {
-            return (*iter);
-        }
+    MediaStreamTrackPtr track;
+    talk_base::scoped_refptr<webrtc::AudioTrackInterface> atrack = m_stream->FindAudioTrack(trackId);
+    if (atrack != NULL) {
+        track = CreateMediaStreamTrack(XRTC_AUDIO, "", NULL, NULL, atrack);
+        return track;
     }
 
-    for(iter=m_video_tracks.begin(); iter != m_video_tracks.end(); iter++) {
-        if((*iter)->Get_id() == trackId) {
-            return (*iter);
-        }
+    talk_base::scoped_refptr<webrtc::VideoTrackInterface> vtrack = m_stream->FindVideoTrack(trackId);
+    if (vtrack != NULL) {
+        track = CreateMediaStreamTrack(XRTC_VIDEO, "", NULL, NULL, vtrack);
+        return track;
     }
 
     return NULL;
 }
 
-void _addTrack(sequence<MediaStreamTrackPtr> & tracks, MediaStreamTrackPtr track)
-{
-    sequence<MediaStreamTrackPtr>::iterator iter;
-    for(iter=tracks.begin(); iter != tracks.end(); iter++) {
-        if((*iter)->Get_id() == track->Get_id()) {
-            return;
-        }
-    }
-    tracks.push_back(track);
-}
-
 void addTrack (MediaStreamTrackPtr track)
 {
     if (m_stream != NULL && track != NULL) {
-        if (track->Get_kind() == kAudioKind) {
-            bool bret = m_stream->AddTrack((webrtc::AudioTrackInterface *)track->getptr());
-            LOGI("Adding audio track to MediaStream, ret="<<bret);
-            _addTrack(m_audio_tracks, track);
-        }else if (track->Get_kind() == kVideoKind) {
-            bool bret = m_stream->AddTrack((webrtc::VideoTrackInterface *)track->getptr());
-            LOGI("Adding video track to MediaStream, ret="<<bret);
-            _addTrack(m_video_tracks, track);
+        bool bret =  false;
+        if (track->kind() == kAudioKind) {
+            bret = m_stream->AddTrack((webrtc::AudioTrackInterface *)track->getptr());
+        }else if (track->kind() == kVideoKind) {
+            bret = m_stream->AddTrack((webrtc::VideoTrackInterface *)track->getptr());
         }
-    }
-}
-
-void _removeTrack(sequence<MediaStreamTrackPtr> & tracks, MediaStreamTrackPtr track)
-{
-    sequence<MediaStreamTrackPtr>::iterator iter;
-    for(iter=tracks.begin(); iter != tracks.end(); iter++) {
-        if((*iter)->Get_id() == track->Get_id()) {
-            tracks.erase(iter);
-            return;
-        }
+        LOGI("Add "<<track->kind()<<"track to MediaStream, ret="<<bret);
     }
 }
 
 void removeTrack (MediaStreamTrackPtr track)
 {
-    if (track != NULL) {
-        if (track->Get_kind() == kAudioKind) {
-            if (m_stream != NULL)
-                m_stream->RemoveTrack((webrtc::AudioTrackInterface *)track->getptr());
-            _removeTrack(m_audio_tracks, track);
-        }else if (track->Get_kind() == kVideoKind) {
-            if (m_stream != NULL)
-                m_stream->RemoveTrack((webrtc::VideoTrackInterface *)track->getptr());
-            _removeTrack(m_video_tracks, track);
+    if (m_stream != NULL && track != NULL) {
+        bool bret = false;
+        if (track->kind() == kAudioKind) {
+            bret = m_stream->RemoveTrack((webrtc::AudioTrackInterface *)track->getptr());
+        }else if (track->kind() == kVideoKind) {
+            bret = m_stream->RemoveTrack((webrtc::VideoTrackInterface *)track->getptr());
         }
+        LOGI("Remove "<<track->kind()<<"track to MediaStream, ret="<<bret);
     }
 }
 
@@ -156,9 +154,8 @@ ubase::zeroptr<MediaStream> CreateMediaStream(
         const std::string label,
         talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory, 
         talk_base::scoped_refptr<webrtc::MediaStreamInterface> pstream) {
-    std::string id = "stream_unique_id";
-    ubase::zeroptr<CMediaStream> stream = new ubase::RefCounted<CMediaStream>(id);
-    if (!stream->Init(pc_factory, label, pstream)) {
+    ubase::zeroptr<CMediaStream> stream = new ubase::RefCounted<CMediaStream>();
+    if (!stream->Init(label, pc_factory, pstream)) {
         stream = NULL;
     }
     return stream;

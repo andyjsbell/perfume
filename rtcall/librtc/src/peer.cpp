@@ -72,13 +72,61 @@ CRTCPeerConnection::~CRTCPeerConnection ()
 {
     m_conn = NULL;
     m_observer = NULL;
-    m_local_streams.clear();
-    m_remote_streams.clear();
 }
 
 void * CRTCPeerConnection::getptr() 
 {
     return m_conn.get();
+}
+
+RTCSessionDescription CRTCPeerConnection::localDescription() 
+{
+    RTCSessionDescription rtcdesc;
+    returnv_assert(m_conn.get(), rtcdesc);
+
+    const webrtc::SessionDescriptionInterface *desc = m_conn->local_description();
+    if (desc) {
+        rtcdesc.type = desc->type();
+        desc->ToString(&rtcdesc.sdp);
+    }
+    return rtcdesc;
+}
+
+RTCSessionDescription CRTCPeerConnection::remoteDescription() 
+{
+    RTCSessionDescription rtcdesc;
+    returnv_assert(m_conn.get(), rtcdesc);
+
+    const webrtc::SessionDescriptionInterface *desc = m_conn->remote_description();
+    if (desc) {
+        rtcdesc.type = desc->type();
+        desc->ToString(&rtcdesc.sdp);
+    }
+    return rtcdesc;
+}
+
+RTCSignalingState CRTCPeerConnection::signalingState() 
+{
+    RTCSignalingState state = SIGNALING_CLOSED;
+    returnv_assert(m_conn.get(), state);
+    state = (RTCSignalingState) m_conn->signaling_state();
+    return state;
+}
+
+RTCIceGatheringState CRTCPeerConnection::iceGatheringState() 
+{
+    RTCIceGatheringState state = ICE_NEW;
+    returnv_assert(m_conn.get(), state);
+    state = (RTCIceGatheringState) m_conn->ice_gathering_state();
+    return state;
+}
+
+RTCIceConnectionState CRTCPeerConnection::iceConnectionState() 
+{
+    RTCIceConnectionState state = CONN_NEW;
+    returnv_assert(m_conn.get(), state);
+    state = (RTCIceConnectionState) m_conn->ice_connection_state();
+    return state;
 }
 
 void CRTCPeerConnection::setParams (const RTCConfiguration & configuration, const MediaConstraints & constraints)
@@ -128,31 +176,58 @@ void CRTCPeerConnection::addIceCandidate (const RTCIceCandidate & ice)
     m_conn->AddIceCandidate(candidate.get());
 }
 
-sequence<MediaStreamPtr> & CRTCPeerConnection::getLocalStreams ()
+sequence<MediaStreamPtr> CRTCPeerConnection::getLocalStreams ()
 {
-    return m_local_streams;
+    sequence<MediaStreamPtr> streams;
+    returnv_assert(m_conn.get(), streams);
+
+    talk_base::scoped_refptr<webrtc::StreamCollectionInterface> collection = m_conn->local_streams();
+    returnv_assert(collection.get(), streams);
+    for (size_t k=0; k < collection->count(); k++) {
+        webrtc::MediaStreamInterface *pstream = collection->at(k);
+        MediaStreamPtr stream = CreateMediaStream("", NULL, pstream);
+        streams.push_back(stream);
+    }
+
+    return streams;
 }
 
-sequence<MediaStreamPtr> & CRTCPeerConnection::getRemoteStreams ()
+sequence<MediaStreamPtr> CRTCPeerConnection::getRemoteStreams ()
 {
-    return m_remote_streams;
+    sequence<MediaStreamPtr> streams;
+    returnv_assert(m_conn.get(), streams);
+
+    talk_base::scoped_refptr<webrtc::StreamCollectionInterface> collection = m_conn->remote_streams();
+    returnv_assert(collection.get(), streams);
+    for (size_t k=0; k < collection->count(); k++) {
+        webrtc::MediaStreamInterface *pstream = collection->at(k);
+        MediaStreamPtr stream = CreateMediaStream("", NULL, pstream);
+        if (stream)
+            streams.push_back(stream);
+    }
+    return streams;
 }
 
 MediaStreamPtr CRTCPeerConnection::getStreamById (DOMString streamId)
 {
-    sequence<MediaStreamPtr>::iterator iter;
-    sequence<MediaStreamPtr> streams = getLocalStreams();
-    for (iter=streams.begin(); iter != streams.end(); iter++) {
-        if ((*iter)->Get_id() == streamId) {
-            return *iter;
-        }
+    MediaStreamPtr stream;
+    returnv_assert(m_conn.get(), stream);
+
+    talk_base::scoped_refptr<webrtc::StreamCollectionInterface> collection = NULL;
+    collection = m_conn->local_streams();
+    if (collection) {
+        webrtc::MediaStreamInterface* pstream = collection->find(streamId);
+        MediaStreamPtr stream = CreateMediaStream("", NULL, pstream);
+        if (stream)
+            return stream;
     }
 
-    streams = getRemoteStreams();
-    for (iter=streams.begin(); iter != streams.end(); iter++) {
-        if ((*iter)->Get_id() == streamId) {
-            return *iter;
-        }
+    collection = m_conn->remote_streams();
+    if (collection) {
+        webrtc::MediaStreamInterface* pstream = collection->find(streamId);
+        MediaStreamPtr stream = CreateMediaStream("", NULL, pstream);
+        if (stream)
+            return stream;
     }
 
     return NULL;
@@ -165,7 +240,6 @@ void CRTCPeerConnection::addStream (MediaStreamPtr stream, const MediaConstraint
         webrtc::MediaConstraintsInterface* constraints = NULL;
         bool bret = m_conn->AddStream((webrtc::MediaStreamInterface *)stream->getptr(), constraints);
         LOGI("Add stream to PeerConnection success="<<bret);
-        m_local_streams.push_back(stream);
     }
 }
 
@@ -174,7 +248,6 @@ void CRTCPeerConnection::removeStream (MediaStreamPtr stream)
     return_assert(m_conn.get());
     if (stream && stream->getptr()) {
         m_conn->RemoveStream((webrtc::MediaStreamInterface *)stream->getptr());
-        m_local_streams.clear(); // TODO: now only support one local stream       
     }
 }
 

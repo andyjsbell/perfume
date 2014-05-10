@@ -6,6 +6,7 @@
 #include "talk/base/logging.h"
 #include "talk/base/physicalsocketserver.h"
 #include "talk/media/base/mediaengine.h"
+#include "talk/app/webrtc/jsep.h"
 #include "talk/app/webrtc/mediastreaminterface.h"
 #include "talk/app/webrtc/videosourceinterface.h"
 #include "talk/app/webrtc/peerconnection.h"
