@@ -1,3 +1,24 @@
+Index: DEPS
+===================================================================
+--- DEPS	(revision 5301)
++++ DEPS	(working copy)
+@@ -218,16 +218,6 @@
+                "--win-only"],
+   },
+   {
+-    # Download test resources, i.e. video and audio files from Google Storage.
+-    "pattern": "\\.sha1",
+-    "action": ["download_from_google_storage",
+-               "--directory",
+-               "--recursive",
+-               "--num_threads=10",
+-               "--bucket", "chromium-webrtc-resources",
+-               Var("root_dir") + "/resources"],
+-  },
+-  {
+     # A change to a .gyp, .gypi, or to GYP itself should run the generator.
+     "pattern": ".",
+     "action": ["python", Var("root_dir") + "/build/gyp_chromium",
 Index: talk/app/webrtc/videosource.cc
 ===================================================================
 --- talk/app/webrtc/videosource.cc	(revision 5301)

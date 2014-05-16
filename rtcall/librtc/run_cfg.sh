@@ -100,6 +100,7 @@ config_webrtc() {
     if [ ! -e $obj_path/trunk ]; then
         gclient sync -r $WEBRTC_REV --force >/tmp/svn_webrtc.log 2>&1
         check_err "fail to get webrtc with force from svn!"
+        (cd -P $obj_path/trunk && patch -p0 < $ROOT/scripts/webrtc_mac.patch)
     fi
 
     # ./third_party/webrtc/trunk/talk/app/webrtc/objc/README
