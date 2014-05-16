@@ -9,20 +9,18 @@ WEBRTC_URL=http://webrtc.googlecode.com/svn/trunk
 WEBRTC_REV=5301
 OUT=out
 
-echox() {
-    if [ $# -ge 2 ]; then
-        color=$1; shift; echo -e "\033[${color}m$*\033[00m"; 
-    fi
+echox() { 
+    [ $# -gt 1 ] && b="\033[${1}m" && e="\033[00m" && shift
+    [ $HOST = "Darwin" ] && echo=echo || echo="echo -e"
+    $echo "${b}$*${e}" 
 }
+
 echor() { echox 31 "$*"; }
 echog() { echox 32 "$*"; }
 echoy() { echox 33 "$*"; }
 echob() { echox 34 "$*"; }
 check_err() {
-    if [ $? != 0 ]; then
-        echor "[*] Error and exit!!!, reason="$1
-        exit 1
-    fi
+    [ $? != 0 ] && echor "[*] Error and exit!!!, reason=$1" && exit 1
 }
 
 
@@ -36,19 +34,16 @@ detect_env() {
     which ninja >/dev/null
     check_err "'ninja' is required and was not found in the path!"
 
+    which cmake >/dev/null
+    check_err "'cmake' is required and was not found in the path!"
+
     if [ $HOST != "Linux" ] && [ $HOST != "Darwin" ] ; then
         echor "[Err] Only support host Linux and MacOSX"
         exit 1
     fi
 
-    if [ "#$TARGET" = "#" ]; then
-        echor "[Err] No set for TARGET"
-        exit 1
-    fi
-
-    if [ "#$BUILD_TYPE" = "#" ]; then
-        BUILD_TYPE=Release
-    fi
+    [ "#$TARGET" = "#" ] && echor "[Err] No set for TARGET" && exit 1
+    [ "#$BUILD_TYPE" = "#" ] && BUILD_TYPE=Release
 
     if [ $BUILD_TYPE != "Release" ] && [ $BUILD_TYPE != "Debug" ]; then
         echor "[Err] only support build types: Release, Debug"
@@ -60,18 +55,9 @@ detect_env() {
         AR=ar
         CC=gcc
     elif [ $TARGET = "ANDROID" ]; then
-        if [ "#$JAVA_HOME" = "#" ]; then
-            echor "[Err] no JAVA_HOME env set!"
-            exit 1
-        fi
-        if [ "#$ANDROID_HOME" = "#" ]; then
-            echor "[Err] no ANDROID_HOME env set!"
-            exit 1
-        fi
-        if [ "#$ANDROID_NDK_HOME" = "#" ]; then
-            echor "[Err] no ANDROID_NDK_HOME env set!"
-            exit 1
-        fi
+        [ "#$JAVA_HOME" = "#" ] && echor "[Err] no JAVA_HOME env set!" && exit 1
+        [ "#$ANDROID_HOME" = "#" ] && echor "[Err] no ANDROID_HOME env set!" && exit 1
+        [ "#$ANDROID_NDK_HOME" = "#" ] && echor "[Err] no ANDROID_NDK_HOME env set!" && exit 1
         SYSROOT=$ANDROID_NDK_HOME/toolchains/arm-linux-androideabi-4.6/prebuilt/
         AR=`$ANDROID_NDK_HOME/ndk-which ar`
         CC=`$ANDROID_NDK_HOME/ndk-which gcc` --sysroot=$SYSROOT
@@ -142,7 +128,7 @@ make_archive () {
     target=$1
     echog "[-] Generating archive lib$target.a ..."
     if [ $TARGET = "UNIX" ] || [ $TARGET = "ANDROID" ]; then
-        rm -rf tmpobj; mkdir tmpobj; cd tmpobj
+        rm -rf tmpobj; mkdir -p tmpobj; cd tmpobj
         $AR x ../libyuv.a
         for lib in $thelibs; do
             lib=../$lib
@@ -229,7 +215,7 @@ clean_webrtc() {
 
 build_librtc() {
     pushd $ROOT
-    mkdir bld
+    mkdir -p bld
     pushd bld
     if [ $TARGET = "MAC" ]; then
         cmake -D MAC=1 -D CMAKE_BUILD_TYPE=$BUILD_TYPE -G Xcode ..
@@ -248,11 +234,12 @@ build_librtc() {
     popd
 }
 
+usage() {
+    echor "usage: $0 build|clean|librtc"
+}
+
 main() {
-    if [ $# -lt 1 ]; then 
-        echor "usage: $0 build|clean|librtc"
-        exit 1
-    fi
+    [ $# -lt 1 ] && usage && exit 1
 
     detect_env
     if [ $1 = "clean" ]; then
@@ -265,7 +252,7 @@ main() {
     elif [ $1 = "librtc" ]; then
         build_librtc
     else
-        echor "usage: $0 build|clean"
+        usage && exit 1
     fi
 }
 
