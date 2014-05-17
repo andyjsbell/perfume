@@ -4,6 +4,7 @@
 #include "mutex.h"
 
 #include <sstream>
+#include <unistd.h>
 
 static std::string kServIp = "127.0.0.1";
 static int kServPort = 8888;

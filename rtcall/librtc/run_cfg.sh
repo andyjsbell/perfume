@@ -129,7 +129,7 @@ make_archive () {
     echog "[-] Generating archive lib$target.a ..."
     if [ $TARGET = "UNIX" ] || [ $TARGET = "ANDROID" ]; then
         rm -rf tmpobj; mkdir -p tmpobj; cd tmpobj
-        $AR x ../libyuv.a
+        #$AR x ../libyuv.a
         for lib in $thelibs; do
             lib=../$lib
             if [ ! -e $lib ]; then
@@ -160,7 +160,7 @@ make_so () {
         $CC -shared -o lib$target.so -Wl,-whole-archive $thelibs -Wl,-no-whole-archive $ldflags
         #$CC -DTEST_PRIV_API -o /tmp/test_$target -L. -l$target $ldflags 
     elif [ $TARGET = "MAC" ]; then
-        libtool -dynamic -arch_only x86_64 -o lib$target.so ${thelibs[@]:0}
+        libtool -dynamic -arch_only x86_64 -o lib$target.so ${thelibs[@]:0} $ldflags
     fi
 }
 
@@ -169,19 +169,24 @@ pack_webrtc() {
     obj_path=$ROOT/third_party/webrtc
     echog "[+] To package webrtc libs $OUT ..."
     local_root=$obj_path/trunk/$OUT
-    if [ -e $local_root ]; then
-        cd $local_root
-        target=webrtc_$BUILD_TYPE
-        rm -f lib$target.a
-        excludes="testing\|unittest\|test\|Test\|protobuf_full_do_not_use"
-        thelibs=`find . -name "lib*.a" -print | grep -v "$excludes"`
-        make_archive $target
-        check_err "fail to gen archive .a"
-        #make_so $target
+    [ ! -e $local_root ] && echor "fail to pack webrtc" && return
+
+    cd $local_root
+    target=webrtc_$BUILD_TYPE
+    rm -f lib$target.a
+    excludes="testing\|unittest\|test\|Test\|protobuf_full_do_not_use"
+    thelibs=`find . -depth 1 -name "lib*.a" -print | grep -v "$excludes"`
+
+    if [ $TARGET = "MAC" ]; then
+        # for dynamic lib
+        ldflags="-framework CoreServices -framework CoreAudio -framework CoreVideo -framework QTKit -framework OpenGL -framework AudioToolbox -framework ApplicationServices -framework Foundation -framework AppKit -framework Security -framework IOKit -framework SystemConfiguration -lcrypto -lssl -lc -lstdc++"
+        make_so $target
         check_err "fail to gen shared .so"
-    else
-        echor "fail to pack webrtc"
     fi
+
+    # for static lib
+    make_archive $target 2>/dev/null
+    check_err "fail to gen archive .a"
 }
 
 test_webrtc() {
@@ -204,16 +209,18 @@ test_webrtc() {
     fi
 }
 
-clean_webrtc() {
-    obj_path=$ROOT/third_party/webrtc
-    local_root=$obj_path/trunk/$OUT
-    echog "[+] To clean webrtc of $OUT ..."
-    if [ -e $local_root ]; then
-        rm -rf $local_root
-    fi
+clean_xrtc() {
+    xrtc_bld=$ROOT/bld
+    [ -e $xrtc_bld ] && rm -rf $xrtc_bld
 }
 
-build_librtc() {
+clean_webrtc() {
+    local_root=$ROOT/third_party/webrtc/trunk/$OUT
+    echog "[+] To clean webrtc of $OUT ..."
+    [ -e $local_root ] && rm -rf $local_root
+}
+
+build_xrtc() {
     pushd $ROOT
     mkdir -p bld
     pushd bld
@@ -235,7 +242,7 @@ build_librtc() {
 }
 
 usage() {
-    echor "usage: $0 build|clean|librtc"
+    echor "usage: $0 webrtc|xrtc|clean"
 }
 
 main() {
@@ -243,14 +250,17 @@ main() {
 
     detect_env
     if [ $1 = "clean" ]; then
+        clean_xrtc
+    elif [ $1 = "cleanall" ]; then
         clean_webrtc
-    elif [ $1 = "build" ]; then
+        clean_xrtc
+    elif [ $1 = "webrtc" ]; then
         config_webrtc
         build_webrtc
         pack_webrtc
         test_webrtc
-    elif [ $1 = "librtc" ]; then
-        build_librtc
+    elif [ $1 = "xrtc" ]; then
+        build_xrtc
     else
         usage && exit 1
     fi

@@ -13,7 +13,7 @@ include_directories(
 link_directories(
     ${PROJECT_BINARY_DIR}/lib
 )
-link_libraries(testrtc ubase rtc ${all_libs} stdc++)
+link_libraries(testrtc ubase rtc ${all_libs})
 
 add_executable(testrtc ${testrtc_EXEC_SRCS})
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)

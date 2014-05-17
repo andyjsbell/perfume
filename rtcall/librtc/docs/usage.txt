@@ -8,8 +8,8 @@
 
 3). For ios platform
     $>source scripts/env_ninja.sh
-    $>wrios && sh run_cfg.sh build
-    $>wrios && sh run_cfg.sh librtc
+    $>wrios && sh run_cfg.sh webrtc
+    $>wrios && sh run_cfg.sh xrtc
 
 
 
